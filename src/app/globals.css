@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Identidade Kangu — amarelo/azul-marinho (permanece do rebrand Kango→Kangu). */
+@theme {
+  --color-navy-950: #0a1f33;
+  --color-navy-900: #0f2b46;
+  --color-navy-800: #163a5f;
+  --color-navy-700: #1e4d7b;
+  --color-yellow-400: #f7c948;
+  --color-yellow-500: #eab308;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  min-height: 100dvh;
+}
+
+body {
+  background: #f5f7fa;
+  color: var(--color-navy-900);
+  -webkit-font-smoothing: antialiased;
+}

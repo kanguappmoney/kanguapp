@@ -1,0 +1,18 @@
+{
+  "name": "Kangu",
+  "short_name": "Kangu",
+  "description": "Gestão de transporte escolar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f2b46",
+  "theme_color": "#0f2b46",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

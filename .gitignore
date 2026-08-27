@@ -1,0 +1,28 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# env — NUNCA commitar segredos (chaves Supabase, Asaas, Mapbox)
+.env
+.env.local
+.env*.local
+
+# supabase local
+/supabase/.branches
+/supabase/.temp
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+.vercel
+*.tsbuildinfo
