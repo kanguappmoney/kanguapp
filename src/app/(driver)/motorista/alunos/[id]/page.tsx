@@ -37,11 +37,17 @@ export default async function DetalheAlunoPage({
     .limit(1)
     .maybeSingle();
 
-  // Responsáveis já vinculados.
-  const { data: guardians } = await supabase
+  // Responsáveis já vinculados. Duas queries: guardian_student não tem FK direta
+  // para users (aponta para guardians), então o embed do PostgREST não resolve.
+  const { data: links } = await supabase
     .from("guardian_student")
-    .select("guardian_id, users:guardian_id(full_name)")
+    .select("guardian_id")
     .eq("student_id", id);
+
+  const guardianIds = links?.map((l) => l.guardian_id) ?? [];
+  const { data: guardians } = guardianIds.length
+    ? await supabase.from("users").select("id, full_name").in("id", guardianIds)
+    : { data: [] };
 
   return (
     <>
@@ -73,9 +79,8 @@ export default async function DetalheAlunoPage({
         {guardians?.length ? (
           <Card className="space-y-1">
             {guardians.map((g) => (
-              <p key={g.guardian_id} className="text-sm text-navy-900">
-                {/* @ts-expect-error relação aninhada do supabase-js */}
-                👤 {g.users?.full_name ?? "Responsável"}
+              <p key={g.id} className="text-sm text-navy-900">
+                👤 {g.full_name}
               </p>
             ))}
           </Card>
