@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { acceptInvite, type AcceptState } from "@/lib/actions/invite";
 
 const initial: AcceptState = { error: null };
@@ -8,6 +8,13 @@ const initial: AcceptState = { error: null };
 export function AcceptForm({ token }: { token: string }) {
   const action = acceptInvite.bind(null, token);
   const [state, formAction, pending] = useActionState(action, initial);
+
+  // Campos controlados: no React 19 um <form action> reseta inputs
+  // não-controlados após submeter. Controlando, o valor persiste no erro.
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [accepted, setAccepted] = useState(false);
 
   if (state.needsEmailConfirm) {
     return (
@@ -20,19 +27,36 @@ export function AcceptForm({ token }: { token: string }) {
 
   return (
     <form action={formAction} className="space-y-4">
-      <Field label="Seu nome completo" name="full_name" autoComplete="name" />
-      <Field label="E-mail" name="email" type="email" autoComplete="email" />
+      <Field
+        label="Seu nome completo"
+        name="full_name"
+        autoComplete="name"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+      />
+      <Field
+        label="E-mail"
+        name="email"
+        type="email"
+        autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
       <Field
         label="Crie uma senha (mín. 8 caracteres)"
         name="password"
         type="password"
         autoComplete="new-password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
 
       <label className="flex items-start gap-2 text-sm text-navy-800">
         <input
           type="checkbox"
           name="accept_terms"
+          checked={accepted}
+          onChange={(e) => setAccepted(e.target.checked)}
           className="mt-0.5 h-4 w-4 rounded border-navy-900/30"
         />
         <span>
