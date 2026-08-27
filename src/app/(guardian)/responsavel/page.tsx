@@ -1,10 +1,16 @@
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
+import { JourneyTimeline, type Journey } from "@/components/JourneyTimeline";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 export default async function GuardianHome() {
   const user = await getCurrentUser();
   const supabase = await createClient();
+
+  // Jornada ativa (Linha do tempo, G6). Agregados anônimos + filhos próprios.
+  const { data: journeyData } = await supabase.rpc("get_active_journey");
+  const journey = journeyData as Journey | null;
 
   // RLS retorna só os alunos vinculados a este responsável.
   const { data: children } = await supabase
@@ -21,15 +27,22 @@ export default async function GuardianHome() {
         showSignOut
       />
       <div className="px-4 pb-6">
-        {/* G4 — estado default fora da janela de rota: sem mapa ao vivo. */}
         <SectionTitle>Agora</SectionTitle>
-        <Card>
-          <p className="font-semibold text-navy-900">Fora do horário de rota</p>
-          <p className="text-sm text-navy-700/60">
-            A localização só aparece durante o trajeto. Próxima rota prevista:
-            a definir.
-          </p>
-        </Card>
+        {journey ? (
+          <>
+            <JourneyTimeline journey={journey} />
+            <AutoRefresh seconds={15} />
+          </>
+        ) : (
+          // G4 — estado default fora da janela de rota: sem localização ao vivo.
+          <Card>
+            <p className="font-semibold text-navy-900">Fora do horário de rota</p>
+            <p className="text-sm text-navy-700/60">
+              A localização só aparece durante o trajeto. Você verá a jornada aqui
+              quando a rota começar.
+            </p>
+          </Card>
+        )}
 
         <SectionTitle>Seus filhos</SectionTitle>
         {children?.length ? (

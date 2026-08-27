@@ -13,7 +13,10 @@ export function BottomNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky bottom-0 z-10 grid grid-cols-4 border-t border-navy-900/10 bg-white">
+    <nav
+      className="sticky bottom-0 z-10 grid border-t border-navy-900/10 bg-white"
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+    >
       {items.map((item) => {
         const active =
           pathname === item.href || pathname.startsWith(item.href + "/");

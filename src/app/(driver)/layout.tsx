@@ -4,6 +4,7 @@ import { BottomNav, type NavItem } from "@/components/BottomNav";
 
 const NAV: NavItem[] = [
   { href: "/motorista", label: "Início", icon: "🏠" },
+  { href: "/motorista/rotas", label: "Rotas", icon: "🚐" },
   { href: "/motorista/alunos", label: "Alunos", icon: "🎒" },
   { href: "/motorista/financeiro", label: "Financeiro", icon: "💰" },
   { href: "/motorista/perfil", label: "Perfil", icon: "👤" },
