@@ -32,8 +32,12 @@ export async function createStudent(
       school: emptyToNull(formData.get("school")),
       shift,
       turma: emptyToNull(formData.get("turma")),
+      entry_time: emptyToNull(formData.get("entry_time")),
+      exit_time: emptyToNull(formData.get("exit_time")),
       pickup_address: emptyToNull(formData.get("pickup_address")),
       dropoff_address: emptyToNull(formData.get("dropoff_address")),
+      responsible_name: emptyToNull(formData.get("responsible_name")),
+      responsible_phone: emptyToNull(formData.get("responsible_phone")),
     })
     .select("id")
     .single();
@@ -42,6 +46,53 @@ export async function createStudent(
 
   revalidatePath("/motorista/alunos");
   redirect(`/motorista/alunos/${data.id}`);
+}
+
+// Edita o cadastro do aluno. RLS garante que só o motorista dono altera.
+export async function updateStudent(
+  studentId: string,
+  _prev: StudentFormState,
+  formData: FormData,
+): Promise<StudentFormState> {
+  const supabase = await createClient();
+
+  const full_name = String(formData.get("full_name") ?? "").trim();
+  if (!full_name) return { error: "O nome do aluno é obrigatório." };
+
+  const shiftRaw = String(formData.get("shift") ?? "");
+  const shift = shiftRaw === "morning" || shiftRaw === "afternoon" ? shiftRaw : null;
+
+  const { error } = await supabase
+    .from("students")
+    .update({
+      full_name,
+      school: emptyToNull(formData.get("school")),
+      shift,
+      turma: emptyToNull(formData.get("turma")),
+      entry_time: emptyToNull(formData.get("entry_time")),
+      exit_time: emptyToNull(formData.get("exit_time")),
+      pickup_address: emptyToNull(formData.get("pickup_address")),
+      dropoff_address: emptyToNull(formData.get("dropoff_address")),
+      responsible_name: emptyToNull(formData.get("responsible_name")),
+      responsible_phone: emptyToNull(formData.get("responsible_phone")),
+    })
+    .eq("id", studentId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/motorista/alunos/${studentId}`);
+  redirect(`/motorista/alunos/${studentId}`);
+}
+
+// Arquiva o aluno (sai da lista ativa; não apaga histórico).
+export async function archiveStudent(studentId: string) {
+  const supabase = await createClient();
+  await supabase
+    .from("students")
+    .update({ status: "archived" })
+    .eq("id", studentId);
+  revalidatePath("/motorista/alunos");
+  redirect("/motorista/alunos");
 }
 
 // Gera um convite (por aluno) com token de uso único. Um pendente por vez:

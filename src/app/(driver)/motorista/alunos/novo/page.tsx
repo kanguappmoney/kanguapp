@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { createStudent, type StudentFormState } from "@/lib/actions/students";
+import { PhotoSlot } from "@/components/PhotoSlot";
 
 const initial: StudentFormState = { error: null };
 
@@ -35,7 +36,7 @@ export default function NovoAlunoPage() {
         </div>
 
         <form action={action} className="space-y-4">
-          {/* Passo 1 — dados escolares */}
+          {/* Passo 1 — dados do aluno */}
           <div className={step === 1 ? "space-y-4" : "hidden"}>
             <Field label="Nome completo do aluno" name="full_name" required />
             <Field label="Escola" name="school" />
@@ -53,27 +54,43 @@ export default function NovoAlunoPage() {
               </select>
             </label>
             <Field label="Turma (opcional)" name="turma" placeholder="Ex.: Turma Manhã" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Entra na escola" name="entry_time" type="time" />
+              <Field label="Sai da escola" name="exit_time" type="time" />
+            </div>
           </div>
 
-          {/* Passo 2 — embarque */}
+          {/* Passo 2 — endereços */}
           <div className={step === 2 ? "space-y-4" : "hidden"}>
             <Field
               label="Endereço de embarque"
               name="pickup_address"
               placeholder="Rua, número, bairro"
             />
-            <p className="text-xs text-navy-700/50">
-              Só você e os responsáveis vinculados a este aluno veem o endereço.
-            </p>
-          </div>
-
-          {/* Passo 3 — desembarque */}
-          <div className={step === 3 ? "space-y-4" : "hidden"}>
             <Field
               label="Endereço de desembarque"
               name="dropoff_address"
               placeholder="Normalmente a escola"
             />
+            <p className="text-xs text-navy-700/50">
+              Só você e os responsáveis vinculados a este aluno veem os endereços.
+            </p>
+          </div>
+
+          {/* Passo 3 — responsável + foto */}
+          <div className={step === 3 ? "space-y-4" : "hidden"}>
+            <Field
+              label="Nome do responsável"
+              name="responsible_name"
+              placeholder="Quem você já conhece"
+            />
+            <Field
+              label="Telefone / WhatsApp do responsável"
+              name="responsible_phone"
+              type="tel"
+              placeholder="(11) 90000-0000"
+            />
+            <PhotoSlot label="Foto do aluno" />
           </div>
 
           {state.error && (

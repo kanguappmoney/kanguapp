@@ -3,11 +3,17 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, SectionTitle } from "@/components/ui";
 import { InvitePanel } from "@/components/InvitePanel";
+import { PhotoSlot } from "@/components/PhotoSlot";
+import { ArchiveButton } from "@/components/ArchiveButton";
 
 const SHIFT_LABEL: Record<string, string> = {
   morning: "Manhã",
   afternoon: "Tarde",
 };
+
+function hhmm(t: string | null): string | null {
+  return t ? t.slice(0, 5) : null;
+}
 
 export default async function DetalheAlunoPage({
   params,
@@ -20,7 +26,7 @@ export default async function DetalheAlunoPage({
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, full_name, school, shift, turma, pickup_address, dropoff_address, pay_status",
+      "id, full_name, school, shift, turma, entry_time, exit_time, pickup_address, dropoff_address, responsible_name, responsible_phone, pay_status",
     )
     .eq("id", id)
     .single();
@@ -51,14 +57,26 @@ export default async function DetalheAlunoPage({
 
   return (
     <>
-      <header className="flex items-center gap-3 bg-navy-900 px-4 pb-5 pt-6 text-white">
-        <Link href="/motorista/alunos" className="text-white/70">
-          ←
+      <header className="flex items-center justify-between gap-3 bg-navy-900 px-4 pb-5 pt-6 text-white">
+        <div className="flex items-center gap-3">
+          <Link href="/motorista/alunos" className="text-white/70">
+            ←
+          </Link>
+          <h1 className="text-lg font-bold">{student.full_name}</h1>
+        </div>
+        <Link
+          href={`/motorista/alunos/${id}/editar`}
+          className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-yellow-400"
+        >
+          Editar
         </Link>
-        <h1 className="text-lg font-bold">{student.full_name}</h1>
       </header>
 
       <div className="px-4 pb-6">
+        <div className="mt-4">
+          <PhotoSlot label="Foto do aluno" />
+        </div>
+
         <SectionTitle>Dados escolares</SectionTitle>
         <Card className="space-y-1 text-sm">
           <Row label="Escola" value={student.school} />
@@ -67,12 +85,20 @@ export default async function DetalheAlunoPage({
             value={student.shift ? SHIFT_LABEL[student.shift] : null}
           />
           <Row label="Turma" value={student.turma} />
+          <Row label="Entra na escola" value={hhmm(student.entry_time)} />
+          <Row label="Sai da escola" value={hhmm(student.exit_time)} />
         </Card>
 
         <SectionTitle>Embarque e desembarque</SectionTitle>
         <Card className="space-y-1 text-sm">
           <Row label="Embarque" value={student.pickup_address} />
           <Row label="Desembarque" value={student.dropoff_address} />
+        </Card>
+
+        <SectionTitle>Contato do responsável</SectionTitle>
+        <Card className="space-y-1 text-sm">
+          <Row label="Nome" value={student.responsible_name} />
+          <Row label="Telefone" value={student.responsible_phone} />
         </Card>
 
         <SectionTitle>Responsáveis</SectionTitle>
@@ -94,6 +120,10 @@ export default async function DetalheAlunoPage({
         <Card>
           <InvitePanel studentId={id} invite={invite ?? null} />
         </Card>
+
+        <div className="mt-8">
+          <ArchiveButton studentId={id} />
+        </div>
       </div>
     </>
   );
