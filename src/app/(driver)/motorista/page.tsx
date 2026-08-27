@@ -20,7 +20,7 @@ export default async function DriverHome() {
             Nenhuma rota configurada ainda. Cadastre alunos e monte a primeira
             rota para começar.
           </p>
-          <button className="mt-3 w-full rounded-xl bg-navy-900 py-3 font-semibold text-yellow-400">
+          <button className="mt-3 w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900">
             Iniciar rota
           </button>
         </Card>

@@ -94,7 +94,7 @@ export default async function RevisaoHojePage({
 
         {/* G2: início só com confirmação explícita do motorista. */}
         <form action={startExecution.bind(null, routeId)} className="mt-3">
-          <button className="w-full rounded-xl bg-navy-900 py-3 font-semibold text-yellow-400">
+          <button className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900">
             Confirmar e iniciar rota
           </button>
         </form>

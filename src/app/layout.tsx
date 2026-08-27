@@ -1,6 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Poppins, Inter } from "next/font/google";
 import "./globals.css";
 import { RegisterSW } from "@/components/RegisterSW";
+
+// Guia de marca: títulos Poppins SemiBold, corpo Inter Regular.
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Kangu",
@@ -14,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f2b46",
+  themeColor: "#0d1b3d",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -27,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={`${poppins.variable} ${inter.variable}`}>
       <body className="font-sans">
         {children}
         <RegisterSW />

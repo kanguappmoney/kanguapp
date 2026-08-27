@@ -38,7 +38,7 @@ export default async function RotasPage() {
         <div className="mt-4">
           <Link
             href="/motorista/rotas/nova"
-            className="block w-full rounded-xl bg-navy-900 py-3 text-center font-semibold text-yellow-400"
+            className="block w-full rounded-xl bg-yellow-400 py-3 text-center font-semibold text-navy-900"
           >
             ➕ Nova rota
           </Link>
@@ -82,13 +82,13 @@ export default async function RotasPage() {
                   {running ? (
                     <Link
                       href={`/motorista/rota/${exec!.id}`}
-                      className="block w-full rounded-xl bg-navy-900 py-2.5 text-center font-semibold text-yellow-400"
+                      className="block w-full rounded-xl bg-yellow-400 py-2.5 text-center font-semibold text-navy-900"
                     >
                       Continuar rota
                     </Link>
                   ) : done ? null : (
                     <form action={startOrReview.bind(null, r.id)}>
-                      <button className="w-full rounded-xl bg-navy-900 py-2.5 font-semibold text-yellow-400">
+                      <button className="w-full rounded-xl bg-yellow-400 py-2.5 font-semibold text-navy-900">
                         Iniciar rota
                       </button>
                     </form>

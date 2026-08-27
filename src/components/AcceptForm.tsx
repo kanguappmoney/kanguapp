@@ -81,7 +81,7 @@ export function AcceptForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-navy-900 py-3 font-semibold text-yellow-400 disabled:opacity-60"
+        className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
       >
         {pending ? "Vinculando…" : "Aceitar e acompanhar"}
       </button>

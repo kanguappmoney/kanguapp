@@ -94,7 +94,7 @@ export function DriveScreen({
               <div className="flex gap-2">
                 <button
                   onClick={() => set(s.studentId, "boarded")}
-                  className="flex-1 rounded-xl bg-navy-900 py-2.5 font-semibold text-yellow-400"
+                  className="flex-1 rounded-xl bg-yellow-400 py-2.5 font-semibold text-navy-900"
                 >
                   {boardVerb}
                 </button>
@@ -120,7 +120,7 @@ export function DriveScreen({
       <div className="sticky bottom-0 border-t border-navy-900/10 bg-white p-4">
         <button
           onClick={() => setConfirming(true)}
-          className="w-full rounded-xl bg-navy-900 py-3 font-semibold text-yellow-400"
+          className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
         >
           Encerrar rota
         </button>
@@ -150,7 +150,7 @@ export function DriveScreen({
                 Voltar
               </button>
               <form action={() => endRoute(executionId)} className="flex-1">
-                <button className="w-full rounded-xl bg-navy-900 py-3 font-semibold text-yellow-400">
+                <button className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900">
                   Confirmar e encerrar
                 </button>
               </form>

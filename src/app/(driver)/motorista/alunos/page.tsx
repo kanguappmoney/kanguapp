@@ -28,7 +28,7 @@ export default async function AlunosPage() {
         <div className="mt-4">
           <Link
             href="/motorista/alunos/novo"
-            className="block w-full rounded-xl bg-navy-900 py-3 text-center font-semibold text-yellow-400"
+            className="block w-full rounded-xl bg-yellow-400 py-3 text-center font-semibold text-navy-900"
           >
             ➕ Adicionar aluno
           </Link>
