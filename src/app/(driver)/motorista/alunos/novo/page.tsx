@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { createStudent, type StudentFormState } from "@/lib/actions/students";
 import { StepIndicator } from "@/components/StepIndicator";
+import { Logo } from "@/components/Logo";
 
 const initial: StudentFormState = { error: null };
 const STEPS = ["Dados", "Endereços", "Contato"];
@@ -21,9 +22,7 @@ export default function NovoAlunoPage() {
           <Link href="/motorista/alunos" className="text-xl text-white/70">
             ←
           </Link>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400 text-xl">
-            🦘
-          </div>
+          <Logo variant="icon" className="h-10 w-10" />
           <div className="flex-1">
             <h1 className="text-lg font-bold leading-tight">Adicionar aluno</h1>
             <p className="text-xs text-white/60">Cadastre um novo passageiro</p>

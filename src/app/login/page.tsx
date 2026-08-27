@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { signIn, type AuthState } from "@/lib/actions/auth";
+import { Logo } from "@/components/Logo";
 
 const initial: AuthState = { error: null };
 
@@ -11,12 +12,8 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-navy-900 text-2xl">
-          🦘
-        </div>
-        <h1 className="text-2xl font-bold text-navy-900">Kangu</h1>
-        <p className="text-sm text-navy-700/70">Transporte escolar, sem susto.</p>
+      <div className="mb-8 flex justify-center">
+        <Logo variant="vertical" className="w-52" />
       </div>
 
       <form action={action} className="space-y-4">

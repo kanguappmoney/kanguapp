@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AcceptForm } from "@/components/AcceptForm";
+import { Logo } from "@/components/Logo";
 
 interface Preview {
   status: "pending" | "accepted" | "revoked" | "expired";
@@ -27,9 +28,7 @@ export default async function ConvitePage({
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-10">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-navy-900 text-2xl">
-          🦘
-        </div>
+        <Logo variant="icon" className="mx-auto mb-3 h-16 w-16" />
         <h1 className="text-xl font-bold text-navy-900">Convite Kangu</h1>
       </div>
 

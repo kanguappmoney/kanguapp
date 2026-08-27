@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   title: "Kangu",
   description: "Gestão de transporte escolar",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
