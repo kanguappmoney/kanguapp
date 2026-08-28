@@ -11,19 +11,15 @@ export function AppHeader({
   showSignOut?: boolean;
 }) {
   return (
-    <header className="flex items-start justify-between bg-navy-900 px-5 pb-5 pt-6 text-white">
+    <header className="flex items-start justify-between border-b border-navy-900/10 bg-white px-5 pb-5 pt-6 text-navy-900">
       <div className="flex items-center gap-3">
         <Logo variant="icon" className="h-9 w-9 shrink-0" />
         <div>
-          <h1 className="text-xl font-bold">{title}</h1>
-          {subtitle && <p className="text-sm text-white/60">{subtitle}</p>}
+          <h1 className="text-xl font-bold text-navy-900">{title}</h1>
+          {subtitle && <p className="text-sm text-navy-700/50">{subtitle}</p>}
         </div>
       </div>
-      {showSignOut && (
-        <div className="[&_button]:!text-yellow-400">
-          <SignOutButton />
-        </div>
-      )}
+      {showSignOut && <SignOutButton />}
     </header>
   );
 }

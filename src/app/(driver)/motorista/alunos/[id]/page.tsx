@@ -66,16 +66,16 @@ export default async function DetalheAlunoPage({
 
   return (
     <>
-      <header className="flex items-center justify-between gap-3 bg-navy-900 px-4 pb-5 pt-6 text-white">
+      <header className="flex items-center justify-between gap-3 border-b border-navy-900/10 bg-white px-4 pb-5 pt-6 text-navy-900">
         <div className="flex items-center gap-3">
-          <Link href="/motorista/alunos" className="text-white/70">
+          <Link href="/motorista/alunos" className="text-navy-900/70">
             <ArrowLeft className="h-6 w-6" />
           </Link>
-          <h1 className="text-lg font-bold">{student.full_name}</h1>
+          <h1 className="text-lg font-bold text-navy-900">{student.full_name}</h1>
         </div>
         <Link
           href={`/motorista/alunos/${id}/editar`}
-          className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium text-yellow-400"
+          className="rounded-lg bg-navy-900/5 px-3 py-1.5 text-sm font-medium text-navy-900"
         >
           Editar
         </Link>

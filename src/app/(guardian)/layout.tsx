@@ -1,13 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, homePathForRole } from "@/lib/auth";
-import { BottomNav, type NavItem } from "@/components/BottomNav";
-
-const NAV: NavItem[] = [
-  { href: "/responsavel", label: "Início", icon: "🏠" },
-  { href: "/responsavel/rotas", label: "Rotas", icon: "🚐" },
-  { href: "/responsavel/pagamentos", label: "Pagamentos", icon: "💳" },
-  { href: "/responsavel/perfil", label: "Perfil", icon: "👤" },
-];
+import { BottomNav } from "@/components/BottomNav";
 
 export default async function GuardianLayout({
   children,
@@ -21,7 +14,7 @@ export default async function GuardianLayout({
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-[#f5f7fa]">
       <div className="flex-1">{children}</div>
-      <BottomNav items={NAV} />
+      <BottomNav role="guardian" />
     </div>
   );
 }

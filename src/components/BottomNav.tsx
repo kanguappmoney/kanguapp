@@ -2,15 +2,49 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  Home,
+  Route,
+  Users,
+  Wallet,
+  User,
+  CreditCard,
+  type LucideIcon,
+} from "lucide-react";
 
-export interface NavItem {
+interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
 }
 
-export function BottomNav({ items }: { items: NavItem[] }) {
+// Ícones lucide vivem aqui (Client Component) — não podem ser passados de um
+// Server Component (layout) como props.
+const NAV: Record<"driver" | "guardian", NavItem[]> = {
+  driver: [
+    { href: "/motorista", label: "Início", icon: Home },
+    { href: "/motorista/rotas", label: "Rotas", icon: Route },
+    { href: "/motorista/alunos", label: "Alunos", icon: Users },
+    { href: "/motorista/financeiro", label: "Financeiro", icon: Wallet },
+    { href: "/motorista/perfil", label: "Perfil", icon: User },
+  ],
+  guardian: [
+    { href: "/responsavel", label: "Início", icon: Home },
+    { href: "/responsavel/rotas", label: "Rotas", icon: Route },
+    { href: "/responsavel/pagamentos", label: "Pagamentos", icon: CreditCard },
+    { href: "/responsavel/perfil", label: "Perfil", icon: User },
+  ],
+};
+
+export function BottomNav({ role }: { role: "driver" | "guardian" }) {
   const pathname = usePathname();
+  const items = NAV[role];
+
+  // Ativo = o item cujo href é o match mais específico (mais longo). Evita que
+  // o item raiz (/motorista) fique ativo em /motorista/alunos.
+  const activeHref = items
+    .filter((i) => pathname === i.href || pathname.startsWith(i.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
     <nav
@@ -18,21 +52,18 @@ export function BottomNav({ items }: { items: NavItem[] }) {
       style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
     >
       {items.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(item.href + "/");
+        const active = item.href === activeHref;
+        const Icon = item.icon;
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 py-2 text-xs ${
-              active ? "text-navy-900" : "text-navy-700/50"
+            className={`flex flex-col items-center gap-1 py-2.5 text-xs font-medium ${
+              active ? "text-yellow-400" : "text-navy-700/40"
             }`}
           >
-            <span className="text-lg">{item.icon}</span>
+            <Icon className="h-5 w-5" />
             {item.label}
-            {active && (
-              <span className="mt-0.5 h-0.5 w-6 rounded-full bg-yellow-400" />
-            )}
           </Link>
         );
       })}

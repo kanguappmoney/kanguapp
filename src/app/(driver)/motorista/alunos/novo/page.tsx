@@ -82,18 +82,20 @@ export default function NovoAlunoPage() {
 
   return (
     <>
-      <header className="bg-navy-900 px-4 pb-5 pt-5 text-white">
+      <header className="border-b border-navy-900/10 bg-white px-4 pb-5 pt-5 text-navy-900">
         <div className="flex items-center gap-3">
-          <Link href="/motorista/alunos" className="text-white/70">
+          <Link href="/motorista/alunos" className="text-navy-900/70">
             <ArrowLeft className="h-6 w-6" />
           </Link>
           <Logo variant="icon" className="h-10 w-10" />
           <div className="flex-1">
-            <h1 className="text-lg font-bold leading-tight">Adicionar aluno</h1>
-            <p className="text-xs text-white/60">Cadastre um novo passageiro</p>
+            <h1 className="text-lg font-bold leading-tight text-navy-900">
+              Adicionar aluno
+            </h1>
+            <p className="text-xs text-navy-700/50">Cadastre um novo passageiro</p>
           </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
-            <User className="h-5 w-5 text-white/80" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-900/5">
+            <User className="h-5 w-5 text-navy-700/60" />
           </div>
         </div>
       </header>
