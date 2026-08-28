@@ -15,9 +15,24 @@ export default async function GuardianHome() {
   // RLS retorna só os alunos vinculados a este responsável.
   const { data: children } = await supabase
     .from("students")
-    .select("id, full_name, school")
+    .select("id, full_name, school, photo_path")
     .eq("status", "active")
     .order("full_name");
+
+  // Foto por URL assinada (bucket privado). A RLS já libera a leitura ao
+  // responsável vinculado — se não tiver foto, cai no placeholder.
+  const childrenWithPhoto = await Promise.all(
+    (children ?? []).map(async (c) => {
+      let photoUrl: string | null = null;
+      if (c.photo_path) {
+        const { data } = await supabase.storage
+          .from("student-photos")
+          .createSignedUrl(c.photo_path, 3600);
+        photoUrl = data?.signedUrl ?? null;
+      }
+      return { ...c, photoUrl };
+    }),
+  );
 
   return (
     <>
@@ -45,14 +60,17 @@ export default async function GuardianHome() {
         )}
 
         <SectionTitle>Seus filhos</SectionTitle>
-        {children?.length ? (
+        {childrenWithPhoto.length ? (
           <div className="space-y-2">
-            {children.map((c) => (
-              <Card key={c.id}>
-                <p className="font-semibold text-navy-900">{c.full_name}</p>
-                {c.school && (
-                  <p className="text-sm text-navy-700/60">{c.school}</p>
-                )}
+            {childrenWithPhoto.map((c) => (
+              <Card key={c.id} className="flex items-center gap-3">
+                <ChildAvatar url={c.photoUrl} name={c.full_name} />
+                <div>
+                  <p className="font-semibold text-navy-900">{c.full_name}</p>
+                  {c.school && (
+                    <p className="text-sm text-navy-700/60">{c.school}</p>
+                  )}
+                </div>
               </Card>
             ))}
           </div>
@@ -63,5 +81,30 @@ export default async function GuardianHome() {
         )}
       </div>
     </>
+  );
+}
+
+// Foto do filho (URL assinada) ou placeholder neutro com as iniciais.
+function ChildAvatar({ url, name }: { url: string | null; name: string }) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt={name}
+        className="h-11 w-11 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+  const initials = name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-navy-900/10 text-sm font-semibold text-navy-700/70">
+      {initials}
+    </div>
   );
 }
