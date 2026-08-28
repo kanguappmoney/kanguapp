@@ -19,6 +19,7 @@ function studentPayloadFromForm(formData: FormData) {
     full_name: String(formData.get("full_name") ?? "").trim(),
     birth_date: emptyToNull(formData.get("birth_date")),
     school: emptyToNull(formData.get("school")),
+    school_address: emptyToNull(formData.get("school_address")),
     shift,
     turma: emptyToNull(formData.get("turma")),
     entry_time: emptyToNull(formData.get("entry_time")),
@@ -30,6 +31,29 @@ function studentPayloadFromForm(formData: FormData) {
     responsible_whatsapp: emptyToNull(formData.get("responsible_whatsapp")),
     responsible_email: emptyToNull(formData.get("responsible_email")),
   };
+}
+
+// Todos os campos são obrigatórios (menos a foto). Retorna a lista de faltantes.
+const REQUIRED_LABELS: Record<string, string> = {
+  full_name: "Nome",
+  birth_date: "Data de nascimento",
+  responsible_name: "Nome do responsável",
+  responsible_phone: "Telefone",
+  responsible_whatsapp: "WhatsApp",
+  responsible_email: "E-mail",
+  school: "Escola",
+  school_address: "Endereço da escola",
+  turma: "Ano/Turma",
+  entry_time: "Entrada",
+  exit_time: "Saída",
+  pickup_address: "Embarque",
+  dropoff_address: "Desembarque",
+};
+
+function missingFields(payload: Record<string, unknown>): string[] {
+  return Object.entries(REQUIRED_LABELS)
+    .filter(([key]) => !payload[key])
+    .map(([, label]) => label);
 }
 
 // Cadastro de aluno pelo motorista (dono). RLS garante driver_id = auth.uid().
@@ -44,7 +68,9 @@ export async function createStudent(
   if (!user) return { error: "Sessão expirada. Entre novamente." };
 
   const payload = studentPayloadFromForm(formData);
-  if (!payload.full_name) return { error: "O nome do aluno é obrigatório." };
+  const missing = missingFields(payload);
+  if (missing.length)
+    return { error: `Preencha todos os campos: ${missing.join(", ")}.` };
 
   const { data, error } = await supabase
     .from("students")
@@ -67,7 +93,9 @@ export async function updateStudent(
   const supabase = await createClient();
 
   const payload = studentPayloadFromForm(formData);
-  if (!payload.full_name) return { error: "O nome do aluno é obrigatório." };
+  const missing = missingFields(payload);
+  if (missing.length)
+    return { error: `Preencha todos os campos: ${missing.join(", ")}.` };
 
   const { error } = await supabase
     .from("students")
