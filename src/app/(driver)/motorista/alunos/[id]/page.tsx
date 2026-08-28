@@ -9,10 +9,18 @@ import { ArchiveButton } from "@/components/ArchiveButton";
 const SHIFT_LABEL: Record<string, string> = {
   morning: "Manhã",
   afternoon: "Tarde",
+  integral: "Integral",
 };
 
 function hhmm(t: string | null): string | null {
   return t ? t.slice(0, 5) : null;
+}
+
+// Data ISO (yyyy-mm-dd) → dd/mm/aaaa.
+function brDate(d: string | null): string | null {
+  if (!d) return null;
+  const [y, m, day] = d.slice(0, 10).split("-");
+  return `${day}/${m}/${y}`;
 }
 
 export default async function DetalheAlunoPage({
@@ -26,7 +34,7 @@ export default async function DetalheAlunoPage({
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, full_name, school, shift, turma, entry_time, exit_time, pickup_address, dropoff_address, responsible_name, responsible_phone, pay_status",
+      "id, full_name, birth_date, school, shift, turma, entry_time, exit_time, pickup_address, dropoff_address, responsible_name, responsible_phone, responsible_whatsapp, responsible_email, pay_status",
     )
     .eq("id", id)
     .single();
@@ -77,6 +85,11 @@ export default async function DetalheAlunoPage({
           <PhotoSlot label="Foto do aluno" />
         </div>
 
+        <SectionTitle>Dados do aluno</SectionTitle>
+        <Card className="space-y-1 text-sm">
+          <Row label="Nascimento" value={brDate(student.birth_date)} />
+        </Card>
+
         <SectionTitle>Dados escolares</SectionTitle>
         <Card className="space-y-1 text-sm">
           <Row label="Escola" value={student.school} />
@@ -99,6 +112,8 @@ export default async function DetalheAlunoPage({
         <Card className="space-y-1 text-sm">
           <Row label="Nome" value={student.responsible_name} />
           <Row label="Telefone" value={student.responsible_phone} />
+          <Row label="WhatsApp" value={student.responsible_whatsapp} />
+          <Row label="E-mail" value={student.responsible_email} />
         </Card>
 
         <SectionTitle>Responsáveis</SectionTitle>

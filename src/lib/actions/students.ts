@@ -7,6 +7,31 @@ import { createClient } from "@/lib/supabase/server";
 
 export type StudentFormState = { error: string | null };
 
+// Monta o payload do aluno a partir do formulário (compartilhado por criar/editar).
+function studentPayloadFromForm(formData: FormData) {
+  const shiftRaw = String(formData.get("shift") ?? "");
+  const shift =
+    shiftRaw === "morning" || shiftRaw === "afternoon" || shiftRaw === "integral"
+      ? shiftRaw
+      : null;
+
+  return {
+    full_name: String(formData.get("full_name") ?? "").trim(),
+    birth_date: emptyToNull(formData.get("birth_date")),
+    school: emptyToNull(formData.get("school")),
+    shift,
+    turma: emptyToNull(formData.get("turma")),
+    entry_time: emptyToNull(formData.get("entry_time")),
+    exit_time: emptyToNull(formData.get("exit_time")),
+    pickup_address: emptyToNull(formData.get("pickup_address")),
+    dropoff_address: emptyToNull(formData.get("dropoff_address")),
+    responsible_name: emptyToNull(formData.get("responsible_name")),
+    responsible_phone: emptyToNull(formData.get("responsible_phone")),
+    responsible_whatsapp: emptyToNull(formData.get("responsible_whatsapp")),
+    responsible_email: emptyToNull(formData.get("responsible_email")),
+  };
+}
+
 // Cadastro de aluno pelo motorista (dono). RLS garante driver_id = auth.uid().
 export async function createStudent(
   _prev: StudentFormState,
@@ -18,27 +43,12 @@ export async function createStudent(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sessão expirada. Entre novamente." };
 
-  const full_name = String(formData.get("full_name") ?? "").trim();
-  if (!full_name) return { error: "O nome do aluno é obrigatório." };
-
-  const shiftRaw = String(formData.get("shift") ?? "");
-  const shift = shiftRaw === "morning" || shiftRaw === "afternoon" ? shiftRaw : null;
+  const payload = studentPayloadFromForm(formData);
+  if (!payload.full_name) return { error: "O nome do aluno é obrigatório." };
 
   const { data, error } = await supabase
     .from("students")
-    .insert({
-      driver_id: user.id,
-      full_name,
-      school: emptyToNull(formData.get("school")),
-      shift,
-      turma: emptyToNull(formData.get("turma")),
-      entry_time: emptyToNull(formData.get("entry_time")),
-      exit_time: emptyToNull(formData.get("exit_time")),
-      pickup_address: emptyToNull(formData.get("pickup_address")),
-      dropoff_address: emptyToNull(formData.get("dropoff_address")),
-      responsible_name: emptyToNull(formData.get("responsible_name")),
-      responsible_phone: emptyToNull(formData.get("responsible_phone")),
-    })
+    .insert({ driver_id: user.id, ...payload })
     .select("id")
     .single();
 
@@ -56,26 +66,12 @@ export async function updateStudent(
 ): Promise<StudentFormState> {
   const supabase = await createClient();
 
-  const full_name = String(formData.get("full_name") ?? "").trim();
-  if (!full_name) return { error: "O nome do aluno é obrigatório." };
-
-  const shiftRaw = String(formData.get("shift") ?? "");
-  const shift = shiftRaw === "morning" || shiftRaw === "afternoon" ? shiftRaw : null;
+  const payload = studentPayloadFromForm(formData);
+  if (!payload.full_name) return { error: "O nome do aluno é obrigatório." };
 
   const { error } = await supabase
     .from("students")
-    .update({
-      full_name,
-      school: emptyToNull(formData.get("school")),
-      shift,
-      turma: emptyToNull(formData.get("turma")),
-      entry_time: emptyToNull(formData.get("entry_time")),
-      exit_time: emptyToNull(formData.get("exit_time")),
-      pickup_address: emptyToNull(formData.get("pickup_address")),
-      dropoff_address: emptyToNull(formData.get("dropoff_address")),
-      responsible_name: emptyToNull(formData.get("responsible_name")),
-      responsible_phone: emptyToNull(formData.get("responsible_phone")),
-    })
+    .update(payload)
     .eq("id", studentId);
 
   if (error) return { error: error.message };

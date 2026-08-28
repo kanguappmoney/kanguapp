@@ -7,16 +7,18 @@ import { StepIndicator } from "@/components/StepIndicator";
 import { Logo } from "@/components/Logo";
 
 const initial: StudentFormState = { error: null };
-const STEPS = ["Dados", "Endereços", "Contato"];
+const STEPS = ["Dados", "Escola", "Rota"];
 
 export default function NovoAlunoPage() {
   const [state, action, pending] = useActionState(createStudent, initial);
   const [step, setStep] = useState(1);
-  const [shift, setShift] = useState<"morning" | "afternoon">("morning");
+  const [shift, setShift] = useState<"morning" | "afternoon" | "integral">("morning");
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+  const [sameAddress, setSameAddress] = useState(true);
 
   return (
     <>
-      {/* Header estilo mockup: logo + título + subtítulo + avatar do motorista */}
       <header className="bg-navy-900 px-4 pb-5 pt-5 text-white">
         <div className="flex items-center gap-3">
           <Link href="/motorista/alunos" className="text-xl text-white/70">
@@ -41,67 +43,88 @@ export default function NovoAlunoPage() {
         <form action={action} className="space-y-4">
           <input type="hidden" name="shift" value={shift} />
 
-          {/* Passo 1 — dados do aluno */}
+          {/* ================= Passo 1 — Dados ================= */}
           <div className={step === 1 ? "space-y-4" : "hidden"}>
-            <div className="flex items-start gap-4">
+            <div className="flex justify-center">
               <PhotoCircle />
-              <div className="flex-1">
-                <Field label="Nome completo" name="full_name" placeholder="Digite o nome do aluno" required />
-              </div>
             </div>
-            <Field label="Escola" name="school" placeholder="Digite o nome da escola" />
+            <Field label="Nome completo" name="full_name" req placeholder="Digite o nome do aluno" />
+            <Field label="Data de nascimento" name="birth_date" req type="date" />
+            <Field label="Nome do responsável" name="responsible_name" req placeholder="Digite o nome do responsável" />
+            <Field label="Telefone do responsável" name="responsible_phone" req type="tel" placeholder="(00) 00000-0000" />
+            <Field label="WhatsApp do responsável" name="responsible_whatsapp" type="tel" placeholder="(00) 00000-0000" />
+            <Field label="E-mail do responsável" name="responsible_email" type="email" placeholder="Digite o e-mail do responsável" />
+          </div>
+
+          {/* ================= Passo 2 — Escola ================= */}
+          <div className={step === 2 ? "space-y-4" : "hidden"}>
+            <SectionHeading>Dados escolares</SectionHeading>
+            <Field label="Escola" name="school" req placeholder="Digite o nome da escola" />
+            <Field label="Ano / Turma" name="turma" placeholder="Ex.: 6º ano A" />
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-navy-800">
-                Turno
-              </span>
+              <span className="mb-1.5 block text-sm font-medium text-navy-800">Turno</span>
               <Segmented
                 value={shift}
                 onChange={setShift}
                 options={[
                   { value: "morning", label: "Manhã" },
                   { value: "afternoon", label: "Tarde" },
+                  { value: "integral", label: "Integral" },
                 ]}
               />
             </div>
-            <Field label="Ano / Turma" name="turma" placeholder="Ex.: 6º ano A" />
             <div className="grid grid-cols-2 gap-3">
               <Field label="Entra na escola" name="entry_time" type="time" />
               <Field label="Sai da escola" name="exit_time" type="time" />
             </div>
           </div>
 
-          {/* Passo 2 — endereços */}
-          <div className={step === 2 ? "space-y-4" : "hidden"}>
-            <SectionHeading>Endereços</SectionHeading>
-            <Field
-              label="Endereço de embarque"
-              name="pickup_address"
-              placeholder="Rua, número, bairro"
-            />
-            <Field
-              label="Endereço de desembarque"
-              name="dropoff_address"
-              placeholder="Normalmente a escola"
-            />
-            <p className="text-xs text-navy-700/50">
-              Só você e os responsáveis vinculados a este aluno veem os endereços.
-            </p>
-          </div>
-
-          {/* Passo 3 — responsável */}
+          {/* ================= Passo 3 — Rota ================= */}
           <div className={step === 3 ? "space-y-4" : "hidden"}>
-            <SectionHeading>Contato do responsável</SectionHeading>
-            <Field
-              label="Nome do responsável"
-              name="responsible_name"
-              placeholder="Digite o nome do responsável"
-            />
-            <Field
-              label="Telefone / WhatsApp"
-              name="responsible_phone"
-              type="tel"
-              placeholder="(00) 00000-0000"
-            />
+            <SectionHeading>Endereços</SectionHeading>
+
+            <div className="rounded-2xl border border-navy-900/10 bg-white p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-700">
+                  📍
+                </span>
+                <span className="font-semibold text-navy-900">Embarque</span>
+              </div>
+              <input
+                name="pickup_address"
+                value={pickup}
+                onChange={(e) => setPickup(e.target.value)}
+                placeholder="Endereço de embarque"
+                className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-navy-900/10 bg-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
+                    🏠
+                  </span>
+                  <div>
+                    <p className="font-semibold text-navy-900">Desembarque</p>
+                    <p className="text-xs text-navy-700/50">Mesmo endereço</p>
+                  </div>
+                </div>
+                <Toggle checked={sameAddress} onChange={setSameAddress} />
+              </div>
+              {sameAddress ? (
+                <input type="hidden" name="dropoff_address" value={pickup} />
+              ) : (
+                <input
+                  name="dropoff_address"
+                  value={dropoff}
+                  onChange={(e) => setDropoff(e.target.value)}
+                  placeholder="Endereço de desembarque"
+                  className="mt-3 w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
+                />
+              )}
+            </div>
+
             <div className="rounded-xl bg-yellow-400/15 px-3 py-2.5 text-sm text-navy-800">
               ℹ️ O responsável receberá um convite após o cadastro.
             </div>
@@ -148,14 +171,14 @@ export default function NovoAlunoPage() {
 }
 
 function PhotoCircle() {
-  // Slot de foto circular (visual do mockup "ADICIONAR FOTO"). Sem upload ainda —
+  // Slot de foto circular (visual do print "ADICIONAR FOTO"). Sem upload ainda —
   // a foto real (bucket privado + RLS) é o passo dedicado seguinte.
   return (
-    <div className="flex w-20 shrink-0 flex-col items-center">
-      <div className="flex h-20 w-20 flex-col items-center justify-center rounded-full bg-navy-900/5 text-navy-700/50">
-        <span className="text-xl">📷</span>
+    <div className="flex flex-col items-center">
+      <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-2 border-dashed border-navy-900/20 bg-navy-900/5 text-navy-700/50">
+        <span className="text-2xl">📷</span>
       </div>
-      <span className="mt-1 text-center text-[10px] font-semibold uppercase tracking-wide text-navy-700/50">
+      <span className="mt-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-navy-700/50">
         Adicionar foto
       </span>
     </div>
@@ -192,20 +215,44 @@ function Segmented<T extends string>({
   );
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
-    <h2 className="text-base font-bold text-navy-900">{children}</h2>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 rounded-full transition-colors ${
+        checked ? "bg-yellow-400" : "bg-navy-900/15"
+      }`}
+      aria-pressed={checked}
+    >
+      <span
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+          checked ? "left-[22px]" : "left-0.5"
+        }`}
+      />
+    </button>
   );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-base font-bold text-navy-900">{children}</h2>;
 }
 
 function Field({
   label,
+  req,
   ...props
-}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { label: string; req?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium text-navy-800">
-        {label}
+        {label} {req && <span className="text-yellow-500">*</span>}
       </span>
       <input
         {...props}
