@@ -1,12 +1,11 @@
--- DEFERIDO — NÃO está em migrations/ de propósito (o db push não aplica isto).
--- Este é o passo dedicado da FOTO do aluno. Quando for a hora:
---   1) mover para supabase/migrations/ com timestamp novo;
---   2) db push;
---   3) rodar o teste isolado: pai vinculado LÊ a foto; pai NÃO vinculado é
---      RECUSADO; motorista dono tem acesso total (igual validamos G4/G5).
---
+-- Kangu v1 — Storage da FOTO do aluno (passo dedicado).
 -- Foto de criança = dado sensível (LGPD). Bucket PRIVADO + RLS por vínculo (G5),
--- reaproveitando as funções SECURITY DEFINER já existentes.
+-- reaproveitando as funções SECURITY DEFINER já existentes. Esta migration é só
+-- a INFRA (bucket + RLS + coluna); a lógica de upload é código (server action +
+-- componente), separada de propósito.
+--
+-- Regra (espelha G5): motorista dono do aluno = acesso total; responsável
+-- VINCULADO = só leitura; ninguém mais lê — nem por URL direta (bucket privado).
 
 -- Ponteiro da foto no aluno (caminho no bucket, não URL pública).
 alter table students add column photo_path text;

@@ -56,11 +56,12 @@ function missingFields(payload: Record<string, unknown>): string[] {
     .map(([, label]) => label);
 }
 
-// Cadastro de aluno pelo motorista (dono). RLS garante driver_id = auth.uid().
-export async function createStudent(
-  _prev: StudentFormState,
+// Cadastro de aluno pelo motorista (dono). Retorna o id (sem redirect) para o
+// cliente poder subir a foto em `<id>/avatar` antes de navegar. RLS garante
+// driver_id = auth.uid().
+export async function saveNewStudent(
   formData: FormData,
-): Promise<StudentFormState> {
+): Promise<{ error: string | null; id?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -81,7 +82,18 @@ export async function createStudent(
   if (error) return { error: error.message };
 
   revalidatePath("/motorista/alunos");
-  redirect(`/motorista/alunos/${data.id}`);
+  return { error: null, id: data.id };
+}
+
+// Grava o caminho da foto no aluno (a imagem já foi enviada ao Storage pelo
+// cliente autenticado — RLS do bucket só deixa o motorista dono subir).
+export async function setStudentPhoto(studentId: string, photoPath: string) {
+  const supabase = await createClient();
+  await supabase
+    .from("students")
+    .update({ photo_path: photoPath })
+    .eq("id", studentId);
+  revalidatePath(`/motorista/alunos/${studentId}`);
 }
 
 // Edita o cadastro do aluno. RLS garante que só o motorista dono altera.

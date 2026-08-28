@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import { updateStudent, type StudentFormState } from "@/lib/actions/students";
-import { PhotoSlot } from "@/components/PhotoSlot";
 
 const initial: StudentFormState = { error: null };
 
@@ -30,8 +29,6 @@ export function EditStudentForm({ student }: { student: StudentDefaults }) {
 
   return (
     <form action={formAction} className="space-y-4">
-      <PhotoSlot label="Foto do aluno" />
-
       <SectionHeading>Dados</SectionHeading>
       <Field label="Nome completo" name="full_name" defaultValue={student.full_name} required />
       <Field label="Data de nascimento" name="birth_date" type="date" defaultValue={student.birth_date ?? ""} required />

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, SectionTitle } from "@/components/ui";
 import { InvitePanel } from "@/components/InvitePanel";
-import { PhotoSlot } from "@/components/PhotoSlot";
+import { PhotoUploader } from "@/components/PhotoUploader";
 import { ArchiveButton } from "@/components/ArchiveButton";
 
 const SHIFT_LABEL: Record<string, string> = {
@@ -35,12 +35,21 @@ export default async function DetalheAlunoPage({
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, full_name, birth_date, school, school_address, shift, turma, entry_time, exit_time, pickup_address, dropoff_address, responsible_name, responsible_phone, responsible_whatsapp, responsible_email, pay_status",
+      "id, full_name, birth_date, school, school_address, shift, turma, entry_time, exit_time, pickup_address, dropoff_address, responsible_name, responsible_phone, responsible_whatsapp, responsible_email, photo_path, pay_status",
     )
     .eq("id", id)
     .single();
 
   if (!student) notFound();
+
+  // URL assinada da foto (bucket privado). RLS permite ao motorista dono.
+  let photoUrl: string | null = null;
+  if (student.photo_path) {
+    const { data: signed } = await supabase.storage
+      .from("student-photos")
+      .createSignedUrl(student.photo_path, 3600);
+    photoUrl = signed?.signedUrl ?? null;
+  }
 
   // Convite pendente ativo (se houver).
   const { data: invite } = await supabase
@@ -83,7 +92,7 @@ export default async function DetalheAlunoPage({
 
       <div className="px-4 pb-6">
         <div className="mt-4">
-          <PhotoSlot label="Foto do aluno" />
+          <PhotoUploader studentId={id} currentUrl={photoUrl} />
         </div>
 
         <SectionTitle>Dados do aluno</SectionTitle>

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   User,
@@ -12,11 +13,11 @@ import {
   Home,
   Info,
 } from "lucide-react";
-import { createStudent, type StudentFormState } from "@/lib/actions/students";
+import { saveNewStudent, setStudentPhoto } from "@/lib/actions/students";
+import { createClient } from "@/lib/supabase/client";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Logo } from "@/components/Logo";
 
-const initial: StudentFormState = { error: null };
 const STEPS = ["Dados", "Escola", "Rota"];
 
 // Campos obrigatórios por passo (a foto é a única exceção — não bloqueia).
@@ -43,14 +44,17 @@ const REQUIRED_BY_STEP: Record<number, [string, string][]> = {
 };
 
 export default function NovoAlunoPage() {
-  const [state, action, pending] = useActionState(createStudent, initial);
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [step, setStep] = useState(1);
   const [shift, setShift] = useState<"morning" | "afternoon" | "integral">("morning");
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [sameAddress, setSameAddress] = useState(true);
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   function missingInStep(s: number): string[] {
     if (!formRef.current) return [];
@@ -62,22 +66,43 @@ export default function NovoAlunoPage() {
 
   function next() {
     const miss = missingInStep(step);
-    if (miss.length) {
-      setLocalError(`Preencha: ${miss.join(", ")}.`);
-      return;
-    }
-    setLocalError(null);
+    if (miss.length) return setError(`Preencha: ${miss.join(", ")}.`);
+    setError(null);
     setStep((s) => s + 1);
   }
 
-  function submit() {
-    const miss = missingInStep(3);
-    if (miss.length) {
-      setLocalError(`Preencha: ${miss.join(", ")}.`);
-      return;
+  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setPhotoFile(f);
+    setPhotoPreview(URL.createObjectURL(f));
+  }
+
+  async function submit() {
+    const miss = [...missingInStep(1), ...missingInStep(2), ...missingInStep(3)];
+    if (miss.length) return setError(`Preencha: ${miss.join(", ")}.`);
+    setError(null);
+    setPending(true);
+
+    const fd = new FormData(formRef.current!);
+    const res = await saveNewStudent(fd);
+    if (res.error || !res.id) {
+      setPending(false);
+      return setError(res.error ?? "Não foi possível salvar.");
     }
-    setLocalError(null);
-    formRef.current?.requestSubmit();
+
+    // Foto é opcional. Sobe para <id>/avatar (RLS: só o motorista dono).
+    if (photoFile) {
+      const supabase = createClient();
+      const path = `${res.id}/avatar`;
+      const { error: upErr } = await supabase.storage
+        .from("student-photos")
+        .upload(path, photoFile, { upsert: true, contentType: photoFile.type });
+      if (!upErr) await setStudentPhoto(res.id, path);
+      // Se a foto falhar, o aluno já está salvo — segue sem bloquear.
+    }
+
+    router.push(`/motorista/alunos/${res.id}`);
   }
 
   return (
@@ -105,13 +130,13 @@ export default function NovoAlunoPage() {
           <StepIndicator current={step} steps={STEPS} />
         </div>
 
-        <form ref={formRef} action={action} className="space-y-4">
+        <form ref={formRef} className="space-y-4">
           <input type="hidden" name="shift" value={shift} />
 
           {/* ================= Passo 1 — Dados ================= */}
           <div className={step === 1 ? "space-y-4" : "hidden"}>
             <div className="flex justify-center">
-              <PhotoCircle />
+              <PhotoPicker preview={photoPreview} onPick={onPickPhoto} />
             </div>
             <Field label="Nome completo" name="full_name" req placeholder="Digite o nome do aluno" />
             <Field label="Data de nascimento" name="birth_date" req type="date" icon={CalendarDays} />
@@ -197,9 +222,9 @@ export default function NovoAlunoPage() {
             </div>
           </div>
 
-          {(localError || state.error) && (
+          {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {localError ?? state.error}
+              {error}
             </p>
           )}
 
@@ -208,7 +233,7 @@ export default function NovoAlunoPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setLocalError(null);
+                  setError(null);
                   setStep((s) => s - 1);
                 }}
                 className="flex-1 rounded-xl border border-navy-900/15 py-3.5 font-semibold text-navy-900"
@@ -241,14 +266,32 @@ export default function NovoAlunoPage() {
   );
 }
 
-function PhotoCircle() {
+function PhotoPicker({
+  preview,
+  onPick,
+}: {
+  preview: string | null;
+  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
   return (
     <div className="flex flex-col items-center">
-      <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-navy-900/20 bg-navy-900/5 text-navy-700/50">
-        <Camera className="h-8 w-8" />
-      </div>
+      <label className="cursor-pointer">
+        <input type="file" accept="image/*" className="hidden" onChange={onPick} />
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={preview}
+            alt="Prévia da foto"
+            className="h-24 w-24 rounded-full object-cover ring-2 ring-yellow-400"
+          />
+        ) : (
+          <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-navy-900/20 bg-navy-900/5 text-navy-700/50">
+            <Camera className="h-8 w-8" />
+          </div>
+        )}
+      </label>
       <span className="mt-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-navy-700/50">
-        Adicionar foto
+        {preview ? "Trocar foto" : "Adicionar foto"}
       </span>
     </div>
   );
