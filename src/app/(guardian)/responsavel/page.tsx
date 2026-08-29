@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { CalendarOff, ChevronRight } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
@@ -58,6 +60,22 @@ export default async function GuardianHome() {
             </p>
           </Card>
         )}
+
+        <Link
+          href="/responsavel/ausencias"
+          className="mt-3 flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-4"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
+            <CalendarOff className="h-5 w-5" />
+          </span>
+          <div className="flex-1">
+            <p className="font-semibold text-navy-900">Informar ausência</p>
+            <p className="text-sm text-navy-700/60">
+              Avise quando seu filho não for
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-navy-700/40" />
+        </Link>
 
         <SectionTitle>Seus filhos</SectionTitle>
         {childrenWithPhoto.length ? (

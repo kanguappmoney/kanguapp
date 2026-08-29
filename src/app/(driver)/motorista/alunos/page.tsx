@@ -21,6 +21,17 @@ export default async function AlunosPage() {
     .eq("status", "active")
     .order("full_name");
 
+  // Ausências de hoje (selo informativo na lista).
+  const ids = students?.map((s) => s.id) ?? [];
+  const { data: absToday } = ids.length
+    ? await supabase
+        .from("absences")
+        .select("student_id")
+        .eq("service_date", new Date().toISOString().slice(0, 10))
+        .in("student_id", ids)
+    : { data: [] };
+  const absentSet = new Set((absToday ?? []).map((a) => a.student_id));
+
   return (
     <>
       <AppHeader title="Alunos" subtitle="Quem você atende" />
@@ -54,11 +65,18 @@ export default async function AlunosPage() {
                           .join(" • ") || "—"}
                       </p>
                     </div>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}
-                    >
-                      {chip.label}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {absentSet.has(s.id) && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                          Ausente hoje
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}
+                      >
+                        {chip.label}
+                      </span>
+                    </div>
                   </Card>
                 </Link>
               );
