@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setStopState, endRoute } from "@/lib/actions/drive";
+import { OccurrenceSheet } from "@/components/OccurrenceSheet";
 
 type StopState = "pending" | "boarded" | "absent";
 
@@ -117,7 +118,8 @@ export function DriveScreen({
         ))}
       </div>
 
-      <div className="sticky bottom-0 border-t border-navy-900/10 bg-white p-4">
+      <div className="sticky bottom-0 space-y-2 border-t border-navy-900/10 bg-white p-4">
+        <OccurrenceSheet executionId={executionId} />
         <button
           onClick={() => setConfirming(true)}
           className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
