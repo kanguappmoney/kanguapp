@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarOff, ChevronRight } from "lucide-react";
+import { CalendarOff, ChevronRight, Bell } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
@@ -36,6 +36,12 @@ export default async function GuardianHome() {
     }),
   );
 
+  // Avisos não-lidos (contador no acesso à tela de avisos).
+  const { count: unread } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .is("read_at", null);
+
   return (
     <>
       <AppHeader
@@ -60,6 +66,29 @@ export default async function GuardianHome() {
             </p>
           </Card>
         )}
+
+        <Link
+          href="/responsavel/avisos"
+          className="mt-4 flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-4"
+        >
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
+            <Bell className="h-5 w-5" />
+            {(unread ?? 0) > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                {unread}
+              </span>
+            )}
+          </span>
+          <div className="flex-1">
+            <p className="font-semibold text-navy-900">Avisos</p>
+            <p className="text-sm text-navy-700/60">
+              {(unread ?? 0) > 0
+                ? `${unread} ${unread === 1 ? "novo aviso" : "novos avisos"}`
+                : "Novidades da rota"}
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-navy-700/40" />
+        </Link>
 
         <Link
           href="/responsavel/ausencias"
