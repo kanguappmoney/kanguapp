@@ -54,10 +54,14 @@ export async function updateDriverProfile(
     .eq("id", user.id);
   if (uErr) return { error: uErr.message };
 
-  // Endereço no perfil.
+  // Endereço + status da assinatura (campo manual; fluxo 1 fora do app).
+  const subRaw = String(formData.get("subscription_status") ?? "trial");
+  const subscription_status =
+    subRaw === "active" || subRaw === "paused" ? subRaw : "trial";
+
   const { error: dErr } = await supabase
     .from("driver_profiles")
-    .update({ address })
+    .update({ address, subscription_status })
     .eq("user_id", user.id);
   if (dErr) return { error: dErr.message };
 

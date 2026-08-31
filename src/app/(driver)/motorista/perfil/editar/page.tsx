@@ -10,7 +10,7 @@ export default async function EditarPerfilPage() {
 
   const { data: profile } = await supabase
     .from("driver_profiles")
-    .select("address")
+    .select("address, subscription_status")
     .eq("user_id", user!.id)
     .single();
   const { data: userRow } = await supabase
@@ -45,6 +45,7 @@ export default async function EditarPerfilPage() {
             year: vehicle?.year ?? null,
             color: vehicle?.color ?? null,
             capacity: vehicle?.capacity ?? null,
+            subscription_status: profile?.subscription_status ?? "trial",
           }}
         />
       </div>

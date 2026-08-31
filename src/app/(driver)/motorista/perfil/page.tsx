@@ -21,7 +21,7 @@ export default async function PerfilMotoristaPage() {
 
   const { data: profile } = await supabase
     .from("driver_profiles")
-    .select("parent_tracking_mode, verification, address, photo_path")
+    .select("parent_tracking_mode, verification, address, photo_path, subscription_status")
     .eq("user_id", user!.id)
     .single();
 
@@ -56,6 +56,12 @@ export default async function PerfilMotoristaPage() {
 
   const mode = (profile?.parent_tracking_mode ?? "map") as "map" | "timeline";
   const verified = profile?.verification === "verified";
+  const SUB: Record<string, { label: string; cls: string }> = {
+    active: { label: "Assinatura ativa", cls: "bg-green-100 text-green-800" },
+    trial: { label: "Trial", cls: "bg-yellow-400/20 text-navy-900" },
+    paused: { label: "Assinatura pausada", cls: "bg-red-100 text-red-800" },
+  };
+  const sub = SUB[profile?.subscription_status ?? "trial"] ?? SUB.trial;
 
   return (
     <>
@@ -78,6 +84,11 @@ export default async function PerfilMotoristaPage() {
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               {verified ? "Perfil verificado" : "Verificação pendente"}
+            </p>
+            <p
+              className={`ml-2 mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sub.cls}`}
+            >
+              {sub.label}
             </p>
           </div>
         </Card>

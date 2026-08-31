@@ -15,6 +15,7 @@ export interface DriverDefaults {
   year: number | null;
   color: string | null;
   capacity: number | null;
+  subscription_status: string;
 }
 
 export function EditDriverForm({ driver }: { driver: DriverDefaults }) {
@@ -47,6 +48,25 @@ export function EditDriverForm({ driver }: { driver: DriverDefaults }) {
         <Field label="Cor" name="color" defaultValue={driver.color ?? ""} placeholder="Branca" required />
       </div>
       <Field label="Vagas" name="capacity" type="number" defaultValue={driver.capacity ?? ""} placeholder="Ex.: 15" required />
+
+      <SectionHeading>Assinatura Kangu</SectionHeading>
+      <label className="block">
+        <span className="mb-1 block text-sm font-medium text-navy-800">
+          Status da assinatura
+        </span>
+        <select
+          name="subscription_status"
+          defaultValue={driver.subscription_status}
+          className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3"
+        >
+          <option value="trial">Trial</option>
+          <option value="active">Ativa</option>
+          <option value="paused">Pausada</option>
+        </select>
+        <span className="mt-1 block text-xs text-navy-700/50">
+          Controle interno — a cobrança da assinatura é feita fora do app no piloto.
+        </span>
+      </label>
 
       {state.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
