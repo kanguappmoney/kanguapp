@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronRight, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { centsToBRL } from "@/lib/money";
 import {
   setStudentFee,
   generateMonthlyInvoices,
-  markInvoicePaid,
+  markOverdueInvoices,
 } from "@/lib/actions/invoices";
 
 interface Student {
@@ -89,14 +91,31 @@ export function FinanceiroPanel({
         )}
       </div>
 
-      {/* Gerar faturas */}
-      <button
-        onClick={() => run(generateMonthlyInvoices)}
-        disabled={pending}
-        className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
-      >
-        {pending ? "Processando…" : "Gerar faturas do mês"}
-      </button>
+      {/* Ações do mês */}
+      <div className="space-y-2">
+        <button
+          onClick={() => run(generateMonthlyInvoices)}
+          disabled={pending}
+          className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
+        >
+          {pending ? "Processando…" : "Gerar faturas do mês"}
+        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => run(markOverdueInvoices)}
+            disabled={pending}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-navy-900/15 py-2.5 text-sm font-semibold text-navy-900 disabled:opacity-60"
+          >
+            <RefreshCw className="h-4 w-4" /> Atualizar vencidas
+          </button>
+          <Link
+            href="/motorista/financeiro/regua"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-navy-900/15 py-2.5 text-sm font-semibold text-navy-900"
+          >
+            <SlidersHorizontal className="h-4 w-4" /> Régua
+          </Link>
+        </div>
+      </div>
 
       {/* Faturas do mês */}
       <div>
@@ -111,36 +130,28 @@ export function FinanceiroPanel({
           <div className="space-y-2">
             {invoices.map((i) => {
               const st = STATUS[i.status] ?? STATUS.pending;
-              const payable = i.status !== "paid" && i.status !== "canceled";
               return (
-                <div
+                <Link
                   key={i.id}
-                  className="rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
+                  href={`/motorista/financeiro/${i.id}`}
+                  className="flex items-center justify-between rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-navy-900">{i.name}</p>
-                      <p className="text-sm text-navy-700/60">
-                        {centsToBRL(i.amount_cents)} • vence{" "}
-                        {i.due_date.slice(8, 10)}/{i.due_date.slice(5, 7)}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="font-semibold text-navy-900">{i.name}</p>
+                    <p className="text-sm text-navy-700/60">
+                      {centsToBRL(i.amount_cents)} • vence{" "}
+                      {i.due_date.slice(8, 10)}/{i.due_date.slice(5, 7)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.cls}`}
                     >
                       {st.label}
                     </span>
+                    <ChevronRight className="h-5 w-5 text-navy-700/30" />
                   </div>
-                  {payable && (
-                    <button
-                      onClick={() => run(() => markInvoicePaid(i.id))}
-                      disabled={pending}
-                      className="mt-3 w-full rounded-xl border border-navy-900/15 py-2.5 text-sm font-semibold text-navy-900 disabled:opacity-60"
-                    >
-                      Marcar como pago (Pix)
-                    </button>
-                  )}
-                </div>
+                </Link>
               );
             })}
           </div>
