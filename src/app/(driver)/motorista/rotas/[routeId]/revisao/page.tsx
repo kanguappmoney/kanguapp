@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, SectionTitle } from "@/components/ui";
 import { startExecution } from "@/lib/actions/routes";
+import { SuspensionReview } from "@/components/SuspensionReview";
 
 const LEG_LABEL: Record<string, string> = {
   outbound: "ida",
@@ -50,6 +51,16 @@ export default async function RevisaoHojePage({
         .in("student_id", studentIds)
     : { data: [] };
 
+  // Suspensões a revisar (G1/G2) — a lógica (inclusive o flag G1) vem do banco.
+  const { data: suspData } = await supabase.rpc("get_suspension_review", {
+    p_route_id: routeId,
+  });
+  const suspensions = (suspData ?? []) as {
+    student_id: string;
+    name: string;
+    g1_forced: boolean;
+  }[];
+
   return (
     <>
       <header className="flex items-center gap-3 border-b border-navy-900/10 bg-white px-4 pb-5 pt-6 text-navy-900">
@@ -88,17 +99,30 @@ export default async function RevisaoHojePage({
           </div>
         )}
 
-        <p className="mt-6 text-sm text-navy-700/60">
-          Confira antes de sair. Você sempre confirma o início da rota — nada é
-          pulado sem você ver.
-        </p>
-
-        {/* G2: início só com confirmação explícita do motorista. */}
-        <form action={startExecution.bind(null, routeId)} className="mt-3">
-          <button className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900">
-            Confirmar e iniciar rota
-          </button>
-        </form>
+        {suspensions.length > 0 ? (
+          <>
+            <SectionTitle>Suspensões a revisar</SectionTitle>
+            <p className="mb-3 text-sm text-navy-700/60">
+              Alunos com atendimento suspenso. Nada é pulado sem você confirmar;
+              a volta de quem já embarcou é garantida (G1).
+            </p>
+            {/* G1/G2 + confirmação estão no SuspensionReview (aplica via banco). */}
+            <SuspensionReview routeId={routeId} suspensions={suspensions} />
+          </>
+        ) : (
+          <>
+            <p className="mt-6 text-sm text-navy-700/60">
+              Confira antes de sair. Você sempre confirma o início da rota — nada
+              é pulado sem você ver.
+            </p>
+            {/* G2: início só com confirmação explícita do motorista. */}
+            <form action={startExecution.bind(null, routeId)} className="mt-3">
+              <button className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900">
+                Confirmar e iniciar rota
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </>
   );

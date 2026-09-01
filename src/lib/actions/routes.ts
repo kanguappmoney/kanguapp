@@ -71,16 +71,26 @@ export async function startOrReview(routeId: string) {
 
   const studentIds = stops?.map((s) => s.student_id) ?? [];
   let hasAbsences = false;
+  let hasBlocked = false;
   if (studentIds.length) {
-    const { count } = await supabase
+    const { count: absCount } = await supabase
       .from("absences")
       .select("id", { count: "exact", head: true })
       .eq("service_date", today())
       .in("student_id", studentIds);
-    hasAbsences = (count ?? 0) > 0;
+    hasAbsences = (absCount ?? 0) > 0;
+
+    // Alunos suspensos (blocked) na rota → há suspensões a revisar (G1/G2).
+    const { count: blkCount } = await supabase
+      .from("students")
+      .select("id", { count: "exact", head: true })
+      .in("id", studentIds)
+      .eq("pay_status", "blocked");
+    hasBlocked = (blkCount ?? 0) > 0;
   }
 
-  if (hasAbsences) {
+  // Sem ausências e sem suspensões → inicia direto (zero atrito). Senão, revisão.
+  if (hasAbsences || hasBlocked) {
     redirect(`/motorista/rotas/${routeId}/revisao`);
   }
   await startExecution(routeId);
