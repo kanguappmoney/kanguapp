@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setStopState, endRoute } from "@/lib/actions/drive";
 import { OccurrenceSheet } from "@/components/OccurrenceSheet";
+import { usePositionBroadcast } from "@/components/usePositionBroadcast";
 
 type StopState = "pending" | "boarded" | "absent";
 
@@ -18,16 +19,23 @@ export function DriveScreen({
   executionId,
   routeName,
   kind,
+  active,
   stops: initial,
 }: {
   executionId: string;
   routeName: string;
   kind: "pickup" | "dropoff";
+  active: boolean;
   stops: DriveStop[];
 }) {
   const [stops, setStops] = useState(initial);
   const [, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
+
+  // Modo Mapa (G4/G6): emite a posição da van só com a rota in_progress, a aba em
+  // foreground e o motorista em modo Mapa. Em Linha do tempo, `active` chega false
+  // e o GPS nem é coletado (minimização de dado) — a RLS continua sendo o gate final.
+  usePositionBroadcast(executionId, active);
 
   const boardVerb = kind === "pickup" ? "Embarcou" : "Desembarcou";
   const doneCount = stops.filter((s) => s.state !== "pending").length;

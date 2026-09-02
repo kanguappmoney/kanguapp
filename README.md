@@ -15,9 +15,9 @@ provadas por teste, não presumidas.
 
 ## Estado atual
 
-Infra no ar e todos os blocos operacionais construídos e provados. **Falta um
-único bloco de produto antes do piloto: o Modo Mapa (Mapbox)** — e ele não
-bloqueia, porque a Linha do tempo já sustenta o piloto sozinha.
+Infra no ar e **todos os blocos de produto construídos e provados** — incluindo o
+Modo Mapa. O app está completo para o piloto; o que falta é validação, não código
+(testes manuais e LGPD — ver "Próximo").
 
 | Bloco | Estado |
 |---|---|
@@ -28,7 +28,7 @@ bloqueia, porque a Linha do tempo já sustenta o piloto sozinha.
 | **Perfil do motorista** — dados, veículo, stats reais, toggle G6, status de assinatura (sem CNH, sem estrelas) | ✅ |
 | **Ausências e ocorrências** — ausência pelo pai, ocorrência do motorista com fan-out `SECURITY DEFINER`, avisos in-app com contador de não-lidos | ✅ |
 | **Financeiro (3 fatias)** — mensalidade por aluno, geração idempotente de faturas, "A receber", régua, aviso definitivo (G3), suspensão/reativação, G1/G2 na Revisão de hoje | ✅ |
-| **Modo Mapa (Mapbox)** — GPS ao vivo sob G4/G6, com throttle de custo | ⏳ único restante |
+| **Modo Mapa (Mapbox)** — GPS ao vivo por polling, só o pino do motorista (sem paradas, G5), emissão só foreground+rota ativa (G4) com throttle e minimização de dado | ✅ |
 
 ## As guardas inegociáveis (G1–G6)
 
@@ -125,7 +125,12 @@ pós-piloto). Ver [`docs/progresso.md`](docs/progresso.md) seções 3 e 8.
 
 ## Próximo
 
-**Modo Mapa (Mapbox)** — GPS ao vivo sob G4 (só foreground + rota ativa) e G6
-(só pra quem escolheu Mapa; Linha do tempo nunca entrega posição), com throttle
-de custo. Depois: testes manuais do Abner (fotos, financeiro, "Suspensões a
-revisar") e piloto com 1–3 motoristas conhecidos (Pix manual).
+Não falta bloco de produto. Antes do piloto: **testes manuais do Abner** (fotos,
+financeiro, "Suspensões a revisar") e **validação de LGPD** (modelagem
+controlador/operador com profissional, antes de dado real de criança). Depois:
+piloto com 1–3 motoristas conhecidos (Pix manual), e então webhook Asaas +
+WhatsApp real (N8N).
+
+O teste das guardas do Modo Mapa está versionado em
+[`docs/tests/modo_mapa_guardas.sql`](docs/tests/modo_mapa_guardas.sql) (RLS G4/G6/G5)
+e `tests/geo.test.ts` (gate de G4 no cliente; roda com `node --test`).

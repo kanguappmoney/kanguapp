@@ -156,6 +156,16 @@ acabamento. Guardas provadas por teste, não presumidas.
   definitivo com G3, suspensão/reativação; (3) G1/G2 na Revisão de hoje
   ("Suspensões a revisar", inclusão forçada da volta de quem embarcou, "Levar
   mesmo assim", auditoria via `route_events`). Guardas G1/G2/G3 provadas.
+- **Modo Mapa (Mapbox)** — GPS ao vivo do motorista ao pai por **polling** de
+  `live_positions` (sem websocket), mostrando **só o pino do motorista** se
+  movendo — nunca marcadores de parada (isso vazaria endereço de criança, G5). O
+  motorista emite a posição só com a rota `in_progress` e a aba em foreground
+  (G4 no cliente), com throttle de custo (máx. 1x/~10s e só se moveu > ~20m).
+  **Minimização de dado:** em modo Linha do tempo o GPS nem é coletado — a RLS
+  descartaria de qualquer forma, então não se grava o que não se serve. O
+  `mapbox-gl` é lazy-loaded (não pesa no bundle do modo Linha do tempo). Guardas
+  **G4/G6/G5 provadas em teste no banco** (`docs/tests/modo_mapa_guardas.sql`);
+  o gate de G4 no cliente tem teste unitário (`tests/geo.test.ts`).
 
 **Verificações que ficaram "build-validated"** (miolo provado em teste; falta
 o clique manual do Abner): upload real de foto (diálogo de arquivo do SO não é
@@ -212,15 +222,18 @@ antes da 15 corrigir — funciona, mas é bom saber.
 
 ## 8. O que falta (antes do piloto)
 
-- **Modo Mapa (Mapbox)** — único bloco restante. É a sobremesa, não o prato: a
-  **Linha do tempo já sustenta o piloto sozinha**, então o Mapa não bloqueia.
-  Escopo a travar: G4 (GPS só foreground + rota ativa), G6 (Mapa só pra quem
-  escolheu; Linha do tempo nunca entrega posição), throttle de custo (GPS
-  adaptativo, rota calculada 1x, sem streaming pesado). FORA: Navigation SDK,
-  "hora de sair" com trânsito, histórico de trajeto.
+Com o Modo Mapa concluído, **todos os blocos de produto estão construídos**. O que
+falta é validação, não código:
+
 - **Testes manuais do Abner** — fotos, financeiro, "Suspensões a revisar".
+- **Validação de LGPD** — modelagem controlador/operador revista com profissional
+  **antes de rodar com dado real de criança** (ver seção 7).
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
-  WhatsApp real (N8N), e então o Modo Mapa se ainda não estiver pronto.
+  WhatsApp real (N8N).
+
+**Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
+Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, geocoding de
+endereços (e, portanto, marcadores de parada no mapa).
 
 ---
 
@@ -234,6 +247,10 @@ antes da 15 corrigir — funciona, mas é bom saber.
   de motorista (bucket privado + RLS + testes de acesso recusado); perfil do
   motorista; bloco de ausências e ocorrências (3 fatias); bloco financeiro (3
   fatias, guardas G1/G2/G3 provadas). README atualizado e `progresso.md`
-  versionado em `docs/`. Próximo: **Modo Mapa**.
+  versionado em `docs/`. **Modo Mapa concluído** (polling de `live_positions`, só
+  o pino do motorista, G4 no cliente + minimização de dado no gate, `mapbox-gl`
+  lazy-loaded; guardas G4/G6/G5 provadas em teste no banco). Com isso o app fica
+  **completo para o piloto** — faltam só os testes manuais do Abner e a validação
+  de LGPD antes de dado real de criança.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.

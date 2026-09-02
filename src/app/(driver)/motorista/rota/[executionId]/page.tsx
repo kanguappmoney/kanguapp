@@ -19,6 +19,19 @@ export default async function ModoDirecaoPage({
   if (!execution) notFound();
   if (execution.status === "completed") redirect("/motorista/rotas");
 
+  // G6 + minimização de dado: só coletamos GPS quando o motorista está em modo
+  // Mapa. Em Linha do tempo a posição nunca serviria (a RLS descartaria), então
+  // não a gravamos — a forma mais segura de proteger um dado é não tê-lo.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("driver_profiles")
+    .select("parent_tracking_mode")
+    .eq("user_id", user?.id ?? "")
+    .maybeSingle();
+  const trackingMode = profile?.parent_tracking_mode ?? "map";
+
   // @ts-expect-error relação aninhada do supabase-js
   const route = execution.routes as { name: string; direction: string };
   const kind: "pickup" | "dropoff" =
@@ -63,6 +76,7 @@ export default async function ModoDirecaoPage({
       executionId={executionId}
       routeName={route.name}
       kind={kind}
+      active={execution.status === "in_progress" && trackingMode === "map"}
       stops={driveStops}
     />
   );

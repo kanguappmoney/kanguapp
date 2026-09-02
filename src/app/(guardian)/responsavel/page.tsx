@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { JourneyTimeline, type Journey } from "@/components/JourneyTimeline";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { LiveMapLoader } from "@/components/LiveMapLoader";
 
 export default async function GuardianHome() {
   const user = await getCurrentUser();
@@ -13,6 +14,26 @@ export default async function GuardianHome() {
   // Jornada ativa (Linha do tempo, G6). Agregados anônimos + filhos próprios.
   const { data: journeyData } = await supabase.rpc("get_active_journey");
   const journey = journeyData as Journey | null;
+
+  // Modo Mapa (G4/G6): a posição da van só vem da RLS `guardian_can_see_live_position`
+  // (execução in_progress E motorista em modo 'map'). Se vier linha, é modo Mapa;
+  // senão cai na Linha do tempo. É a RLS que decide, não o app.
+  const mapToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
+  let livePos: {
+    lat: number;
+    lng: number;
+    heading: number | null;
+  } | null = null;
+  if (journey?.execution_id) {
+    const { data } = await supabase
+      .from("live_positions")
+      .select("lat, lng, heading")
+      .eq("execution_id", journey.execution_id)
+      .maybeSingle();
+    livePos = data;
+  }
+  // Sem token configurado, cai graciosamente na Linha do tempo (nada de mapa quebrado).
+  const showMap = Boolean(journey && livePos && mapToken);
 
   // RLS retorna só os alunos vinculados a este responsável.
   const { data: children } = await supabase
@@ -52,10 +73,26 @@ export default async function GuardianHome() {
       <div className="px-4 pb-6">
         <SectionTitle>Agora</SectionTitle>
         {journey ? (
-          <>
-            <JourneyTimeline journey={journey} />
-            <AutoRefresh seconds={15} />
-          </>
+          showMap && livePos ? (
+            // Modo Mapa: só o pino da van se movendo (sem paradas — G5).
+            <>
+              <LiveMapLoader
+                token={mapToken}
+                lat={livePos.lat}
+                lng={livePos.lng}
+                heading={livePos.heading}
+              />
+              <p className="mt-2 text-sm text-navy-700/60">
+                A van está a caminho — posição atualizando ao vivo.
+              </p>
+              <AutoRefresh seconds={10} />
+            </>
+          ) : (
+            <>
+              <JourneyTimeline journey={journey} />
+              <AutoRefresh seconds={15} />
+            </>
+          )
         ) : (
           // G4 — estado default fora da janela de rota: sem localização ao vivo.
           <Card>
