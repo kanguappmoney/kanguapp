@@ -6,6 +6,7 @@ import { startOrReview } from "@/lib/actions/routes";
 const DIRECTION_LABEL: Record<string, string> = {
   outbound: "Ida",
   inbound: "Volta",
+  both: "Ida e volta",
 };
 
 function today() {
@@ -86,7 +87,13 @@ export default async function RotasPage() {
                     >
                       Continuar rota
                     </Link>
-                  ) : done ? null : (
+                  ) : done ? null : r.direction === "both" ? (
+                    // Rota encorpada (ida+volta): montada nesta fatia; dirigir vem
+                    // na fatia de execução. Não abrir o fluxo antigo (uma perna).
+                    <p className="rounded-xl border border-dashed border-navy-900/15 py-2.5 text-center text-sm text-navy-700/50">
+                      Execução em breve
+                    </p>
+                  ) : (
                     <form action={startOrReview.bind(null, r.id)}>
                       <button className="w-full rounded-xl bg-yellow-400 py-2.5 font-semibold text-navy-900">
                         Iniciar rota

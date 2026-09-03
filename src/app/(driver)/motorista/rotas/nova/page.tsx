@@ -5,9 +5,10 @@ import { RouteBuilder } from "@/components/RouteBuilder";
 
 export default async function NovaRotaPage() {
   const supabase = await createClient();
+  // shift entra no select: o builder filtra os candidatos pelo turno da rota.
   const { data: students } = await supabase
     .from("students")
-    .select("id, full_name, school")
+    .select("id, full_name, school, shift")
     .eq("status", "active")
     .order("full_name");
 

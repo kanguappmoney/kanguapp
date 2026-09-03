@@ -244,9 +244,19 @@ falta é validação, não código:
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
   WhatsApp real (N8N).
 
-- **Rotas 2.0** — próximo bloco grande (depois da captação): criação de rota
-  encorpada, "100m", rota inteligente. O geocoding do endereço de casa já foi
-  adiantado no formulário do pai (fatia 1 de Rotas 2.0, feita no lugar certo).
+- **Rotas 2.0** — em andamento. **Criação de rota encorpada: pronta.** O modelo
+  evoluiu: `route_direction += 'both'` — uma rota vira uma "turma" com **duas
+  listas** (ida=pickup, volta=dropoff) numa entidade só; `route_stops` agora é
+  `unique(route_id, kind, position)` (cada perna com ordenação própria); `routes`
+  ganhou `shift` (turno) como âncora do filtro. Builder de duas listas com filtro
+  por turno (aluno do turno + integrais) e volta pré-proposta como a ida invertida
+  (editável). Ponte de compatibilidade: rotas antigas de uma perna
+  (`outbound`/`inbound`) seguem rodáveis; a `'both'` mostra "Execução em breve" na
+  lista. Modelo provado em teste (`docs/tests/rotas_two_legs.sql`). **Faltam nas
+  próximas fatias:** editar rota; **executar** a rota `'both'` (home/iniciar,
+  execução por perna, journey/DriveScreen lendo o leg); depois "100m", recorrência
+  por dia da semana, rota sugerida inteligente, otimização por coordenada (o
+  geocoding do endereço de casa já foi adiantado na captação).
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -274,6 +284,10 @@ parada no mapa (dependeriam de expor endereço — G5).
   turno+escola; formulário público com signup de guardian atrás do token +
   consentimento LGPD; geocoding do endereço de casa; fila de aprovação (portão
   G5). Cada fatia com teste de guardas no banco (docs/tests/captacao_fatia*.sql).
-  Próximo bloco grande: **Rotas 2.0**.
+- **Rotas 2.0 — criação de rota encorpada:** modelo evoluído p/ rota `'both'`
+  (duas listas ida/volta, `route_stops` unique por perna, `routes.shift`); builder
+  de duas listas com filtro por turno e volta = ida invertida editável; ponte de
+  compatibilidade p/ rotas antigas. Modelo provado (docs/tests/rotas_two_legs.sql).
+  Próximas fatias: **editar** rota e **executar** a rota `'both'`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
