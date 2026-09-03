@@ -19,6 +19,15 @@ function emptyToNull(v: FormDataEntryValue | null): string | null {
   return s === "" ? null : s;
 }
 
+// Lat/lng vêm do autocomplete (inputs escondidos). Vazio = pai digitou à mão sem
+// selecionar sugestão → grava null (sem coordenada), o endereço em texto segue.
+function numOrNull(v: FormDataEntryValue | null): number | null {
+  const s = typeof v === "string" ? v.trim() : "";
+  if (s === "") return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 // Cria um link de captação por (turno + escola). Reutilizável e revogável.
 export async function createCaptureLink(formData: FormData): Promise<void> {
   const supabase = await createClient();
@@ -116,6 +125,8 @@ export async function submitCapture(
       : emptyToNull(formData.get("dropoff_address")),
     p_responsible_phone: emptyToNull(formData.get("responsible_phone")),
     p_responsible_whatsapp: emptyToNull(formData.get("responsible_whatsapp")),
+    p_pickup_lat: numOrNull(formData.get("pickup_lat")),
+    p_pickup_lng: numOrNull(formData.get("pickup_lng")),
   });
   if (rpcError) return { error: rpcError.message };
 

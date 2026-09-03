@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { submitCapture, type SubmitState } from "@/lib/actions/capture";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const initial: SubmitState = { error: null };
 
@@ -47,11 +48,12 @@ export function CaptureForm({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
           Endereço de casa (embarque)
         </h2>
-        <Field
+        <AddressAutocomplete
           label="Endereço"
           name="pickup_address"
-          placeholder="Rua, número, bairro"
-          autoComplete="off"
+          latName="pickup_lat"
+          lngName="pickup_lng"
+          placeholder="Comece a digitar a rua…"
         />
         <label className="flex items-center gap-2 text-sm text-navy-800">
           <input
