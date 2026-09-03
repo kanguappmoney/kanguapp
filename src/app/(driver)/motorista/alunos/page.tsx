@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Link2 as LinkIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
 
@@ -11,6 +12,7 @@ const PAY_CHIP: Record<string, { label: string; cls: string }> = {
 const SHIFT_LABEL: Record<string, string> = {
   morning: "Manhã",
   afternoon: "Tarde",
+  integral: "Integral",
 };
 
 export default async function AlunosPage() {
@@ -36,12 +38,19 @@ export default async function AlunosPage() {
     <>
       <AppHeader title="Alunos" subtitle="Quem você atende" />
       <div className="px-4 pb-6">
-        <div className="mt-4">
+        <div className="mt-4 space-y-2">
           <Link
             href="/motorista/alunos/novo"
             className="block w-full rounded-xl bg-yellow-400 py-3 text-center font-semibold text-navy-900"
           >
             ➕ Adicionar aluno
+          </Link>
+          <Link
+            href="/motorista/alunos/captacao"
+            className="flex items-center justify-center gap-2 rounded-xl border border-navy-900/15 py-3 text-center font-semibold text-navy-900"
+          >
+            <LinkIcon className="h-4 w-4" />
+            Links de captação
           </Link>
         </div>
 
