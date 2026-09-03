@@ -13,9 +13,11 @@ interface Suspension {
 export function SuspensionReview({
   routeId,
   suspensions,
+  leg,
 }: {
   routeId: string;
   suspensions: Suspension[];
+  leg?: "pickup" | "dropoff";
 }) {
   // Sugestão inicial: pular os blocked que NÃO são G1. G1 nunca entra na lista.
   const [skip, setSkip] = useState<Set<string>>(
@@ -33,7 +35,7 @@ export function SuspensionReview({
   }
 
   function confirm() {
-    start(() => applyRouteReview(routeId, [...skip]));
+    start(() => applyRouteReview(routeId, [...skip], leg));
   }
 
   return (

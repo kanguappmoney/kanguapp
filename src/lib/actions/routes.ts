@@ -76,25 +76,45 @@ export async function createRoute(
   redirect("/motorista/rotas");
 }
 
+// Perna da execução: 'pickup' (ida) ou 'dropoff' (volta). Só a rota 'both' roda
+// por perna; nas rotas antigas de uma perna ela chega undefined (leg null no
+// banco) e tudo segue como antes — ponte de compatibilidade.
+type Leg = "pickup" | "dropoff";
+
+// Ausências são declaradas por trip_leg (outbound/inbound/both). Uma ausência da
+// ida (outbound) vale para a perna pickup; a da volta (inbound) para a dropoff;
+// 'both' vale para as duas. Recorta a checagem de ausência à perna em execução.
+const LEG_TO_TRIP: Record<Leg, string[]> = {
+  pickup: ["outbound", "both"],
+  dropoff: ["inbound", "both"],
+};
+
 // "Iniciar rota": se há ausências informadas p/ hoje, passa pela Revisão de
 // hoje (G2) primeiro. Sem ausências, inicia direto (zero atrito no dia normal).
-export async function startOrReview(routeId: string) {
+export async function startOrReview(routeId: string, leg?: Leg) {
   const supabase = await createClient();
 
-  const { data: stops } = await supabase
+  // Recorta as paradas à perna em execução (a 'both' tem duas listas). Sem perna
+  // (rota antiga), lê todas as paradas como antes.
+  let stopQuery = supabase
     .from("route_stops")
     .select("student_id")
     .eq("route_id", routeId);
+  if (leg) stopQuery = stopQuery.eq("kind", leg);
+  const { data: stops } = await stopQuery;
 
   const studentIds = stops?.map((s) => s.student_id) ?? [];
   let hasAbsences = false;
   let hasBlocked = false;
   if (studentIds.length) {
-    const { count: absCount } = await supabase
+    let absQuery = supabase
       .from("absences")
       .select("id", { count: "exact", head: true })
       .eq("service_date", today())
       .in("student_id", studentIds);
+    // Numa perna específica, só ausências daquela perna disparam a revisão.
+    if (leg) absQuery = absQuery.in("leg", LEG_TO_TRIP[leg]);
+    const { count: absCount } = await absQuery;
     hasAbsences = (absCount ?? 0) > 0;
 
     // Alunos suspensos (blocked) na rota → há suspensões a revisar (G1/G2).
@@ -108,21 +128,27 @@ export async function startOrReview(routeId: string) {
 
   // Sem ausências e sem suspensões → inicia direto (zero atrito). Senão, revisão.
   if (hasAbsences || hasBlocked) {
-    redirect(`/motorista/rotas/${routeId}/revisao`);
+    const q = leg ? `?leg=${leg}` : "";
+    redirect(`/motorista/rotas/${routeId}/revisao${q}`);
   }
-  await startExecution(routeId);
+  await startExecution(routeId, leg);
 }
 
-// Cria/retoma a execução de hoje e coloca em andamento (G4 passa a valer).
-export async function startExecution(routeId: string) {
+// Cria/retoma a execução de hoje (da perna) e coloca em andamento (G4 passa a
+// valer). Numa rota 'both' cada perna é uma execução independente no mesmo dia.
+export async function startExecution(routeId: string, leg?: Leg) {
   const supabase = await createClient();
 
-  const { data: existing } = await supabase
+  // Retoma a execução da MESMA perna (o índice único é por rota+dia+perna).
+  let existingQuery = supabase
     .from("route_executions")
     .select("id, status")
     .eq("route_id", routeId)
-    .eq("service_date", today())
-    .maybeSingle();
+    .eq("service_date", today());
+  existingQuery = leg
+    ? existingQuery.eq("leg", leg)
+    : existingQuery.is("leg", null);
+  const { data: existing } = await existingQuery.maybeSingle();
 
   let executionId = existing?.id;
 
@@ -132,6 +158,7 @@ export async function startExecution(routeId: string) {
       .insert({
         route_id: routeId,
         service_date: today(),
+        leg: leg ?? null,
         status: "in_progress",
         started_at: new Date().toISOString(),
       })

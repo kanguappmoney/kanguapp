@@ -12,7 +12,7 @@ export default async function ModoDirecaoPage({
 
   const { data: execution } = await supabase
     .from("route_executions")
-    .select("id, status, route_id, routes(name, direction)")
+    .select("id, status, route_id, leg, routes(name, direction)")
     .eq("id", executionId)
     .single();
 
@@ -34,14 +34,24 @@ export default async function ModoDirecaoPage({
 
   // @ts-expect-error relação aninhada do supabase-js
   const route = execution.routes as { name: string; direction: string };
+  // Na rota 'both' o trajeto vem da PERNA em execução (execution.leg); nas rotas
+  // antigas de uma perna, do direction (ponte de compatibilidade).
   const kind: "pickup" | "dropoff" =
-    route.direction === "outbound" ? "pickup" : "dropoff";
+    route.direction === "both"
+      ? (execution.leg as "pickup" | "dropoff")
+      : route.direction === "outbound"
+        ? "pickup"
+        : "dropoff";
 
-  const { data: stops } = await supabase
+  // Na 'both' filtramos a lista pela perna (senão traria ida+volta juntas). No
+  // legado não filtramos — as paradas já são de uma perna só.
+  let stopsQuery = supabase
     .from("route_stops")
     .select("student_id, position, students(full_name, pickup_address, dropoff_address)")
     .eq("route_id", execution.route_id)
     .order("position");
+  if (route.direction === "both") stopsQuery = stopsQuery.eq("kind", kind);
+  const { data: stops } = await stopsQuery;
 
   const { data: events } = await supabase
     .from("route_events")
@@ -71,10 +81,16 @@ export default async function ModoDirecaoPage({
     };
   });
 
+  // Na 'both', deixa explícito qual perna está rodando no cabeçalho imersivo.
+  const routeName =
+    route.direction === "both"
+      ? `${route.name} • ${kind === "pickup" ? "ida" : "volta"}`
+      : route.name;
+
   return (
     <DriveScreen
       executionId={executionId}
-      routeName={route.name}
+      routeName={routeName}
       kind={kind}
       active={execution.status === "in_progress" && trackingMode === "map"}
       stops={driveStops}

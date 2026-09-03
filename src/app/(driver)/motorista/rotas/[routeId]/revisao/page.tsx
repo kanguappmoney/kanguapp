@@ -16,12 +16,23 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+const LEG_KIND_LABEL: Record<string, string> = {
+  pickup: "ida",
+  dropoff: "volta",
+};
+
 export default async function RevisaoHojePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ routeId: string }>;
+  searchParams: Promise<{ leg?: string }>;
 }) {
   const { routeId } = await params;
+  const { leg: legParam } = await searchParams;
+  // Perna da rota 'both' (pickup/dropoff). Ignora valor inválido → legado.
+  const leg =
+    legParam === "pickup" || legParam === "dropoff" ? legParam : undefined;
   const supabase = await createClient();
 
   const { data: route } = await supabase
@@ -31,11 +42,13 @@ export default async function RevisaoHojePage({
     .single();
   if (!route) notFound();
 
-  const { data: stops } = await supabase
+  let stopsQuery = supabase
     .from("route_stops")
     .select("student_id, students(full_name)")
     .eq("route_id", routeId)
     .order("position");
+  if (leg) stopsQuery = stopsQuery.eq("kind", leg);
+  const { data: stops } = await stopsQuery;
 
   const studentIds = stops?.map((s) => s.student_id) ?? [];
   const nameById = new Map(
@@ -43,17 +56,27 @@ export default async function RevisaoHojePage({
     (stops ?? []).map((s) => [s.student_id, s.students?.full_name as string]),
   );
 
+  // Numa perna específica, só ausências daquela perna (pickup↔outbound,
+  // dropoff↔inbound, e sempre 'both'). Legado: todas.
+  const legTrips: Record<string, string[]> = {
+    pickup: ["outbound", "both"],
+    dropoff: ["inbound", "both"],
+  };
+  let absQuery = supabase
+    .from("absences")
+    .select("student_id, leg")
+    .eq("service_date", today())
+    .in("student_id", studentIds.length ? studentIds : ["00000000-0000-0000-0000-000000000000"]);
+  if (leg) absQuery = absQuery.in("leg", legTrips[leg]);
   const { data: absences } = studentIds.length
-    ? await supabase
-        .from("absences")
-        .select("student_id, leg")
-        .eq("service_date", today())
-        .in("student_id", studentIds)
+    ? await absQuery
     : { data: [] };
 
-  // Suspensões a revisar (G1/G2) — a lógica (inclusive o flag G1) vem do banco.
+  // Suspensões a revisar (G1/G2) — a lógica (inclusive o flag G1) vem do banco,
+  // recortada pela perna em execução.
   const { data: suspData } = await supabase.rpc("get_suspension_review", {
     p_route_id: routeId,
+    p_leg: leg ?? null,
   });
   const suspensions = (suspData ?? []) as {
     student_id: string;
@@ -69,7 +92,10 @@ export default async function RevisaoHojePage({
         </Link>
         <div>
           <h1 className="text-lg font-bold text-navy-900">Revisão de hoje</h1>
-          <p className="text-sm text-navy-700/50">{route.name}</p>
+          <p className="text-sm text-navy-700/50">
+            {route.name}
+            {leg ? ` • ${LEG_KIND_LABEL[leg]}` : ""}
+          </p>
         </div>
       </header>
 
@@ -107,7 +133,11 @@ export default async function RevisaoHojePage({
               a volta de quem já embarcou é garantida (G1).
             </p>
             {/* G1/G2 + confirmação estão no SuspensionReview (aplica via banco). */}
-            <SuspensionReview routeId={routeId} suspensions={suspensions} />
+            <SuspensionReview
+              routeId={routeId}
+              suspensions={suspensions}
+              leg={leg}
+            />
           </>
         ) : (
           <>
@@ -116,7 +146,10 @@ export default async function RevisaoHojePage({
               é pulado sem você ver.
             </p>
             {/* G2: início só com confirmação explícita do motorista. */}
-            <form action={startExecution.bind(null, routeId)} className="mt-3">
+            <form
+              action={startExecution.bind(null, routeId, leg)}
+              className="mt-3"
+            >
               <button className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900">
                 Confirmar e iniciar rota
               </button>

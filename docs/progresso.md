@@ -244,19 +244,29 @@ falta é validação, não código:
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
   WhatsApp real (N8N).
 
-- **Rotas 2.0** — em andamento. **Criação de rota encorpada: pronta.** O modelo
-  evoluiu: `route_direction += 'both'` — uma rota vira uma "turma" com **duas
-  listas** (ida=pickup, volta=dropoff) numa entidade só; `route_stops` agora é
-  `unique(route_id, kind, position)` (cada perna com ordenação própria); `routes`
-  ganhou `shift` (turno) como âncora do filtro. Builder de duas listas com filtro
-  por turno (aluno do turno + integrais) e volta pré-proposta como a ida invertida
-  (editável). Ponte de compatibilidade: rotas antigas de uma perna
-  (`outbound`/`inbound`) seguem rodáveis; a `'both'` mostra "Execução em breve" na
-  lista. Modelo provado em teste (`docs/tests/rotas_two_legs.sql`). **Faltam nas
-  próximas fatias:** editar rota; **executar** a rota `'both'` (home/iniciar,
-  execução por perna, journey/DriveScreen lendo o leg); depois "100m", recorrência
-  por dia da semana, rota sugerida inteligente, otimização por coordenada (o
-  geocoding do endereço de casa já foi adiantado na captação).
+- **Rotas 2.0** — em andamento. **Criação de rota encorpada: pronta. Execução da
+  rota `'both'` por perna: pronta.** O modelo evoluiu: `route_direction += 'both'`
+  — uma rota vira uma "turma" com **duas listas** (ida=pickup, volta=dropoff) numa
+  entidade só; `route_stops` agora é `unique(route_id, kind, position)` (cada perna
+  com ordenação própria); `routes` ganhou `shift` (turno) como âncora do filtro.
+  Builder de duas listas com filtro por turno (aluno do turno + integrais) e volta
+  pré-proposta como a ida invertida (editável). Modelo provado
+  (`docs/tests/rotas_two_legs.sql`). **Execução por perna:** `route_executions`
+  ganhou `leg` (pickup/dropoff; null=legado) e a unicidade virou dois índices
+  parciais — legado 1×/dia, `'both'` com ida **e** volta no mesmo dia (pernas
+  independentes: encerra a ida de manhã, inicia a volta à tarde; dia de só-volta
+  roda sem travar — obrigar a ida antes seria um jeito de bloquear volta legítima,
+  contra a G1). Na lista, a `'both'` mostra **dois botões (Iniciar ida / Iniciar
+  volta)**, cada um com seu estado; a DriveScreen filtra as paradas pelo `kind` da
+  perna; `get_active_journey` conta e lista só a perna em execução (G5 por perna);
+  a Revisão (G1/G2) recorta os alunos e as ausências à perna, e a G1 ("nunca
+  bloquear a volta de quem embarcou") lê o embarque da ida daquele dia ao revisar a
+  volta. Ponte de compatibilidade: rotas antigas de uma perna (`outbound`/`inbound`,
+  `leg` null) seguem idênticas — todo ramo novo é guardado por `leg is null`.
+  Execução provada (`docs/tests/rotas_both_execution.sql`, 4/4). **Faltam nas
+  próximas fatias:** editar rota; depois "100m", recorrência por dia da semana,
+  rota sugerida inteligente, otimização por coordenada (o geocoding do endereço de
+  casa já foi adiantado na captação).
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -288,6 +298,15 @@ parada no mapa (dependeriam de expor endereço — G5).
   (duas listas ida/volta, `route_stops` unique por perna, `routes.shift`); builder
   de duas listas com filtro por turno e volta = ida invertida editável; ponte de
   compatibilidade p/ rotas antigas. Modelo provado (docs/tests/rotas_two_legs.sql).
-  Próximas fatias: **editar** rota e **executar** a rota `'both'`.
+- **Rotas 2.0 — execução da rota `'both'` por perna:** `route_executions.leg`
+  (pickup/dropoff; null=legado) + unicidade por dois índices únicos parciais
+  (legado 1×/dia; `'both'` ida+volta no mesmo dia, pernas independentes). Lista com
+  dois botões (Iniciar ida / Iniciar volta); DriveScreen filtra paradas pelo `kind`
+  da perna; `get_active_journey`, `get_suspension_review` e `apply_route_review`
+  cientes da perna (G5 por perna; G1 lê o embarque da ida ao revisar a volta).
+  Ponte de compatibilidade: todo ramo novo guardado por `leg is null`. Execução
+  provada (docs/tests/rotas_both_execution.sql, 4/4). Migration 025 precisou de
+  índices parciais no lugar de `coalesce(leg::text,...)` na expressão do índice
+  (cast enum→text não é IMMUTABLE). Próxima fatia de Rotas 2.0: **editar** rota.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
