@@ -29,6 +29,7 @@ Modo Mapa. O app está completo para o piloto; o que falta é validação, não 
 | **Ausências e ocorrências** — ausência pelo pai, ocorrência do motorista com fan-out `SECURITY DEFINER`, avisos in-app com contador de não-lidos | ✅ |
 | **Financeiro (3 fatias)** — mensalidade por aluno, geração idempotente de faturas, "A receber", régua, aviso definitivo (G3), suspensão/reativação, G1/G2 na Revisão de hoje | ✅ |
 | **Modo Mapa (Mapbox)** — GPS ao vivo por polling, só o pino do motorista (sem paradas, G5), emissão só foreground+rota ativa (G4) com throttle e minimização de dado | ✅ |
+| **Link de captação** — o pai cadastra o próprio filho por link reutilizável do motorista (turno+escola); signup atrás do token + LGPD; geocoding do endereço; fila de aprovação (portão G5) | ✅ |
 
 ## As guardas inegociáveis (G1–G6)
 
@@ -125,11 +126,14 @@ pós-piloto). Ver [`docs/progresso.md`](docs/progresso.md) seções 3 e 8.
 
 ## Próximo
 
-Não falta bloco de produto. Antes do piloto: **testes manuais do Abner** (fotos,
-financeiro, "Suspensões a revisar") e **validação de LGPD** (modelagem
-controlador/operador com profissional, antes de dado real de criança). Depois:
-piloto com 1–3 motoristas conhecidos (Pix manual), e então webhook Asaas +
-WhatsApp real (N8N).
+Antes do piloto: **testes manuais do Abner** (fotos, financeiro, "Suspensões a
+revisar") e **validação de LGPD** (modelagem controlador/operador com
+profissional, antes de dado real de criança). Depois: piloto com 1–3 motoristas
+conhecidos (Pix manual), e então webhook Asaas + WhatsApp real (N8N).
+
+Próximo bloco grande: **Rotas 2.0** (criação de rota encorpada, "100m", rota
+inteligente) — o geocoding do endereço de casa já foi adiantado no formulário do
+pai do Link de captação.
 
 O teste das guardas do Modo Mapa está versionado em
 [`docs/tests/modo_mapa_guardas.sql`](docs/tests/modo_mapa_guardas.sql) (RLS G4/G6/G5)

@@ -134,6 +134,23 @@ export async function submitCapture(
   redirect("/responsavel?cadastro=enviado");
 }
 
+// Lado do MOTORISTA: aprova/rejeita uma submissão da fila (portão G5).
+// A validação de dono vive na função SECURITY DEFINER; aqui só disparamos.
+const APROVACOES_PATH = "/motorista/alunos/aprovacoes";
+
+export async function approveSubmission(id: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase.rpc("approve_capture", { p_submission_id: id });
+  revalidatePath(APROVACOES_PATH);
+  revalidatePath("/motorista/alunos");
+}
+
+export async function rejectSubmission(id: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase.rpc("reject_capture", { p_submission_id: id });
+  revalidatePath(APROVACOES_PATH);
+}
+
 // Revoga um link (não apaga — mantém auditoria). RLS garante que só o dono age.
 export async function revokeCaptureLink(id: string): Promise<void> {
   const supabase = await createClient();

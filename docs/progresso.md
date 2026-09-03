@@ -167,6 +167,19 @@ acabamento. Guardas provadas por teste, não presumidas.
   **G4/G6/G5 provadas em teste no banco** (`docs/tests/modo_mapa_guardas.sql`);
   o gate de G4 no cliente tem teste unitário (`tests/geo.test.ts`).
 
+- **Link de captação (4 fatias)** — inverte o cadastro: o pai cadastra o próprio
+  filho e o motorista só aprova. (1) motorista gera link **reutilizável e
+  revogável** por (turno + escola), com `'integral'` novo no enum de turno; (2)
+  formulário público em `/captacao/<token>` — o pai cria conta (guardian) **atrás
+  do token válido** (não é cadastro solto), aceita os Termos (LGPD) e envia à fila
+  `pending` (staging `capture_submissions`, nunca `students`); (3) geocoding do
+  endereço de casa (Mapbox Geocoding grava `pickup_lat/lng`); (4) **fila de
+  aprovação (portão G5)** — só na aprovação consciente do motorista a criança
+  vira `students` active e o pai é vinculado; rejeitar não cria nada. Guardas
+  provadas em teste no banco (owner-only do link; G5 da fila; link revogado
+  recusa; só responsável envia; e o portão: sem aprovar nada entra, B não aprova
+  link de A, rejeitado sem aluno, aprovado vira aluno vinculado).
+
 **Verificações que ficaram "build-validated"** (miolo provado em teste; falta
 o clique manual do Abner): upload real de foto (diálogo de arquivo do SO não é
 automatizável), navegação visual do detalhe da mensalidade/régua e da seção
@@ -231,9 +244,13 @@ falta é validação, não código:
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
   WhatsApp real (N8N).
 
+- **Rotas 2.0** — próximo bloco grande (depois da captação): criação de rota
+  encorpada, "100m", rota inteligente. O geocoding do endereço de casa já foi
+  adiantado no formulário do pai (fatia 1 de Rotas 2.0, feita no lugar certo).
+
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
-Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, geocoding de
-endereços (e, portanto, marcadores de parada no mapa).
+Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
+parada no mapa (dependeriam de expor endereço — G5).
 
 ---
 
@@ -252,5 +269,11 @@ endereços (e, portanto, marcadores de parada no mapa).
   lazy-loaded; guardas G4/G6/G5 provadas em teste no banco). Com isso o app fica
   **completo para o piloto** — faltam só os testes manuais do Abner e a validação
   de LGPD antes de dado real de criança.
+- **Sessão seguinte — Link de captação (4 fatias):** inverte o cadastro (o pai
+  cadastra o próprio filho, o motorista aprova). Link reutilizável/revogável por
+  turno+escola; formulário público com signup de guardian atrás do token +
+  consentimento LGPD; geocoding do endereço de casa; fila de aprovação (portão
+  G5). Cada fatia com teste de guardas no banco (docs/tests/captacao_fatia*.sql).
+  Próximo bloco grande: **Rotas 2.0**.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
