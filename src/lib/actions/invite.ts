@@ -3,10 +3,9 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { TERMS_VERSION } from "@/lib/consent";
 
 export type AcceptState = { error: string | null; needsEmailConfirm?: boolean };
-
-const TERMS_VERSION = "2026-08-piloto";
 
 // Fluxo "Você foi convidado": cria a conta do responsável, registra o aceite
 // de Termos + Política (LGPD) e vincula à criança via RPC (uso único).

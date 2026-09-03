@@ -63,6 +63,14 @@ export default async function GuardianHome() {
     .select("id", { count: "exact", head: true })
     .is("read_at", null);
 
+  // Cadastros enviados por link de captação, aguardando aprovação do motorista.
+  // RLS entrega só as submissões deste responsável (G5).
+  const { data: pendingSubs } = await supabase
+    .from("capture_submissions")
+    .select("id, child_full_name")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
   return (
     <>
       <AppHeader
@@ -71,6 +79,17 @@ export default async function GuardianHome() {
         showSignOut
       />
       <div className="px-4 pb-6">
+        {(pendingSubs?.length ?? 0) > 0 && (
+          <Card className="mt-4 border-amber-200 bg-amber-50">
+            <p className="font-semibold text-amber-900">Cadastro em análise</p>
+            <p className="mt-1 text-sm text-amber-800/80">
+              {pendingSubs!.length === 1
+                ? `${pendingSubs![0].child_full_name} está aguardando a aprovação do motorista.`
+                : `${pendingSubs!.length} cadastros aguardando a aprovação do motorista.`}
+            </p>
+          </Card>
+        )}
+
         <SectionTitle>Agora</SectionTitle>
         {journey ? (
           showMap && livePos ? (
