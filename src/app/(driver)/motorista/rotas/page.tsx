@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
 import { startOrReview } from "@/lib/actions/routes";
@@ -68,14 +69,34 @@ export default async function RotasPage() {
               const pickupCount = kinds.filter((k) => k === "pickup").length;
               const dropoffCount = kinds.filter((k) => k === "dropoff").length;
 
+              // Rota 'both' com alguma perna em andamento hoje: editar está
+              // travado (G2 no banco). Some com o botão — conveniência por cima
+              // da lei, não no lugar dela.
+              const running =
+                execByLeg.get(execKey(r.id, "pickup"))?.status ===
+                  "in_progress" ||
+                execByLeg.get(execKey(r.id, "dropoff"))?.status ===
+                  "in_progress";
+
               return (
                 <Card key={r.id} className="space-y-3">
-                  <div>
-                    <p className="font-semibold text-navy-900">{r.name}</p>
-                    <p className="text-sm text-navy-700/60">
-                      {DIRECTION_LABEL[r.direction]} • {total}{" "}
-                      {total === 1 ? "parada" : "paradas"}
-                    </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-navy-900">{r.name}</p>
+                      <p className="text-sm text-navy-700/60">
+                        {DIRECTION_LABEL[r.direction]} • {total}{" "}
+                        {total === 1 ? "parada" : "paradas"}
+                      </p>
+                    </div>
+                    {r.direction === "both" && !running && (
+                      <Link
+                        href={`/motorista/rotas/${r.id}/editar`}
+                        className="flex shrink-0 items-center gap-1 rounded-lg border border-navy-900/10 px-2.5 py-1.5 text-xs font-medium text-navy-700/70"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Editar
+                      </Link>
+                    )}
                   </div>
 
                   {r.direction === "both" ? (

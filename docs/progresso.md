@@ -198,10 +198,12 @@ e `stop_forced_driver_override`), live_positions (upsert por rota, não históri
 absences, occurrences, invoices, invoice_events (sustenta G3), notifications,
 student_invites. Consentimento LGPD em users.
 
-Guardas no banco: trigger `enforce_invoice_transition` (G3), RLS de
-live_positions (G4/G6), RLS de endereço (G5), funções `SECURITY DEFINER`
-(`accept_student_invite`, `get_active_journey`, `register_occurrence`,
-`get_suspension_review`, `apply_route_review`).
+Guardas no banco: trigger `enforce_invoice_transition` (G3), trigger
+`enforce_route_stops_frozen_while_running` em route_stops (G2 na edição de rota —
+congela as paradas enquanto uma perna roda), RLS de live_positions (G4/G6), RLS de
+endereço (G5), funções `SECURITY DEFINER` (`accept_student_invite`,
+`get_active_journey`, `register_occurrence`, `get_suspension_review`,
+`apply_route_review`).
 
 **Nota de migration:** a função de notificação teve um bug de cast (`in_app` sem
 cast para o enum) na migration 14, corrigido forward-only na 15 (`create or
@@ -245,7 +247,7 @@ falta é validação, não código:
   WhatsApp real (N8N).
 
 - **Rotas 2.0** — em andamento. **Criação de rota encorpada: pronta. Execução da
-  rota `'both'` por perna: pronta.** O modelo evoluiu: `route_direction += 'both'`
+  rota `'both'` por perna: pronta. Editar rota `'both'`: pronta.** O modelo evoluiu: `route_direction += 'both'`
   — uma rota vira uma "turma" com **duas listas** (ida=pickup, volta=dropoff) numa
   entidade só; `route_stops` agora é `unique(route_id, kind, position)` (cada perna
   com ordenação própria); `routes` ganhou `shift` (turno) como âncora do filtro.
@@ -263,10 +265,22 @@ falta é validação, não código:
   bloquear a volta de quem embarcou") lê o embarque da ida daquele dia ao revisar a
   volta. Ponte de compatibilidade: rotas antigas de uma perna (`outbound`/`inbound`,
   `leg` null) seguem idênticas — todo ramo novo é guardado por `leg is null`.
-  Execução provada (`docs/tests/rotas_both_execution.sql`, 4/4). **Faltam nas
-  próximas fatias:** editar rota; depois "100m", recorrência por dia da semana,
-  rota sugerida inteligente, otimização por coordenada (o geocoding do endereço de
-  casa já foi adiantado na captação).
+  Execução provada (`docs/tests/rotas_both_execution.sql`, 4/4). **Editar rota:**
+  reaproveita o RouteBuilder em modo edição (carrega as duas listas do banco,
+  ordenadas por perna); só rotas `'both'` (legado de uma perna não edita aqui — a
+  ponte de compatibilidade fica intocada). `updateRoute` reescreve as paradas
+  (delete + reinsert renumerado 1..N por perna). **Guarda G2 imposta por trigger no
+  banco** (`enforce_route_stops_frozen_while_running` em `route_stops`): rota com
+  perna `in_progress` hoje **congela as paradas** — insert/update/delete recusados,
+  à prova de bypass (não só na server action, que ainda pré-checa p/ erro amigável;
+  a UI esconde o botão Editar quando roda, conveniência por cima da lei). O trigger
+  ramifica por `TG_OP` e lê `OLD.route_id` no DELETE (a 026 tinha o furo de resolver
+  a rota só por `NEW`, nula no delete; corrigido forward-only na 027). Editar provado
+  (`docs/tests/rotas_edit.sql`, 4/4: dono edita rota parada; B não edita rota de A
+  por RLS; perna `in_progress` recusa; numeração por perna 1..N após reinserção).
+  **Faltam nas próximas fatias:** rotas na home + iniciar; depois "100m", recorrência
+  por dia da semana, rota sugerida inteligente, otimização por coordenada (o geocoding
+  do endereço de casa já foi adiantado na captação).
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -307,6 +321,15 @@ parada no mapa (dependeriam de expor endereço — G5).
   Ponte de compatibilidade: todo ramo novo guardado por `leg is null`. Execução
   provada (docs/tests/rotas_both_execution.sql, 4/4). Migration 025 precisou de
   índices parciais no lugar de `coalesce(leg::text,...)` na expressão do índice
-  (cast enum→text não é IMMUTABLE). Próxima fatia de Rotas 2.0: **editar** rota.
+  (cast enum→text não é IMMUTABLE).
+- **Rotas 2.0 — editar rota `'both'`:** RouteBuilder em modo duplo (criar/editar),
+  carregando as duas listas do banco; `updateRoute` reescreve as paradas. Guarda G2
+  por trigger em route_stops (congela as paradas com perna `in_progress` hoje) —
+  migration 026 criou o trigger com furo no DELETE (resolvia a rota só por `NEW`,
+  nula no delete → deixava apagar), 027 corrigiu forward-only ramificando por
+  `TG_OP`/`OLD.route_id`. Aplicadas pelo SQL Editor (não via `db push`), então não
+  constam no histórico `supabase_migrations` — idempotentes, `db push` futuro roda
+  limpo. Provado (docs/tests/rotas_edit.sql, 4/4). Próxima fatia: **rotas na home +
+  iniciar**.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.

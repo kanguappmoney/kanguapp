@@ -1,8 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { ChevronUp, ChevronDown, X, Plus, RotateCcw } from "lucide-react";
-import { createRoute, type RouteFormState } from "@/lib/actions/routes";
+import {
+  createRoute,
+  updateRoute,
+  type RouteFormState,
+} from "@/lib/actions/routes";
 
 interface Student {
   id: string;
@@ -13,6 +17,15 @@ interface Student {
 
 type Shift = "morning" | "afternoon" | "integral";
 
+// Rota carregada do banco para edição. Sem isto, o builder está em modo criação.
+export interface RouteToEdit {
+  id: string;
+  name: string;
+  shift: Shift;
+  pickup: string[];
+  dropoff: string[];
+}
+
 const SHIFT_LABEL: Record<Shift, string> = {
   morning: "Manhã",
   afternoon: "Tarde",
@@ -21,14 +34,24 @@ const SHIFT_LABEL: Record<Shift, string> = {
 
 const initial: RouteFormState = { error: null };
 
-export function RouteBuilder({ students }: { students: Student[] }) {
-  const [state, action, pending] = useActionState(createRoute, initial);
-  const [name, setName] = useState("");
-  const [shift, setShift] = useState<Shift | "">("");
-  const [pickup, setPickup] = useState<string[]>([]);
-  const [dropoff, setDropoff] = useState<string[]>([]);
-  // Enquanto a volta não é tocada, ela acompanha a ida invertida (proposta).
-  const [voltaTouched, setVoltaTouched] = useState(false);
+export function RouteBuilder({
+  students,
+  route,
+}: {
+  students: Student[];
+  route?: RouteToEdit;
+}) {
+  const editing = !!route;
+  const [state, action, pending] = useActionState(
+    editing ? updateRoute : createRoute,
+    initial,
+  );
+  const [name, setName] = useState(route?.name ?? "");
+  const [shift, setShift] = useState<Shift | "">(route?.shift ?? "");
+  const [pickup, setPickup] = useState<string[]>(route?.pickup ?? []);
+  const [dropoff, setDropoff] = useState<string[]>(route?.dropoff ?? []);
+  // Na edição a volta veio do banco (não é proposta), então já nasce "tocada".
+  const [voltaTouched, setVoltaTouched] = useState(editing);
 
   const byId = new Map(students.map((s) => [s.id, s]));
 
@@ -38,7 +61,14 @@ export function RouteBuilder({ students }: { students: Student[] }) {
     : [];
 
   // Trocar de turno reinicia as listas (evita aluno de outro turno preso nelas).
+  // Mas NÃO na hidratação inicial — senão apagaria as listas carregadas na
+  // edição. Só dispara em troca real do usuário (a partir do 2º render).
+  const shiftHydrated = useRef(false);
   useEffect(() => {
+    if (!shiftHydrated.current) {
+      shiftHydrated.current = true;
+      return;
+    }
     setPickup([]);
     setDropoff([]);
     setVoltaTouched(false);
@@ -61,6 +91,7 @@ export function RouteBuilder({ students }: { students: Student[] }) {
 
   return (
     <form action={action} className="space-y-6">
+      {editing && <input type="hidden" name="route_id" value={route!.id} />}
       <input type="hidden" name="pickup_ids" value={JSON.stringify(pickup)} />
       <input type="hidden" name="dropoff_ids" value={JSON.stringify(dropoff)} />
       <input type="hidden" name="shift" value={shift} />
@@ -151,7 +182,7 @@ export function RouteBuilder({ students }: { students: Student[] }) {
         disabled={pending}
         className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
       >
-        {pending ? "Salvando…" : "Salvar rota"}
+        {pending ? "Salvando…" : editing ? "Salvar alterações" : "Salvar rota"}
       </button>
     </form>
   );

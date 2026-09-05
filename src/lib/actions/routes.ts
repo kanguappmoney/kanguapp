@@ -76,6 +76,111 @@ export async function createRoute(
   redirect("/motorista/rotas");
 }
 
+// Edita uma rota 'both' existente: renomeia, troca o turno e reescreve as duas
+// listas. Reaproveita o mesmo RouteBuilder (agora em modo edição). Só rotas
+// 'both' — as antigas de uma perna são a ponte de compatibilidade em extinção.
+//
+// G2 ("nada é removido no meio de uma execução em andamento"): a edição reescreve
+// route_stops (delete + reinsert). Se uma perna está rodando hoje, isso mudaria a
+// jornada viva — proibido. Pré-checa aqui (erro amigável, sem update parcial) E
+// o trigger enforce_route_stops_frozen_while_running é o backstop no banco, à
+// prova de bypass (URL direta, corrida perna-começa-com-tela-aberta).
+export async function updateRoute(
+  _prev: RouteFormState,
+  formData: FormData,
+): Promise<RouteFormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sessão expirada." };
+
+  const routeId = String(formData.get("route_id") ?? "");
+  if (!routeId) return { error: "Rota não informada." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  const shift = String(formData.get("shift") ?? "");
+  if (!name) return { error: "Dê um nome à rota." };
+  if (!SHIFTS.includes(shift as Shift))
+    return { error: "Escolha o turno da rota." };
+
+  const pickupIds = parseIds(formData.get("pickup_ids"));
+  const dropoffIds = parseIds(formData.get("dropoff_ids"));
+  if (!pickupIds.length && !dropoffIds.length)
+    return { error: "Adicione ao menos um aluno na ida ou na volta." };
+
+  // Confere que a rota existe, é do motorista (RLS só devolve as próprias) e é
+  // 'both'. Escopo desta fatia: não editamos rota legada de uma perna.
+  const { data: route } = await supabase
+    .from("routes")
+    .select("id, direction")
+    .eq("id", routeId)
+    .maybeSingle();
+  if (!route) return { error: "Rota não encontrada." };
+  if (route.direction !== "both")
+    return { error: "Só rotas de ida e volta podem ser editadas por aqui." };
+
+  // G2 (pré-checagem): há perna em andamento hoje? Não reescreve nada.
+  const { count: running } = await supabase
+    .from("route_executions")
+    .select("id", { count: "exact", head: true })
+    .eq("route_id", routeId)
+    .eq("service_date", today())
+    .eq("status", "in_progress");
+  if ((running ?? 0) > 0)
+    return {
+      error:
+        "Esta rota tem uma perna em andamento hoje. Termine a execução para poder editar.",
+    };
+
+  const { error: nameError } = await supabase
+    .from("routes")
+    .update({ name, shift: shift as Shift })
+    .eq("id", routeId);
+  if (nameError) return { error: nameError.message };
+
+  // Reescreve as paradas: apaga as antigas e reinsere renumerado 1..N por perna.
+  const { error: delError } = await supabase
+    .from("route_stops")
+    .delete()
+    .eq("route_id", routeId);
+  // O trigger G2 devolve check_violation (23514) se uma perna começou a rodar
+  // entre a pré-checagem e aqui (corrida) — vira erro amigável, não 500.
+  if (delError)
+    return {
+      error:
+        delError.code === "23514"
+          ? "Esta rota começou a rodar. Não é possível editar agora."
+          : delError.message,
+    };
+
+  const stops = [
+    ...pickupIds.map((student_id, i) => ({
+      route_id: routeId,
+      student_id,
+      position: i + 1,
+      kind: "pickup" as const,
+    })),
+    ...dropoffIds.map((student_id, i) => ({
+      route_id: routeId,
+      student_id,
+      position: i + 1,
+      kind: "dropoff" as const,
+    })),
+  ];
+  const { error: stopsError } = await supabase.from("route_stops").insert(stops);
+  if (stopsError)
+    return {
+      error:
+        stopsError.code === "23514"
+          ? "Esta rota começou a rodar. Não é possível editar agora."
+          : stopsError.message,
+    };
+
+  revalidatePath("/motorista/rotas");
+  redirect("/motorista/rotas");
+}
+
 // Perna da execução: 'pickup' (ida) ou 'dropoff' (volta). Só a rota 'both' roda
 // por perna; nas rotas antigas de uma perna ela chega undefined (leg null no
 // banco) e tudo segue como antes — ponte de compatibilidade.
