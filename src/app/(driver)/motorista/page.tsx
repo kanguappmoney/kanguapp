@@ -1,39 +1,94 @@
 import { getCurrentUser } from "@/lib/auth";
-import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
+import { createClient } from "@/lib/supabase/server";
+import { HomeContent } from "@/components/HomeContent";
+import { getRoutesWithTodayExecs } from "@/lib/routes-today";
+import { getActiveDriverBoard } from "@/lib/drive-board";
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Saudação pelo horário local (região do piloto: São Paulo, UTC-3).
+function greeting() {
+  const hour = Number(
+    new Date().toLocaleString("en-US", {
+      timeZone: "America/Sao_Paulo",
+      hour: "numeric",
+      hour12: false,
+    }),
+  );
+  if (hour < 12) return "Bom dia";
+  if (hour < 18) return "Boa tarde";
+  return "Boa noite";
+}
 
 export default async function DriverHome() {
   const user = await getCurrentUser();
+  const supabase = await createClient();
+
+  // Foto do motorista (URL assinada, bucket privado) para o avatar do cabeçalho.
+  let avatarUrl: string | null = null;
+  const { data: profile } = await supabase
+    .from("driver_profiles")
+    .select("photo_path")
+    .eq("user_id", user?.id ?? "")
+    .maybeSingle();
+  if (profile?.photo_path) {
+    const { data } = await supabase.storage
+      .from("driver-photos")
+      .createSignedUrl(profile.photo_path, 3600);
+    avatarUrl = data?.signedUrl ?? null;
+  }
+
+  // Chip da placa (dado real do perfil). Só a identificação do veículo — sem
+  // status "online" (isso dependeria de GPS ao vivo, que a home não tem).
+  const { data: vehicle } = await supabase
+    .from("vehicles")
+    .select("plate, model")
+    .eq("driver_id", user?.id ?? "")
+    .limit(1)
+    .maybeSingle();
+  const vehicleLabel = vehicle
+    ? [vehicle.model, vehicle.plate].filter(Boolean).join(" ") || null
+    : null;
+
+  // Contadores reais. Alunos ativos dão a contagem e a base das ausências de hoje.
+  const { data: activeStudents } = await supabase
+    .from("students")
+    .select("id")
+    .eq("status", "active");
+  const studentIds = (activeStudents ?? []).map((s) => s.id);
+  const alunos = studentIds.length;
+
+  let ausencias = 0;
+  if (studentIds.length) {
+    const { count } = await supabase
+      .from("absences")
+      .select("id", { count: "exact", head: true })
+      .eq("service_date", today())
+      .in("student_id", studentIds);
+    ausencias = count ?? 0;
+  }
+
+  // Rotas + execuções de hoje (fonte única). Paradas = soma das paradas das rotas.
+  const { routes, execByLeg } = await getRoutesWithTodayExecs();
+  const paradas = routes.reduce((n, r) => n + (r.route_stops?.length ?? 0), 0);
+
+  // Bloco vivo: se há perna em andamento, a home mostra o quadro real dela.
+  const board = await getActiveDriverBoard();
 
   return (
-    <>
-      <AppHeader
-        title={`Olá, ${user?.fullName.split(" ")[0] ?? "motorista"}`}
-        subtitle="Sua operação de hoje"
-        showSignOut
-      />
-
-      <div className="px-4 pb-6">
-        <SectionTitle>Rota de hoje</SectionTitle>
-        {/* Home motorista — mockup 4B. Sem selo "Rota Otimizada" (fase 2). */}
-        <Card>
-          <p className="text-sm text-navy-700/70">
-            Nenhuma rota configurada ainda. Cadastre alunos e monte a primeira
-            rota para começar.
-          </p>
-          <button className="mt-3 w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900">
-            Iniciar rota
-          </button>
-        </Card>
-
-        <SectionTitle>Atalhos</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
-          <Placeholder>➕ Adicionar aluno</Placeholder>
-          <Placeholder>✉️ Convidar responsável</Placeholder>
-        </div>
-
-        <SectionTitle>Avisos</SectionTitle>
-        <Placeholder>Sem pendências financeiras a revisar.</Placeholder>
-      </div>
-    </>
+    <HomeContent
+      firstName={user?.fullName.split(" ")[0] ?? "motorista"}
+      avatarUrl={avatarUrl}
+      vehicleLabel={vehicleLabel}
+      greeting={greeting()}
+      alunos={alunos}
+      ausencias={ausencias}
+      paradas={paradas}
+      board={board}
+      routes={routes}
+      execByLeg={execByLeg}
+    />
   );
 }

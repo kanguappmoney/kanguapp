@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DriveScreen, type DriveStop } from "@/components/DriveScreen";
+import { resolveBoardStops, kindOf, boardRouteName } from "@/lib/drive-board";
 
 export default async function ModoDirecaoPage({
   params,
@@ -32,60 +33,18 @@ export default async function ModoDirecaoPage({
     .maybeSingle();
   const trackingMode = profile?.parent_tracking_mode ?? "map";
 
-  // @ts-expect-error relação aninhada do supabase-js
-  const route = execution.routes as { name: string; direction: string };
-  // Na rota 'both' o trajeto vem da PERNA em execução (execution.leg); nas rotas
-  // antigas de uma perna, do direction (ponte de compatibilidade).
-  const kind: "pickup" | "dropoff" =
-    route.direction === "both"
-      ? (execution.leg as "pickup" | "dropoff")
-      : route.direction === "outbound"
-        ? "pickup"
-        : "dropoff";
-
-  // Na 'both' filtramos a lista pela perna (senão traria ida+volta juntas). No
-  // legado não filtramos — as paradas já são de uma perna só.
-  let stopsQuery = supabase
-    .from("route_stops")
-    .select("student_id, position, students(full_name, pickup_address, dropoff_address)")
-    .eq("route_id", execution.route_id)
-    .order("position");
-  if (route.direction === "both") stopsQuery = stopsQuery.eq("kind", kind);
-  const { data: stops } = await stopsQuery;
-
-  const { data: events } = await supabase
-    .from("route_events")
-    .select("student_id, type")
-    .eq("execution_id", executionId)
-    .in("type", ["embarked", "disembarked", "student_absent"]);
-
-  const stateByStudent = new Map<string, "boarded" | "absent">();
-  for (const e of events ?? []) {
-    if (!e.student_id) continue;
-    stateByStudent.set(e.student_id, e.type === "student_absent" ? "absent" : "boarded");
-  }
-
-  const driveStops: DriveStop[] = (stops ?? []).map((s) => {
-    // @ts-expect-error relação aninhada do supabase-js
-    const st = s.students as {
-      full_name: string;
-      pickup_address: string | null;
-      dropoff_address: string | null;
-    };
-    return {
-      studentId: s.student_id,
-      position: s.position,
-      name: st.full_name,
-      address: kind === "pickup" ? st.pickup_address : st.dropoff_address,
-      state: stateByStudent.get(s.student_id) ?? "pending",
-    };
-  });
-
-  // Na 'both', deixa explícito qual perna está rodando no cabeçalho imersivo.
-  const routeName =
-    route.direction === "both"
-      ? `${route.name} • ${kind === "pickup" ? "ida" : "volta"}`
-      : route.name;
+  // Fonte única do quadro de embarque (resolve paradas da perna + estado). A home
+  // usa o mesmo helper — sem foto aqui (o Modo Direção não exibe foto na lista).
+  const kind = kindOf(execution);
+  const board = await resolveBoardStops(supabase, execution);
+  const driveStops: DriveStop[] = board.map((s) => ({
+    studentId: s.studentId,
+    position: s.position,
+    name: s.name,
+    address: s.address,
+    state: s.state,
+  }));
+  const routeName = boardRouteName(execution);
 
   return (
     <DriveScreen

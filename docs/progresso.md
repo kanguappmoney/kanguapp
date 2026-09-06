@@ -247,7 +247,8 @@ falta é validação, não código:
   WhatsApp real (N8N).
 
 - **Rotas 2.0** — em andamento. **Criação de rota encorpada: pronta. Execução da
-  rota `'both'` por perna: pronta. Editar rota `'both'`: pronta.** O modelo evoluiu: `route_direction += 'both'`
+  rota `'both'` por perna: pronta. Editar rota `'both'`: pronta. Home operacional
+  + iniciar: pronta.** O modelo evoluiu: `route_direction += 'both'`
   — uma rota vira uma "turma" com **duas listas** (ida=pickup, volta=dropoff) numa
   entidade só; `route_stops` agora é `unique(route_id, kind, position)` (cada perna
   com ordenação própria); `routes` ganhou `shift` (turno) como âncora do filtro.
@@ -278,9 +279,24 @@ falta é validação, não código:
   a rota só por `NEW`, nula no delete; corrigido forward-only na 027). Editar provado
   (`docs/tests/rotas_edit.sql`, 4/4: dono edita rota parada; B não edita rota de A
   por RLS; perna `in_progress` recusa; numeração por perna 1..N após reinserção).
-  **Faltam nas próximas fatias:** rotas na home + iniciar; depois "100m", recorrência
-  por dia da semana, rota sugerida inteligente, otimização por coordenada (o geocoding
-  do endereço de casa já foi adiantado na captação).
+  **Home operacional + iniciar:** a home do motorista deixou de ser placeholder e
+  virou a tela de "começar o dia". Dois estados por dado real: **(a) ocioso** —
+  saudação + chip da placa (perfil) + contadores (alunos ativos, ausências de hoje,
+  paradas) + as rotas com Iniciar/Continuar por perna; **(b) rodando** — quando há
+  perna `in_progress`, mostra a **próxima parada** (1ª pendente) e a **lista de
+  embarque** reais daquela execução (mesma fonte do Modo Direção) + Continuar. Selo
+  **Ida/Volta** no cabeçalho, no botão e no texto da lista ("embarcaram"/"desembarcaram")
+  — a perna nunca fica ambígua. Nada é fabricado: sem execução, os blocos vivos
+  somem (a "rota de hoje" só vira automática quando a recorrência existir). **Fonte
+  única** extraída (`lib/routes-today` = rotas+execs; `lib/drive-board` = quadro de
+  embarque, com a DriveScreen refatorada pra usar o mesmo helper — sem cópia
+  divergente) e apresentação separada do dado (`HomeContent`, `RouteRunList`). Sem
+  migration nem guarda nova: reuso de caminho de início já provado; validado visual
+  (dois estados) no navegador. Gestão (criar/editar) segue na `/rotas`, com a ponte
+  "Ver todas / gerenciar" na home.
+  **Faltam nas próximas fatias:** embarque a "100m"; depois recorrência por dia da
+  semana, rota sugerida inteligente, otimização por coordenada (o geocoding do
+  endereço de casa já foi adiantado na captação).
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -329,7 +345,15 @@ parada no mapa (dependeriam de expor endereço — G5).
   nula no delete → deixava apagar), 027 corrigiu forward-only ramificando por
   `TG_OP`/`OLD.route_id`. Aplicadas pelo SQL Editor (não via `db push`), então não
   constam no histórico `supabase_migrations` — idempotentes, `db push` futuro roda
-  limpo. Provado (docs/tests/rotas_edit.sql, 4/4). Próxima fatia: **rotas na home +
-  iniciar**.
+  limpo. Provado (docs/tests/rotas_edit.sql, 4/4).
+- **Rotas 2.0 — home operacional + iniciar:** home do motorista (era placeholder)
+  vira a tela de começar o dia, por estado. Ociosa: saudação + chip da placa +
+  contadores reais + rotas com Iniciar/Continuar por perna. Rodando: próxima parada
+  + lista de embarque reais da execução `in_progress` (mesma fonte do Modo Direção)
+  + Continuar. Selo Ida/Volta no cabeçalho/botão/lista (a perna nunca fica ambígua).
+  Fonte única extraída (`lib/routes-today`, `lib/drive-board`) com a DriveScreen
+  refatorada pra reusá-la; apresentação separada (`HomeContent`, `RouteRunList`).
+  Sem migration/guarda nova (reuso de início já provado); validação visual dos dois
+  estados no navegador. Próxima fatia: **embarque a "100m"**.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
