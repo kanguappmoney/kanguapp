@@ -193,19 +193,22 @@ Tabelas: users, driver_profiles (+ `parent_tracking_mode`, `subscription_status`
 `default_tolerance_days`, `address`, `photo_path`), vehicles (+ model/year/color),
 students (+ `monthly_fee_cents`, `school_address`, `pay_status` derivado
 ok/at_risk/blocked, campos completos de cadastro), guardians, guardian_student,
-routes, route_stops, route_executions, route_events (inclui `stop_skipped_billing`
-e `stop_forced_driver_override`), live_positions (upsert por rota, não histórico),
-absences, occurrences, invoices, invoice_events (sustenta G3), notifications,
-student_invites. Consentimento LGPD em users.
+routes (+ `weekdays smallint[]` ISO dow, recorrência), route_stops,
+route_executions, route_exceptions (skip/extra por data — exceções da recorrência),
+route_events (inclui `stop_skipped_billing` e `stop_forced_driver_override`),
+live_positions (upsert por rota, não histórico), absences, occurrences, invoices,
+invoice_events (sustenta G3), notifications, student_invites. Consentimento LGPD em
+users.
 
 Guardas no banco: trigger `enforce_invoice_transition` (G3), trigger
 `enforce_route_stops_frozen_while_running` em route_stops (G2 na edição de rota —
 congela as paradas enquanto uma perna roda), trigger `normalize_boarding_metadata`
 em route_events (auditoria do embarque a 100m — canoniza `forced`/`distance_m` e,
 por NUNCA recusar, é incapaz de bloquear um embarque: G1), RLS de live_positions
-(G4/G6), RLS de endereço (G5), funções `SECURITY DEFINER` (`accept_student_invite`,
-`get_active_journey`, `register_occurrence`, `get_suspension_review`,
-`apply_route_review`).
+(G4/G6), RLS de endereço (G5), RLS dono-only em route_exceptions, funções
+`SECURITY DEFINER` (`accept_student_invite`, `get_active_journey`,
+`register_occurrence`, `get_suspension_review`, `apply_route_review`) e a função
+`route_runs_on(route, date)` (recorrência: dia da semana + exceções).
 
 **Nota de migration:** a função de notificação teve um bug de cast (`in_app` sem
 cast para o enum) na migration 14, corrigido forward-only na 15 (`create or
@@ -312,9 +315,20 @@ falta é validação, não código:
   canônico com a distância; G5 — o pai vê "embarcou", nunca o override nem a
   distância). Migration 028 aplicada pelo SQL Editor (fora do histórico
   `supabase_migrations`, idempotente).
-  **Faltam nas próximas fatias:** recorrência por dia da semana + exceções (precisa de
-  plano de escopo próprio antes do código); depois rota sugerida inteligente (Mapbox
-  Optimization + trânsito, a mais pesada, por último).
+  **Recorrência (R1: fundação + guarda):** modelo **leve/computado** (decisão travada
+  — sem cron, combina com o piloto). `routes.weekdays` (ISO dow, backfill Seg–Sex) é a
+  regra; `route_exceptions(date, kind skip|extra, reason)` são os desvios esparsos
+  (feriado/reposição), RLS dono-only; a função `route_runs_on(route, date)` junta os
+  dois na leitura (exceção manda sobre a regra). Por rota (ida e volta compartilham os
+  dias; o dia de só-volta já é a execução por perna). Execução segue criada no
+  "iniciar". **Guarda (espírito do 100m): recorrência MOSTRA, nunca BLOQUEIA** — nenhum
+  trigger/constraint recusa iniciar num dia fora da agenda; o motorista sempre pode
+  rodar um dia extra. Provado no banco (`docs/tests/recorrencia.sql`, 6/6: regra do
+  dia; skip; extra; backfill Seg–Sex; RLS dono-only; execução em dia off aceita).
+  Migration 029 aplicada pelo SQL Editor. **Sem UI** nesta fatia. **Faltam:** R2 (home
+  filtra "hoje" por `route_runs_on` + editar dias no builder + iniciar fora da agenda);
+  R3 (UI de exceções); depois rota sugerida inteligente (Mapbox Optimization +
+  trânsito, a mais pesada, por último).
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -384,5 +398,13 @@ parada no mapa (dependeriam de expor endereço — G5).
   (tests/geo.test.ts, 13/13) + banco (docs/tests/embarque_100m.sql, 3/3). Migration
   028 aplicada pelo SQL Editor. Próxima fatia: **recorrência por dia da semana +
   exceções** (precisa de plano de escopo próprio antes do código).
+- **Rotas 2.0 — recorrência R1 (fundação + guarda):** plano de modelo primeiro
+  (decisões travadas: leve/computado sem cron; `route_exceptions` dedicada; por rota;
+  backfill Seg–Sex). Migration 029: `routes.weekdays` (ISO dow), tabela
+  `route_exceptions(skip|extra)` com RLS dono-only, função `route_runs_on(route,date)`
+  (exceção manda sobre a regra). Guarda no espírito do 100m — recorrência mostra,
+  nunca bloqueia: nenhum caminho recusa iniciar num dia fora da agenda. Provado
+  (docs/tests/recorrencia.sql, 6/6). Sem UI. Próximas: R2 (home filtra "hoje" +
+  editar dias + iniciar fora da agenda), R3 (UI de exceções).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
