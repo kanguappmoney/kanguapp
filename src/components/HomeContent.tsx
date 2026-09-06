@@ -28,6 +28,7 @@ export interface HomeContentProps {
   board: ActiveBoard | null;
   routes: RouteWithStops[];
   execByLeg: Map<string, TodayExec>;
+  routesEmptyText: string;
 }
 
 export function HomeContent({
@@ -41,6 +42,7 @@ export function HomeContent({
   board,
   routes,
   execByLeg,
+  routesEmptyText,
 }: HomeContentProps) {
   return (
     <>
@@ -115,7 +117,7 @@ export function HomeContent({
             <RouteRunList
               routes={routes}
               execByLeg={execByLeg}
-              emptyText="Nenhuma rota ainda. Monte a primeira na aba Rotas."
+              emptyText={routesEmptyText}
             />
           </>
         )}

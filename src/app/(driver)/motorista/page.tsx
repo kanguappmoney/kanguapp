@@ -70,9 +70,21 @@ export default async function DriverHome() {
     ausencias = count ?? 0;
   }
 
-  // Rotas + execuções de hoje (fonte única). Paradas = soma das paradas das rotas.
-  const { routes, execByLeg } = await getRoutesWithTodayExecs();
-  const paradas = routes.reduce((n, r) => n + (r.route_stops?.length ?? 0), 0);
+  // Rotas + execuções de hoje (fonte única). A home só mostra em "Rota de hoje" o
+  // que roda hoje pela recorrência OU já tem execução hoje — este segundo ramo
+  // garante que uma rota iniciada num dia FORA da agenda (dia extra) não some da
+  // home depois de começar. A /rotas ignora isto e lista todas (é lá que se
+  // inicia fora da agenda). Paradas = soma das paradas das rotas de hoje.
+  const { routes, execByLeg, runsTodayIds } = await getRoutesWithTodayExecs();
+  const hasExecToday = (routeId: string) =>
+    [...execByLeg.keys()].some((k) => k.startsWith(`${routeId}:`));
+  const todayRoutes = routes.filter(
+    (r) => runsTodayIds.has(r.id) || hasExecToday(r.id),
+  );
+  const paradas = todayRoutes.reduce(
+    (n, r) => n + (r.route_stops?.length ?? 0),
+    0,
+  );
 
   // Bloco vivo: se há perna em andamento, a home mostra o quadro real dela.
   const board = await getActiveDriverBoard();
@@ -87,8 +99,13 @@ export default async function DriverHome() {
       ausencias={ausencias}
       paradas={paradas}
       board={board}
-      routes={routes}
+      routes={todayRoutes}
       execByLeg={execByLeg}
+      routesEmptyText={
+        routes.length === 0
+          ? "Nenhuma rota ainda. Monte a primeira na aba Rotas."
+          : "Nenhuma rota programada para hoje. Veja todas em Rotas."
+      }
     />
   );
 }
