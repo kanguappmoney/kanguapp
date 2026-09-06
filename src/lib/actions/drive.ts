@@ -6,13 +6,26 @@ import { createClient } from "@/lib/supabase/server";
 
 type StopState = "pending" | "boarded" | "absent";
 
+// Proximidade do embarque (gate de 100m, G1/G2). `forced` = motorista usou
+// "embarcar mesmo assim" (fora do raio, sem GPS, ou aluno sem coordenada);
+// `distanceM` = a distância medida, ou null quando não deu pra confirmar. Só o
+// escalar vai ao banco — nunca a coordenada crua (minimização, espelha o G4).
+export interface BoardingProximity {
+  forced: boolean;
+  distanceM: number | null;
+}
+
 // Marca a parada de um aluno com um toque. Idempotente: limpa eventos anteriores
 // do aluno nesta execução e grava o novo estado. Alimenta a Linha do tempo (G6).
+// No embarque/desembarque, registra a proximidade no metadata (trilha de
+// auditoria do "embarcar mesmo assim"). O trigger no banco normaliza o metadata —
+// e nunca recusa o embarque (G1: nada impede uma criança de embarcar).
 export async function setStopState(
   executionId: string,
   studentId: string,
   state: StopState,
   kind: "pickup" | "dropoff",
+  proximity?: BoardingProximity,
 ) {
   const supabase = await createClient();
 
@@ -30,9 +43,14 @@ export async function setStopState(
         : kind === "pickup"
           ? "embarked"
           : "disembarked";
+    // Metadata de proximidade só nos eventos de embarque/desembarque.
+    const metadata =
+      state === "boarded" && proximity
+        ? { forced: proximity.forced, distance_m: proximity.distanceM }
+        : {};
     await supabase
       .from("route_events")
-      .insert({ execution_id: executionId, student_id: studentId, type });
+      .insert({ execution_id: executionId, student_id: studentId, type, metadata });
   }
 
   revalidatePath(`/motorista/rota/${executionId}`);

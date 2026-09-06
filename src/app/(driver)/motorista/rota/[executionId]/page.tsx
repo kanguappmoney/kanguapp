@@ -42,6 +42,8 @@ export default async function ModoDirecaoPage({
     position: s.position,
     name: s.name,
     address: s.address,
+    lat: s.lat,
+    lng: s.lng,
     state: s.state,
   }));
   const routeName = boardRouteName(execution);
@@ -52,6 +54,7 @@ export default async function ModoDirecaoPage({
       routeName={routeName}
       kind={kind}
       active={execution.status === "in_progress" && trackingMode === "map"}
+      inProgress={execution.status === "in_progress"}
       stops={driveStops}
     />
   );

@@ -45,3 +45,29 @@ export function shouldBroadcast(d: BroadcastDecision): boolean {
   const movedOk = haversineMeters(d.lastSentPos, d.current) >= MIN_DISTANCE_M;
   return timeOk && movedOk;
 }
+
+// --- Gate de embarque a 100m (G1/G2) -----------------------------------------
+// O 100m é AJUDA, nunca trava: libera o botão "embarcar" normal quando a van está
+// perto do endereço da criança, mas "embarcar mesmo assim" fica SEMPRE disponível.
+// GPS falha e aluno pode não ter coordenada — então o gate é client-side de
+// propósito; o banco jamais recusa um embarque (isso violaria a G1).
+export const BOARDING_PROXIMITY_M = 100;
+
+// Distância van→parada em metros, ou null quando falta a posição (sem GPS) ou a
+// coordenada do aluno (sem geocoding). null = "não dá pra confirmar proximidade".
+export function stopDistanceMeters(
+  driver: GeoPoint | null,
+  stop: GeoPoint | null,
+): number | null {
+  if (!driver || !stop) return null;
+  return haversineMeters(driver, stop);
+}
+
+// Dentro do raio? Distância null (sem GPS/coord) => false: o botão normal não
+// libera, mas o "embarcar mesmo assim" cobre — nunca bloqueia o embarque.
+export function withinBoardingRange(
+  distanceM: number | null,
+  thresholdM: number = BOARDING_PROXIMITY_M,
+): boolean {
+  return distanceM !== null && distanceM <= thresholdM;
+}

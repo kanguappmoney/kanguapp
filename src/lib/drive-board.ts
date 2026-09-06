@@ -13,6 +13,8 @@ export interface BoardStop {
   position: number;
   name: string;
   address: string | null;
+  lat: number | null; // coordenada da parada na perna (gate de embarque a 100m)
+  lng: number | null;
   photoUrl: string | null;
   state: StopState;
 }
@@ -58,7 +60,7 @@ export async function resolveBoardStops(
   let stopsQuery = supabase
     .from("route_stops")
     .select(
-      "student_id, position, students(full_name, pickup_address, dropoff_address, photo_path)",
+      "student_id, position, students(full_name, pickup_address, dropoff_address, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, photo_path)",
     )
     .eq("route_id", exec.route_id)
     .order("position");
@@ -88,6 +90,10 @@ export async function resolveBoardStops(
         full_name: string;
         pickup_address: string | null;
         dropoff_address: string | null;
+        pickup_lat: number | null;
+        pickup_lng: number | null;
+        dropoff_lat: number | null;
+        dropoff_lng: number | null;
         photo_path: string | null;
       };
       let photoUrl: string | null = null;
@@ -102,6 +108,8 @@ export async function resolveBoardStops(
         position: s.position,
         name: st.full_name,
         address: kind === "pickup" ? st.pickup_address : st.dropoff_address,
+        lat: kind === "pickup" ? st.pickup_lat : st.dropoff_lat,
+        lng: kind === "pickup" ? st.pickup_lng : st.dropoff_lng,
         photoUrl,
         state: (stateByStudent.get(s.student_id) ?? "pending") as StopState,
       };

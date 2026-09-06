@@ -6,6 +6,9 @@ import assert from "node:assert/strict";
 import {
   haversineMeters,
   shouldBroadcast,
+  stopDistanceMeters,
+  withinBoardingRange,
+  BOARDING_PROXIMITY_M,
   MIN_INTERVAL_MS,
   MIN_DISTANCE_M,
   type GeoPoint,
@@ -70,4 +73,37 @@ test("passou o tempo E moveu o suficiente: emite", () => {
     true,
   );
   assert.ok(haversineMeters(base.lastSentPos, base.current) >= MIN_DISTANCE_M);
+});
+
+// --- Gate de embarque a 100m (G1/G2) -----------------------------------------
+// ~150m ao norte de P (0.00135° de latitude ≈ 150m).
+const P_150m_north: GeoPoint = { lat: P.lat + 0.00135, lng: P.lng };
+
+test("100m: sem GPS (driver null) => distância null", () => {
+  assert.equal(stopDistanceMeters(null, P), null);
+});
+
+test("100m: aluno sem coordenada (stop null) => distância null", () => {
+  assert.equal(stopDistanceMeters(P, null), null);
+});
+
+test("100m: dentro do raio (~30m) libera o botão normal", () => {
+  const d = stopDistanceMeters(P, P_30m_north);
+  assert.ok(d !== null && d <= BOARDING_PROXIMITY_M);
+  assert.equal(withinBoardingRange(d), true);
+});
+
+test("100m: fora do raio (~150m) NÃO libera o normal (mas 'mesmo assim' cobre)", () => {
+  const d = stopDistanceMeters(P, P_150m_north);
+  assert.ok(d !== null && d > BOARDING_PROXIMITY_M);
+  assert.equal(withinBoardingRange(d), false);
+});
+
+test("100m: sem confirmação de proximidade (null) => normal não libera", () => {
+  // G1: o gate nunca vira trava — quem cobre o null é o 'embarcar mesmo assim'.
+  assert.equal(withinBoardingRange(null), false);
+});
+
+test("100m: threshold é 100", () => {
+  assert.equal(BOARDING_PROXIMITY_M, 100);
 });

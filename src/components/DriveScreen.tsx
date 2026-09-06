@@ -1,9 +1,20 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setStopState, endRoute } from "@/lib/actions/drive";
+import { MapPin, MapPinOff } from "lucide-react";
+import {
+  setStopState,
+  endRoute,
+  type BoardingProximity,
+} from "@/lib/actions/drive";
 import { OccurrenceSheet } from "@/components/OccurrenceSheet";
 import { usePositionBroadcast } from "@/components/usePositionBroadcast";
+import { useDriverPosition } from "@/components/useDriverPosition";
+import {
+  stopDistanceMeters,
+  withinBoardingRange,
+  type GeoPoint,
+} from "@/lib/geo";
 
 type StopState = "pending" | "boarded" | "absent";
 
@@ -12,6 +23,8 @@ export interface DriveStop {
   position: number;
   name: string;
   address: string | null;
+  lat: number | null;
+  lng: number | null;
   state: StopState;
 }
 
@@ -20,12 +33,14 @@ export function DriveScreen({
   routeName,
   kind,
   active,
+  inProgress,
   stops: initial,
 }: {
   executionId: string;
   routeName: string;
   kind: "pickup" | "dropoff";
   active: boolean;
+  inProgress: boolean;
   stops: DriveStop[];
 }) {
   const [stops, setStops] = useState(initial);
@@ -37,15 +52,22 @@ export function DriveScreen({
   // e o GPS nem é coletado (minimização de dado) — a RLS continua sendo o gate final.
   usePositionBroadcast(executionId, active);
 
-  const boardVerb = kind === "pickup" ? "Embarcou" : "Desembarcou";
+  // Gate de embarque a 100m (G1/G2): a posição da van vale em QUALQUER modo (roda
+  // com a rota in_progress + foreground), só pra medir a distância até a parada.
+  // Não é broadcast, não persiste coord — só habilita o botão. Nunca trava.
+  const driverPos = useDriverPosition(inProgress);
+
+  const boardVerb = kind === "pickup" ? "Embarcar" : "Desembarcar";
   const doneCount = stops.filter((s) => s.state !== "pending").length;
   const allHandled = doneCount === stops.length;
 
-  function set(studentId: string, state: StopState) {
+  function set(studentId: string, state: StopState, proximity?: BoardingProximity) {
     setStops((prev) =>
       prev.map((s) => (s.studentId === studentId ? { ...s, state } : s)),
     );
-    startTransition(() => setStopState(executionId, studentId, state, kind));
+    startTransition(() =>
+      setStopState(executionId, studentId, state, kind, proximity),
+    );
   }
 
   return (
@@ -99,29 +121,12 @@ export function DriveScreen({
               )}
             </div>
 
-            {s.state === "pending" ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => set(s.studentId, "boarded")}
-                  className="flex-1 rounded-xl bg-yellow-400 py-2.5 font-semibold text-navy-900"
-                >
-                  {boardVerb}
-                </button>
-                <button
-                  onClick={() => set(s.studentId, "absent")}
-                  className="rounded-xl border border-navy-900/15 px-4 py-2.5 text-sm font-medium text-navy-700/70"
-                >
-                  Ausente
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => set(s.studentId, "pending")}
-                className="w-full rounded-xl border border-navy-900/10 py-2 text-sm font-medium text-navy-700/60"
-              >
-                Desfazer
-              </button>
-            )}
+            <StopActions
+              stop={s}
+              driverPos={driverPos}
+              boardVerb={boardVerb}
+              onSet={set}
+            />
           </div>
         ))}
       </div>
@@ -167,6 +172,105 @@ export function DriveScreen({
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Controle de embarque de uma parada, com o gate de 100m (G1/G2). O 100m é AJUDA,
+// nunca trava: a ≤100m do endereço libera o botão normal; longe, sem GPS ou sem
+// coordenada do aluno, o botão vira "mesmo assim" (registrado como forçado no
+// audit), sempre disponível. Nada impede a criança de embarcar.
+function StopActions({
+  stop,
+  driverPos,
+  boardVerb,
+  onSet,
+}: {
+  stop: DriveStop;
+  driverPos: GeoPoint | null;
+  boardVerb: string;
+  onSet: (id: string, state: StopState, proximity?: BoardingProximity) => void;
+}) {
+  if (stop.state !== "pending") {
+    return (
+      <button
+        onClick={() => onSet(stop.studentId, "pending")}
+        className="w-full rounded-xl border border-navy-900/10 py-2 text-sm font-medium text-navy-700/60"
+      >
+        Desfazer
+      </button>
+    );
+  }
+
+  const stopPoint =
+    stop.lat != null && stop.lng != null
+      ? { lat: stop.lat, lng: stop.lng }
+      : null;
+  const distance = stopDistanceMeters(driverPos, stopPoint);
+  const inRange = withinBoardingRange(distance);
+
+  // Razão de não confirmar: distingue "sem coordenada do aluno" de "sem GPS" — o
+  // motorista entende por que o botão normal não liberou.
+  const hint =
+    stopPoint === null
+      ? "Endereço sem localização no mapa"
+      : driverPos === null
+        ? "Sem sinal de GPS agora"
+        : `Você está a ~${Math.round(distance!)} m do endereço`;
+
+  return (
+    <div className="space-y-2">
+      {inRange ? (
+        <div className="flex gap-2">
+          <button
+            onClick={() =>
+              onSet(stop.studentId, "boarded", {
+                forced: false,
+                distanceM: distance,
+              })
+            }
+            className="flex-1 rounded-xl bg-yellow-400 py-2.5 font-semibold text-navy-900"
+          >
+            {boardVerb}
+          </button>
+          <button
+            onClick={() => onSet(stop.studentId, "absent")}
+            className="rounded-xl border border-navy-900/15 px-4 py-2.5 text-sm font-medium text-navy-700/70"
+          >
+            Ausente
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-1.5 rounded-lg bg-navy-900/[0.04] px-3 py-2 text-xs text-navy-700/70">
+            {stopPoint === null ? (
+              <MapPinOff className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+            )}
+            {hint}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() =>
+                onSet(stop.studentId, "boarded", {
+                  forced: true,
+                  distanceM: distance,
+                })
+              }
+              className="flex-1 rounded-xl border-2 border-yellow-400 py-2.5 font-semibold text-navy-900"
+            >
+              {boardVerb} mesmo assim
+            </button>
+            <button
+              onClick={() => onSet(stop.studentId, "absent")}
+              className="rounded-xl border border-navy-900/15 px-4 py-2.5 text-sm font-medium text-navy-700/70"
+            >
+              Ausente
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

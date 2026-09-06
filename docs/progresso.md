@@ -200,8 +200,10 @@ student_invites. Consentimento LGPD em users.
 
 Guardas no banco: trigger `enforce_invoice_transition` (G3), trigger
 `enforce_route_stops_frozen_while_running` em route_stops (G2 na edição de rota —
-congela as paradas enquanto uma perna roda), RLS de live_positions (G4/G6), RLS de
-endereço (G5), funções `SECURITY DEFINER` (`accept_student_invite`,
+congela as paradas enquanto uma perna roda), trigger `normalize_boarding_metadata`
+em route_events (auditoria do embarque a 100m — canoniza `forced`/`distance_m` e,
+por NUNCA recusar, é incapaz de bloquear um embarque: G1), RLS de live_positions
+(G4/G6), RLS de endereço (G5), funções `SECURITY DEFINER` (`accept_student_invite`,
 `get_active_journey`, `register_occurrence`, `get_suspension_review`,
 `apply_route_review`).
 
@@ -294,9 +296,25 @@ falta é validação, não código:
   migration nem guarda nova: reuso de caminho de início já provado; validado visual
   (dois estados) no navegador. Gestão (criar/editar) segue na `/rotas`, com a ponte
   "Ver todas / gerenciar" na home.
-  **Faltam nas próximas fatias:** embarque a "100m"; depois recorrência por dia da
-  semana, rota sugerida inteligente, otimização por coordenada (o geocoding do
-  endereço de casa já foi adiantado na captação).
+  **Embarque a "100m" (G1/G2):** o botão "embarcar" libera-se (sólido) quando a van
+  está a ≤100m do endereço da criança; longe, sem GPS, ou aluno sem coordenada, vira
+  **"embarcar mesmo assim"** — SEMPRE disponível. O 100m é AJUDA, nunca trava:
+  colocá-lo como bloqueio no banco violaria a G1 quando o GPS falha, então o gate é
+  **client-side de propósito**. O banco só REGISTRA o override: `setStopState` grava
+  `metadata:{forced, distance_m}` no evento `embarked`/`disembarked` — **só o escalar
+  de distância, nunca a coordenada crua** (minimização, espelha o G4). A posição da
+  van (`useDriverPosition`) roda na janela do G4 (in_progress + foreground) e nunca
+  persiste. Guarda no banco: trigger **normalizador** `normalize_boarding_metadata`
+  (canoniza `forced`/`distance_m`; por NUNCA fazer raise, é estruturalmente incapaz
+  de bloquear um embarque — a segurança é a ausência de qualquer trava, não uma
+  promessa). Provado: gate puro em unit (`tests/geo.test.ts`, 13/13) + banco
+  (`docs/tests/embarque_100m.sql`, 3/3: G1 aceita a qualquer distância; forçado
+  canônico com a distância; G5 — o pai vê "embarcou", nunca o override nem a
+  distância). Migration 028 aplicada pelo SQL Editor (fora do histórico
+  `supabase_migrations`, idempotente).
+  **Faltam nas próximas fatias:** recorrência por dia da semana + exceções (precisa de
+  plano de escopo próprio antes do código); depois rota sugerida inteligente (Mapbox
+  Optimization + trânsito, a mais pesada, por último).
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -354,6 +372,17 @@ parada no mapa (dependeriam de expor endereço — G5).
   Fonte única extraída (`lib/routes-today`, `lib/drive-board`) com a DriveScreen
   refatorada pra reusá-la; apresentação separada (`HomeContent`, `RouteRunList`).
   Sem migration/guarda nova (reuso de início já provado); validação visual dos dois
-  estados no navegador. Próxima fatia: **embarque a "100m"**.
+  estados no navegador.
+- **Rotas 2.0 — embarque a "100m" (G1/G2):** o "embarcar" só libera (sólido) a ≤100m
+  do endereço da criança; longe/sem GPS/sem coordenada vira "embarcar mesmo assim",
+  SEMPRE disponível. O gate é client-side de propósito (a lei se inverte: pôr a
+  proximidade como trava no banco violaria a G1 quando o GPS falha). O banco só
+  registra o override no `metadata:{forced, distance_m}` do embarked/disembarked —
+  só o escalar, nunca a coord crua (`useDriverPosition` roda na janela do G4 e não
+  persiste). Guarda no banco: trigger normalizador `normalize_boarding_metadata`
+  (canoniza forced/distance_m; NUNCA recusa → incapaz de violar a G1). Provado: unit
+  (tests/geo.test.ts, 13/13) + banco (docs/tests/embarque_100m.sql, 3/3). Migration
+  028 aplicada pelo SQL Editor. Próxima fatia: **recorrência por dia da semana +
+  exceções** (precisa de plano de escopo próprio antes do código).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
