@@ -24,6 +24,7 @@ export interface RouteToEdit {
   shift: Shift;
   pickup: string[];
   dropoff: string[];
+  weekdays: number[];
 }
 
 const SHIFT_LABEL: Record<Shift, string> = {
@@ -31,6 +32,21 @@ const SHIFT_LABEL: Record<Shift, string> = {
   afternoon: "Tarde",
   integral: "Integral",
 };
+
+// Dias da semana em ISO dow (1=Seg … 7=Dom), na ordem visual Seg→Dom. Abreviação
+// de 3 letras de propósito: a inicial única repetiria "S" em Seg/Sex/Sáb.
+const WEEKDAYS: { dow: number; label: string }[] = [
+  { dow: 1, label: "Seg" },
+  { dow: 2, label: "Ter" },
+  { dow: 3, label: "Qua" },
+  { dow: 4, label: "Qui" },
+  { dow: 5, label: "Sex" },
+  { dow: 6, label: "Sáb" },
+  { dow: 7, label: "Dom" },
+];
+
+// Default do transporte escolar: Seg–Sex (espelha o backfill da migration 029).
+const DEFAULT_WEEKDAYS = [1, 2, 3, 4, 5];
 
 const initial: RouteFormState = { error: null };
 
@@ -50,8 +66,21 @@ export function RouteBuilder({
   const [shift, setShift] = useState<Shift | "">(route?.shift ?? "");
   const [pickup, setPickup] = useState<string[]>(route?.pickup ?? []);
   const [dropoff, setDropoff] = useState<string[]>(route?.dropoff ?? []);
+  // Dias em que a rota roda (recorrência R2). Criação nasce Seg–Sex; edição
+  // hidrata do banco. Vazio é válido (rota que só roda em dia 'extra').
+  const [weekdays, setWeekdays] = useState<number[]>(
+    route?.weekdays ?? DEFAULT_WEEKDAYS,
+  );
   // Na edição a volta veio do banco (não é proposta), então já nasce "tocada".
   const [voltaTouched, setVoltaTouched] = useState(editing);
+
+  function toggleDay(dow: number) {
+    setWeekdays((prev) =>
+      prev.includes(dow)
+        ? prev.filter((d) => d !== dow)
+        : [...prev, dow].sort((a, b) => a - b),
+    );
+  }
 
   const byId = new Map(students.map((s) => [s.id, s]));
 
@@ -94,6 +123,7 @@ export function RouteBuilder({
       {editing && <input type="hidden" name="route_id" value={route!.id} />}
       <input type="hidden" name="pickup_ids" value={JSON.stringify(pickup)} />
       <input type="hidden" name="dropoff_ids" value={JSON.stringify(dropoff)} />
+      <input type="hidden" name="weekdays" value={JSON.stringify(weekdays)} />
       <input type="hidden" name="shift" value={shift} />
 
       <label className="block">
@@ -127,6 +157,38 @@ export function RouteBuilder({
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <span className="mb-1 block text-sm font-medium text-navy-800">
+          Dias da semana
+        </span>
+        <div className="grid grid-cols-7 gap-1.5">
+          {WEEKDAYS.map(({ dow, label }) => {
+            const on = weekdays.includes(dow);
+            return (
+              <button
+                key={dow}
+                type="button"
+                onClick={() => toggleDay(dow)}
+                aria-pressed={on}
+                className={`rounded-lg border py-2 text-xs font-semibold ${
+                  on
+                    ? "border-navy-900 bg-navy-900/[0.04] text-navy-900 ring-2 ring-yellow-400/40"
+                    : "border-navy-900/15 text-navy-700/60"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {weekdays.length === 0 && (
+          <p className="mt-1.5 text-xs text-navy-700/50">
+            Sem dias fixos: a rota não aparece na home, mas você pode iniciá-la
+            num dia extra em Rotas.
+          </p>
+        )}
       </div>
 
       {!shift ? (

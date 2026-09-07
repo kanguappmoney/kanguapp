@@ -16,7 +16,9 @@ export default async function EditarRotaPage({
   // dono ou inexistente → notFound.
   const { data: route } = await supabase
     .from("routes")
-    .select("id, name, direction, shift, route_stops(student_id, position, kind)")
+    .select(
+      "id, name, direction, shift, weekdays, route_stops(student_id, position, kind)",
+    )
     .eq("id", routeId)
     .maybeSingle();
 
@@ -42,6 +44,7 @@ export default async function EditarRotaPage({
     shift: route.shift,
     pickup: ordered("pickup"),
     dropoff: ordered("dropoff"),
+    weekdays: (route.weekdays ?? []) as number[],
   };
 
   const { data: students } = await supabase

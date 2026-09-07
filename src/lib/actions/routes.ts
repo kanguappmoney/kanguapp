@@ -22,6 +22,21 @@ function parseIds(raw: FormDataEntryValue | null): string[] {
   }
 }
 
+// Dias da semana em ISO dow (1=Seg … 7=Dom): só 1..7, sem repetição, ordenados.
+// Vazio é válido (rota que só roda em dia 'extra') — espelha o check da 029.
+function parseWeekdays(raw: FormDataEntryValue | null): number[] {
+  try {
+    const v = JSON.parse(String(raw ?? "[]"));
+    if (!Array.isArray(v)) return [];
+    const set = new Set(
+      v.filter((x) => Number.isInteger(x) && x >= 1 && x <= 7) as number[],
+    );
+    return [...set].sort((a, b) => a - b);
+  } catch {
+    return [];
+  }
+}
+
 // Cria uma rota "encorpada" (Rotas 2.0): direction='both', com DUAS listas —
 // ida (kind='pickup') e volta (kind='dropoff') — ordenadas de forma independente.
 // Conjuntos distintos: quem só vai fica só na ida; quem só volta, só na volta.
@@ -46,9 +61,17 @@ export async function createRoute(
   if (!pickupIds.length && !dropoffIds.length)
     return { error: "Adicione ao menos um aluno na ida ou na volta." };
 
+  const weekdays = parseWeekdays(formData.get("weekdays"));
+
   const { data: route, error: routeError } = await supabase
     .from("routes")
-    .insert({ driver_id: user.id, name, direction: "both", shift: shift as Shift })
+    .insert({
+      driver_id: user.id,
+      name,
+      direction: "both",
+      shift: shift as Shift,
+      weekdays,
+    })
     .select("id")
     .single();
   if (routeError) return { error: routeError.message };
@@ -133,9 +156,11 @@ export async function updateRoute(
         "Esta rota tem uma perna em andamento hoje. Termine a execução para poder editar.",
     };
 
+  const weekdays = parseWeekdays(formData.get("weekdays"));
+
   const { error: nameError } = await supabase
     .from("routes")
-    .update({ name, shift: shift as Shift })
+    .update({ name, shift: shift as Shift, weekdays })
     .eq("id", routeId);
   if (nameError) return { error: nameError.message };
 
