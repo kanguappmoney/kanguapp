@@ -258,7 +258,9 @@ falta é validação, não código:
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
   WhatsApp real (N8N).
 
-- **Rotas 2.0** — em andamento. **Criação de rota encorpada: pronta. Execução da
+- **Rotas 2.0** — **COMPLETA** (recorrência R1→R3 + rota sugerida: coordenadas →
+  número/complemento → viés de região → sugestão de ordem; ver detalhe adiante e no log).
+  **Criação de rota encorpada: pronta. Execução da
   rota `'both'` por perna: pronta. Editar rota `'both'`: pronta. Home operacional
   + iniciar: pronta.** O modelo evoluiu: `route_direction += 'both'`
   — uma rota vira uma "turma" com **duas listas** (ida=pickup, volta=dropoff) numa
@@ -396,8 +398,32 @@ falta é validação, não código:
   tem o número) e, depois do pick, tratar o sub-campo como complemento (apto/bloco) anexa ao
   texto **preservando** a coord. Sem migration, sem guarda nova. Validado ponta-a-ponta
   (edição de salvo não mostra o campo; mexer revela; pick sem duplicar; complemento preserva
-  coord; espelho carrega o número). Commit `05d4879`. **Falta:** Fatia B — a sugestão de ordem
-  em si (Optimization API, proposta editável no builder, fallback nearest-neighbor). **Pendência
+  coord; espelho carrega o número). Commit `05d4879`.
+  **Viés de região no geocoding: PRONTO.** O `--dry` do backfill pegou coordenadas absurdas
+  (Rio, Manaus, Belém…): sem viés, o Mapbox casa a rua homônima em qualquer lugar do BR. Novo
+  `lib/geo-region` (fonte única): `proximity` (bias p/ a metrópole SP/ABC) + `bbox` do estado de
+  SP (filtro rígido), aplicado no AddressAutocomplete (cadastro ao vivo) e no backfill. O `--dry`
+  passou a resolver tudo em-região; backfill também roda só em `status=active` (não geocoda
+  arquivado). Backfill real rodado pelo Abner (7 pontos, 0 sem match); persistência conferida.
+  Commit `72ac152`.
+  **Rota sugerida — Fatia B (sugestão de ordem): PRONTA. FECHA A ROTAS 2.0.** Botão "Sugerir
+  ordem" por perna no RouteBuilder: reordena as paradas na sequência mais eficiente como PROPOSTA
+  editável — MOSTRA, nunca impõe (só mexe no array editável; o motorista ajusta com as setas;
+  persiste só ao Salvar). Motor em camadas (`lib/route-optimize`): (1) **Mapbox Optimization v1**
+  (client, token público — confirmado que TEM escopo de Optimization), âncora = a escola SÓ
+  quando a turma toda vai pra mesma (coords iguais); escolas diferentes → TSP aberto com aviso; a
+  escola entra no extremo certo (fim na ida, começo na volta). **Achado da validação:** a v1 NÃO
+  aceita `source=any` com `roundtrip=false` (devolve `code:NotImplemented`) — exige
+  `source=first&destination=last`, então os pontos das pontas ficam fixos e o miolo é otimizado.
+  (2) **fallback vizinho-mais-próximo local** (`haversineMeters`, zero rede), determinístico,
+  acionado acima do limite de 12 waypoints, sem token, ou se a API falhar. (3) alunos **sem
+  coordenada** NUNCA somem nem travam o botão — vão pro fim com aviso. Os selects de aluno
+  (nova/editar rota) passam a levar as 6 coords até o builder. Sem migration, sem guarda nova.
+  **3 casos validados no navegador** (fixture temporária de 13 alunos, criados e removidos por id
+  — banco conferido limpo): (a) feliz ≤11 com escola comum → Optimization reordena; (b) >11
+  paradas → fallback local sem quebrar; (c) aluno sem coord → anexado ao fim, ninguém some. tsc
+  limpo. Commit `0bb0bba`. **Com isto a Rotas 2.0 está COMPLETA:** recorrência (R1→R3) + rota
+  sugerida (coordenadas → número/complemento → viés de região → sugestão de ordem). **Pendência
   anotada:** o fix do UTC ficou restrito ao `routes-today`; as outras ~8 cópias de `today()` UTC
   (drive-board, absences, invoices, revisao, alunos…) seguem para uma varredura futura — fora do
   escopo da R2/R3.
@@ -521,6 +547,22 @@ parada no mapa (dependeriam de expor endereço — G5).
   corrigido zerando o sub-campo no pick e tratando texto pós-pick como complemento que preserva a
   coord. Sem migration/guarda. Validado ponta-a-ponta. Commit `05d4879`. Falta a Fatia B (sugestão
   de ordem: Optimization API + proposta editável no builder + fallback nearest-neighbor).
+- **Rotas 2.0 — viés de região no geocoding + backfill:** o `--dry` do backfill pegou coords
+  absurdas (Rio, Manaus, Belém — Mapbox casa rua homônima em todo o BR sem viés). `lib/geo-region`
+  (fonte única): `proximity` (SP/ABC) + `bbox` do estado de SP, no AddressAutocomplete e no
+  backfill; backfill só `status=active`. Backfill real rodado pelo Abner (7 pontos, 0 sem match),
+  persistência conferida no banco. Commit `72ac152`.
+- **Rotas 2.0 — rota sugerida Fatia B (sugestão de ordem): FECHA A ROTAS 2.0.** Botão "Sugerir
+  ordem" por perna no RouteBuilder — proposta editável, MOSTRA nunca impõe (só reordena o array;
+  persiste ao Salvar). `lib/route-optimize`: Mapbox Optimization v1 (âncora = escola só quando a
+  turma toda vai pra mesma; escola no extremo — fim na ida, começo na volta) + fallback
+  vizinho-mais-próximo local (haversine) acima de 12 waypoints/sem token/falha; aluno sem coord vai
+  pro fim com aviso, nunca some. **Achado:** a v1 não aceita `source=any` com `roundtrip=false`
+  (`code:NotImplemented`) — exige `source=first&destination=last`; token do piloto tem escopo de
+  Optimization. Selects de aluno levam as 6 coords ao builder. Sem migration/guarda. 3 casos
+  validados no navegador (fixture temporária de 13 alunos, criados e removidos por id, banco limpo):
+  feliz ≤11 via Optimization; >11 → fallback; sem-coord → fim. Commit `0bb0bba`. **Rotas 2.0
+  COMPLETA** (recorrência R1→R3 + rota sugerida: coordenadas → número → viés de região → ordem).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
