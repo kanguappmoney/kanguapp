@@ -509,3 +509,19 @@ Escopo novo, quando for planejado:
   planejar este bloco, **não agora**.
 - **Reaproveita 100% o link de captação e o portão G5 já existentes** — não é reescrita
   do cadastro, é uma porta de entrada nova para o mesmo fluxo provado.
+
+**Endereço 2.0 (ideias futuras, não escopo agora).** O geocoding hoje (Fatia A da rota
+sugerida) é um autocomplete de endereço via Mapbox Geocoding + um campo número/complemento
+que refina a query. Duas evoluções ficam anotadas para quando o endereço merecer um bloco
+próprio:
+
+- **Busca de escola por nome (Mapbox POI).** Hoje a escola é digitada como endereço-texto e
+  geocodada como endereço comum. O ideal seria buscar a escola pelo **nome** (ex.: "EMEF
+  Fulano") via Mapbox POI/places e trazer a coordenada do estabelecimento — mais preciso e
+  natural que digitar o endereço da escola. **Não implementado.**
+- **Redesenho completo de endereço.** CEP que autopreenche rua/bairro/cidade/estado
+  (ex.: ViaCEP/BrasilAPI) + **número em campo próprio persistido** (coluna dedicada, não
+  concatenado no texto) + complemento à parte. Substituiria o autocomplete atual por um
+  formulário de endereço estruturado, com a coordenada derivada de rua+número. É a versão
+  "certa" do que a fatia do número/complemento resolve de forma mínima hoje — fica para
+  quando valer o investimento.
