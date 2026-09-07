@@ -12,16 +12,21 @@ export interface SaoPauloDay {
   isoDow: number;
 }
 
+// Dia-da-semana ISO (1=Seg … 7=Dom) de uma data 'YYYY-MM-DD'. Ancorado ao
+// meio-dia UTC pra que a leitura do dia nunca escorregue por fuso. Única fonte do
+// "date → isoDow" (saoPauloDay e a sugestão de recorrência da UI usam este mesmo).
+export function isoDowOf(date: string): number {
+  const utcDow = new Date(`${date}T12:00:00Z`).getUTCDay(); // 0=Dom … 6=Sáb
+  return utcDow === 0 ? 7 : utcDow; // 1=Seg … 7=Dom
+}
+
 // A data vem do relógio local de São Paulo; o dia-da-semana é DERIVADO dessa
-// mesma string (não de um segundo `new Date()`) — ancorado ao meio-dia UTC pra
-// que a leitura do dia nunca escorregue por fuso. Uma computação, dois valores.
+// mesma string (não de um segundo `new Date()`). Uma computação, dois valores.
 export function saoPauloDay(now: Date = new Date()): SaoPauloDay {
   const date = now.toLocaleDateString("en-CA", {
     timeZone: "America/Sao_Paulo",
   }); // en-CA => 'YYYY-MM-DD'
-  const utcDow = new Date(`${date}T12:00:00Z`).getUTCDay(); // 0=Dom … 6=Sáb
-  const isoDow = utcDow === 0 ? 7 : utcDow; // 1=Seg … 7=Dom
-  return { date, isoDow };
+  return { date, isoDow: isoDowOf(date) };
 }
 
 // Atalho para quem só precisa da data (match de execução do dia).

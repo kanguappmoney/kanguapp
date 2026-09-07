@@ -237,6 +237,13 @@ antes da 15 corrigir — funciona, mas é bom saber.
   intermediação nas ocupações permitidas).
 - Modelagem LGPD: motorista = controlador do dado; plataforma = operador.
   **Validar com profissional antes de rodar com dado real de criança.**
+- **Motivo de exceção de rota (`route_exceptions.reason`) — texto livre.** Hoje só
+  visível ao motorista (RLS dono-only). **Antes** de qualquer fatia da fase 2 que
+  exponha esse texto ao pai (ex.: notificação "rota não roda hoje: <motivo>"),
+  revisar: o motorista pode digitar dado sensível sem pensar (ex.: motivo de saúde
+  da criança). Se for exibir, tratar como dado do pai/criança — não repassar o texto
+  cru, ou pedir consentimento/curadoria. Mesma cautela vale para o `reason` de
+  ausência e o texto de ocorrência, se algum dia virar visível além do genérico.
 
 ---
 
@@ -346,12 +353,25 @@ falta é validação, não código:
   dedup, ordenado); **vazio permitido** (rota que só roda em dia 'extra') com aviso na UI —
   o banco já aceita `{}`. G2 intocada (editar segue bloqueado por perna `in_progress`).
   Validado no navegador ponta-a-ponta (remover segunda faz a rota sumir da home hoje e
-  devolver a traz de volta); commits `ddfff18` (R2a) e `bba669c` (R2b). **Faltam:** R3 (UI
-  de exceções — feriado/reposição sobre `route_exceptions`, modelo e RLS já prontos da
-  029); depois rota sugerida inteligente (Mapbox Optimization + trânsito, a mais pesada,
-  por último). **Pendência anotada:** o fix do UTC ficou restrito ao `routes-today`; as
-  outras ~8 cópias de `today()` UTC (drive-board, absences, invoices, revisao, alunos…)
-  seguem para uma varredura futura — fora do escopo da R2.
+  devolver a traz de volta); commits `ddfff18` (R2a) e `bba669c` (R2b).
+  **Recorrência (R3: UI de exceções): FECHADA.** Fatia única, sem migration (tabela, RLS e
+  `route_runs_on` já vêm da 029). Sub-tela dedicada `/rotas/[routeId]/excecoes` (link
+  "Exceções" no card da `/rotas`, disponível pra QUALQUER rota e mesmo com perna rodando —
+  G2 não se aplica a calendário). Form: data (min hoje), tipo Feriado(`skip`)/
+  Reposição(`extra`) e motivo opcional; **sugestão contextual** — pela regra semanal o dia
+  roda ou não, pré-selecionando o tipo útil (roda→feriado; não roda→reposição), via o mesmo
+  `routeRunsToday` puro + `isoDowOf` (novo em `lib/day`, fonte única do date→isoDow). Actions
+  `addException`/`removeException` (`lib/actions/exceptions`); a RLS dono-only é o portão real
+  (não um `if`); `unique(route_id,date)` vira erro amigável. Lista só datas de hoje pra
+  frente. Guarda inalterada (espírito do 100m): exceção só muda o que a home MOSTRA, nunca
+  bloqueia iniciar. Validado no navegador ponta-a-ponta (sugestão vira feriado na segunda e
+  reposição no sábado; `skip` de hoje derruba a rota da home; remover devolve; labels e
+  `prettyDate` corretos); tsc limpo, sem erros de console. **Radar LGPD:**
+  `route_exceptions.reason` é texto livre, hoje só do motorista — revisar antes de expor ao
+  pai na fase 2 (ver seção 7). **Faltam:** rota sugerida inteligente (Mapbox Optimization +
+  trânsito, a mais pesada, por último). **Pendência anotada:** o fix do UTC ficou restrito ao
+  `routes-today`; as outras ~8 cópias de `today()` UTC (drive-board, absences, invoices,
+  revisao, alunos…) seguem para uma varredura futura — fora do escopo da R2/R3.
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -445,5 +465,15 @@ parada no mapa (dependeriam de expor endereço — G5).
   R3 (UI de exceções — feriado/reposição), depois rota sugerida (Mapbox). Sessão também:
   encerrada a execução residual do teste da R2a e o repo saiu do local para o GitHub
   (`origin` = `kanguappmoney/kanguapp`, `main` com upstream).
+- **Rotas 2.0 — recorrência R3 (UI de exceções):** fatia única, sem migration (tabela/RLS/
+  `route_runs_on` da 029). Sub-tela `/rotas/[routeId]/excecoes` (link "Exceções" no card da
+  `/rotas`, pra qualquer rota e mesmo rodando — G2 não se aplica a calendário). Form com
+  data + tipo Feriado(`skip`)/Reposição(`extra`) + motivo opcional e **sugestão contextual**
+  (a regra do dia pré-seleciona o tipo útil), via `routeRunsToday` + `isoDowOf` novo em
+  `lib/day`. Actions `addException`/`removeException`; RLS dono-only é o portão; unique por
+  (rota,data) vira erro amigável. Guarda inalterada — exceção mostra, nunca bloqueia.
+  Validado ponta-a-ponta no navegador (sugestão feriado↔reposição; skip de hoje some da home;
+  remover devolve). Nota LGPD registrada na seção 7 (`reason` texto livre, revisar antes de
+  expor ao pai na fase 2). Próxima e última da Rotas 2.0: rota sugerida (Mapbox Optimization).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.

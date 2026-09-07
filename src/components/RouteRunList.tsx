@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, CalendarClock } from "lucide-react";
 import { Card, Placeholder } from "@/components/ui";
 import { startOrReview } from "@/lib/actions/routes";
 import {
@@ -54,14 +54,28 @@ export function RouteRunList({
                   {total === 1 ? "parada" : "paradas"}
                 </p>
               </div>
-              {showEdit && r.direction === "both" && !running && (
-                <Link
-                  href={`/motorista/rotas/${r.id}/editar`}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-navy-900/10 px-2.5 py-1.5 text-xs font-medium text-navy-700/70"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Editar
-                </Link>
+              {showEdit && (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {/* Exceções: calendário futuro, vale pra qualquer rota e mesmo
+                      com perna rodando (G2 não se aplica a feriado/reposição). */}
+                  <Link
+                    href={`/motorista/rotas/${r.id}/excecoes`}
+                    className="flex items-center gap-1 rounded-lg border border-navy-900/10 px-2.5 py-1.5 text-xs font-medium text-navy-700/70"
+                  >
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    Exceções
+                  </Link>
+                  {/* Editar congela com perna in_progress (G2) e só rota 'both'. */}
+                  {r.direction === "both" && !running && (
+                    <Link
+                      href={`/motorista/rotas/${r.id}/editar`}
+                      className="flex items-center gap-1 rounded-lg border border-navy-900/10 px-2.5 py-1.5 text-xs font-medium text-navy-700/70"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Editar
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
 
