@@ -99,6 +99,7 @@ export default async function DriverHome() {
       ausencias={ausencias}
       paradas={paradas}
       board={board}
+      mapToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ""}
       routes={todayRoutes}
       execByLeg={execByLeg}
       routesEmptyText={

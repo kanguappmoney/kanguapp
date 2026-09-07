@@ -613,3 +613,11 @@ próprio:
   formulário de endereço estruturado, com a coordenada derivada de rua+número. É a versão
   "certa" do que a fatia do número/complemento resolve de forma mínima hoje — fica para
   quando valer o investimento.
+
+**ETA na home (ideia futura, não escopo agora).** O polimento da home ficou enxuto (cards
+clicáveis + mini-mapa estático da próxima parada) de propósito: **ETA não é polimento, é
+infraestrutura nova.** Mostrar "chega em ~X min na próxima parada / termina ~HH:MM" exige uma
+chamada de rota real (Mapbox Directions ou o `duration` da Optimization) sobre as paradas
+pendentes + escola, recalculada com a posição da van — com custo de API, cache e a janela do
+G4 (só com rota `in_progress` em foreground). Merece fatia própria com plano de escopo; a
+Optimization v1 (Fatia B) já devolve `trips[].duration`, então há de onde partir.

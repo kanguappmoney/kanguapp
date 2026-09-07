@@ -26,6 +26,7 @@ export interface HomeContentProps {
   ausencias: number;
   paradas: number;
   board: ActiveBoard | null;
+  mapToken: string;
   routes: RouteWithStops[];
   execByLeg: Map<string, TodayExec>;
   routesEmptyText: string;
@@ -40,6 +41,7 @@ export function HomeContent({
   ausencias,
   paradas,
   board,
+  mapToken,
   routes,
   execByLeg,
   routesEmptyText,
@@ -100,15 +102,27 @@ export function HomeContent({
           </div>
         )}
 
-        {/* Contadores reais. */}
+        {/* Contadores reais. Alunos e paradas viram atalhos; ausências não tem
+            tela própria (só aparece na Revisão de hoje), então fica informativo. */}
         <div className="mt-4 grid grid-cols-3 gap-3">
-          <Counter icon={Users} value={alunos} label="alunos" highlight />
+          <Counter
+            icon={Users}
+            value={alunos}
+            label="alunos"
+            highlight
+            href="/motorista/alunos"
+          />
           <Counter icon={CalendarCheck} value={ausencias} label="ausências" />
-          <Counter icon={MapPin} value={paradas} label="paradas" />
+          <Counter
+            icon={MapPin}
+            value={paradas}
+            label="paradas"
+            href="/motorista/rotas"
+          />
         </div>
 
         {board ? (
-          <RunningBlock board={board} />
+          <RunningBlock board={board} mapToken={mapToken} />
         ) : (
           <>
             <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
@@ -135,37 +149,73 @@ export function HomeContent({
   );
 }
 
+// Mapa estático (Mapbox Static Images API) da próxima parada. Um <img>, sem
+// mapbox-gl na home — leve. G5-safe: é a parada do próprio aluno do motorista.
+// Sem token/coordenada, devolve null (degrada sem mapa, como o resto).
+function stopMapUrl(
+  token: string,
+  lat: number | null,
+  lng: number | null,
+): string | null {
+  if (!token || lat == null || lng == null) return null;
+  const marker = `pin-l+FFD000(${lng},${lat})`;
+  return (
+    `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/` +
+    `${marker}/${lng},${lat},14,0/640x260@2x?access_token=${token}`
+  );
+}
+
 // --- Perna em andamento: próxima parada + embarque real. -----------------------
-function RunningBlock({ board }: { board: ActiveBoard }) {
+function RunningBlock({
+  board,
+  mapToken,
+}: {
+  board: ActiveBoard;
+  mapToken: string;
+}) {
   const pct = board.total
     ? Math.round((board.boardedCount / board.total) * 100)
     : 0;
   const label = board.kind === "pickup" ? "embarcaram" : "desembarcaram";
+  const mapUrl = board.nextStop
+    ? stopMapUrl(mapToken, board.nextStop.lat, board.nextStop.lng)
+    : null;
 
   return (
     <>
       {/* Próxima parada (dado vivo). Endereço é do próprio aluno do motorista. */}
       {board.nextStop && (
-        <div className="mt-6 rounded-2xl bg-navy-900 p-4 text-white">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-yellow-400">
-            Próxima parada
-          </p>
-          <div className="flex items-center gap-3">
-            <Avatar url={board.nextStop.photoUrl} name={board.nextStop.name} dark />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{board.nextStop.name}</p>
-              {board.nextStop.address && (
-                <p className="truncate text-sm text-white/60">
-                  {board.nextStop.address}
-                </p>
-              )}
+        <div className="mt-6 overflow-hidden rounded-2xl bg-navy-900 text-white">
+          {/* Mini-mapa estático da parada (some sem token/coordenada). */}
+          {mapUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={mapUrl}
+              alt={`Localização de ${board.nextStop.name}`}
+              className="h-32 w-full object-cover"
+            />
+          )}
+          <div className="p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-yellow-400">
+              Próxima parada
+            </p>
+            <div className="flex items-center gap-3">
+              <Avatar url={board.nextStop.photoUrl} name={board.nextStop.name} dark />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{board.nextStop.name}</p>
+                {board.nextStop.address && (
+                  <p className="truncate text-sm text-white/60">
+                    {board.nextStop.address}
+                  </p>
+                )}
+              </div>
+              <Link
+                href={`/motorista/alunos/${board.nextStop.studentId}`}
+                className="shrink-0 rounded-xl bg-yellow-400 px-3 py-2 text-xs font-semibold text-navy-900"
+              >
+                Ver detalhes
+              </Link>
             </div>
-            <Link
-              href={`/motorista/alunos/${board.nextStop.studentId}`}
-              className="shrink-0 rounded-xl bg-yellow-400 px-3 py-2 text-xs font-semibold text-navy-900"
-            >
-              Ver detalhes
-            </Link>
           </div>
         </div>
       )}
@@ -231,18 +281,32 @@ function Counter({
   value,
   label,
   highlight,
+  href,
 }: {
   icon: typeof Users;
   value: number;
   label: string;
   highlight?: boolean;
+  href?: string;
 }) {
-  return (
-    <Card className={highlight ? "bg-yellow-400/15" : ""}>
+  const inner = (
+    <Card
+      className={`h-full ${highlight ? "bg-yellow-400/15" : ""} ${
+        href ? "transition hover:border-navy-900/25" : ""
+      }`}
+    >
       <Icon className="mb-1 h-5 w-5 text-navy-700/50" />
       <p className="text-2xl font-bold leading-none text-navy-900">{value}</p>
       <p className="mt-1 text-xs text-navy-700/60">{label}</p>
     </Card>
+  );
+  // Alunos/paradas viram atalho; ausências (sem tela própria) fica informativo.
+  return href ? (
+    <Link href={href} className="block">
+      {inner}
+    </Link>
+  ) : (
+    inner
   );
 }
 
