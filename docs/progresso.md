@@ -325,10 +325,33 @@ falta é validação, não código:
   trigger/constraint recusa iniciar num dia fora da agenda; o motorista sempre pode
   rodar um dia extra. Provado no banco (`docs/tests/recorrencia.sql`, 6/6: regra do
   dia; skip; extra; backfill Seg–Sex; RLS dono-only; execução em dia off aceita).
-  Migration 029 aplicada pelo SQL Editor. **Sem UI** nesta fatia. **Faltam:** R2 (home
-  filtra "hoje" por `route_runs_on` + editar dias no builder + iniciar fora da agenda);
-  R3 (UI de exceções); depois rota sugerida inteligente (Mapbox Optimization +
-  trânsito, a mais pesada, por último).
+  Migration 029 aplicada pelo SQL Editor. **Sem UI** nesta fatia.
+  **Recorrência (R2: UI — home lê + motorista escreve): FECHADA.** Duas fatias, sem
+  migration (a coluna `routes.weekdays` já existe da 029). **R2a — home filtra "Rota de
+  hoje":** a home mostra só as rotas que rodam hoje pela recorrência **OU** que já têm
+  execução hoje — o segundo ramo mantém visível uma rota iniciada num dia FORA da agenda
+  (não some depois de começar). A `/rotas` segue listando **todas** (é lá que se inicia
+  fora da agenda; nenhuma guarda recusa). Espelho JS de `route_runs_on` (`lib/recurrence`
+  = `routeRunsToday`, puro), testado com os MESMOS vetores dos checks 1–4 de
+  `docs/tests/recorrencia.sql` (`tests/recurrence.test.ts`, 4/4 — alarme se JS e SQL
+  divergirem). **Fix lateral do UTC (não regressão):** o "hoje" do match de execução em
+  `routes-today` era `toISOString()` = UTC — das ~21h à meia-noite locais o servidor
+  (Vercel UTC) já virara o dia, errando `service_date` e o dia-da-semana bem na janela em
+  que a volta roda. Novo helper único `lib/day` (`saoPauloDay`/`saoPauloToday` = data +
+  isoDow de UMA computação, fuso `America/Sao_Paulo`) alimenta o match de execução **e** o
+  `routeRunsToday` — uma definição de "hoje", incapaz de divergir entre os dois usos.
+  **R2b — editar os dias no builder:** 7 toggles Seg–Dom (ISO dow 1..7, abrev. de 3 letras
+  — a inicial única repetiria "S" em Seg/Sex/Sáb) na criação e na edição do RouteBuilder;
+  criação nasce Seg–Sex, edição hidrata do banco; `parseWeekdays` na action (só 1..7,
+  dedup, ordenado); **vazio permitido** (rota que só roda em dia 'extra') com aviso na UI —
+  o banco já aceita `{}`. G2 intocada (editar segue bloqueado por perna `in_progress`).
+  Validado no navegador ponta-a-ponta (remover segunda faz a rota sumir da home hoje e
+  devolver a traz de volta); commits `ddfff18` (R2a) e `bba669c` (R2b). **Faltam:** R3 (UI
+  de exceções — feriado/reposição sobre `route_exceptions`, modelo e RLS já prontos da
+  029); depois rota sugerida inteligente (Mapbox Optimization + trânsito, a mais pesada,
+  por último). **Pendência anotada:** o fix do UTC ficou restrito ao `routes-today`; as
+  outras ~8 cópias de `today()` UTC (drive-board, absences, invoices, revisao, alunos…)
+  seguem para uma varredura futura — fora do escopo da R2.
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -406,5 +429,21 @@ parada no mapa (dependeriam de expor endereço — G5).
   nunca bloqueia: nenhum caminho recusa iniciar num dia fora da agenda. Provado
   (docs/tests/recorrencia.sql, 6/6). Sem UI. Próximas: R2 (home filtra "hoje" +
   editar dias + iniciar fora da agenda), R3 (UI de exceções).
+- **Rotas 2.0 — recorrência R2 (UI, 2 fatias):** **R2a (commit `ddfff18`)** — home
+  filtra "Rota de hoje" por `routeRunsToday` (espelho JS de `route_runs_on`) OU execução
+  hoje; `/rotas` segue com todas (iniciar fora da agenda). Helper puro `lib/recurrence`
+  testado com os vetores dos checks 1–4 do `recorrencia.sql` (`tests/recurrence.test.ts`,
+  4/4). **Fix lateral (não regressão):** o `today()` do match de execução em `routes-today`
+  era UTC (`toISOString`) e errava a data/dia na janela ~21h–00h (Vercel UTC × São Paulo);
+  novo helper único `lib/day` (`saoPauloDay`: data + isoDow de uma computação) alimenta o
+  match de execução E o `routeRunsToday` — uma "hoje" só. **R2b (commit `bba669c`)** — 7
+  toggles Seg–Dom no RouteBuilder (criar + editar; abrev. de 3 letras); `parseWeekdays` nas
+  actions; vazio permitido; G2 intocada. Sem migration (coluna da 029). Validado no
+  navegador ponta-a-ponta (remover segunda some da home hoje; devolver traz de volta); tsc
+  limpo. **R2 fechada.** Pendência anotada: as outras ~8 cópias de `today()` UTC
+  (drive-board, absences, invoices, revisao, alunos…) ficam para varredura futura. Próximas:
+  R3 (UI de exceções — feriado/reposição), depois rota sugerida (Mapbox). Sessão também:
+  encerrada a execução residual do teste da R2a e o repo saiu do local para o GitHub
+  (`origin` = `kanguappmoney/kanguapp`, `main` com upstream).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
