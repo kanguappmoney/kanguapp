@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MapPin, Check } from "lucide-react";
+import { regionParams } from "@/lib/geo-region";
 
 interface Suggestion {
   place_name: string;
@@ -91,7 +92,8 @@ export function AddressAutocomplete({
       try {
         const url =
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
-          `?access_token=${token}&autocomplete=true&country=br&language=pt&limit=5&types=address,place,locality,neighborhood`;
+          `?access_token=${token}&autocomplete=true&country=br&language=pt&limit=5&types=address,place,locality,neighborhood` +
+          regionParams(); // viés SP/ABC/Mauá: sem isto casa rua homônima em todo o BR
         const res = await fetch(url);
         if (!res.ok) return;
         const json = await res.json();

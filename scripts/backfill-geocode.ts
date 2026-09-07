@@ -14,6 +14,7 @@
 // Idempotente: só toca linhas com coordenada nula e endereço presente — rodar
 // de novo não reprocessa nem sobrescreve o que já tem coordenada.
 import { createClient } from "@supabase/supabase-js";
+import { regionParams } from "../src/lib/geo-region.ts";
 
 const DRY = process.argv.includes("--dry");
 
@@ -38,16 +39,24 @@ const supabase = createClient(SUPABASE_URL!, SECRET_KEY!, {
   auth: { persistSession: false },
 });
 
-// Mesma API/params do AddressAutocomplete (Brasil, pt). Devolve [lat, lng] ou null.
-async function geocode(address: string): Promise<[number, number] | null> {
+// Mesma API/params do AddressAutocomplete (Brasil, pt, viés SP via regionParams).
+// Devolve { coord: [lat, lng], place } ou null. `place` é o nome resolvido pelo
+// Mapbox (ajuda o olho a pegar coordenada em cidade errada no --dry).
+async function geocode(
+  address: string,
+): Promise<{ coord: [number, number]; place: string } | null> {
   const url =
     `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json` +
-    `?access_token=${MAPBOX_TOKEN}&country=br&language=pt&limit=1&types=address,place,locality,neighborhood`;
+    `?access_token=${MAPBOX_TOKEN}&country=br&language=pt&limit=1&types=address,place,locality,neighborhood` +
+    regionParams();
   const res = await fetch(url);
   if (!res.ok) return null;
-  const json = (await res.json()) as { features?: { center: [number, number] }[] };
-  const c = json.features?.[0]?.center; // [lng, lat]
-  return c ? [c[1], c[0]] : null;
+  const json = (await res.json()) as {
+    features?: { center: [number, number]; place_name?: string }[];
+  };
+  const f = json.features?.[0];
+  if (!f) return null;
+  return { coord: [f.center[1], f.center[0]], place: f.place_name ?? "" };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -64,11 +73,14 @@ type Row = Record<string, string | number | null> & { id: string; full_name: str
 async function main() {
   console.log(DRY ? "== DRY-RUN (não grava) ==" : "== BACKFILL (grava) ==");
 
+  // Só alunos ativos — não geocoda arquivados (lixo de teste, ex-alunos). A rota
+  // sugerida (Fatia B) só monta com aluno ativo, então backfill acompanha.
   const { data, error } = await supabase
     .from("students")
     .select(
       "id, full_name, school_address, school_lat, school_lng, pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng",
-    );
+    )
+    .eq("status", "active");
   if (error) {
     console.error("Erro lendo students:", error.message);
     process.exit(1);
@@ -88,18 +100,20 @@ async function main() {
         if (hasCoord) jaOk++;
         continue;
       }
-      const coord = await geocode(addr);
+      const hit = await geocode(addr);
       await sleep(150); // ~400/min, sob o limite do Mapbox (~600/min)
-      if (!coord) {
+      if (!hit) {
         semMatch++;
         console.warn(`  sem match: ${row.full_name} · ${p.nome} · "${addr}"`);
         continue;
       }
-      updates[p.lat] = coord[0];
-      updates[p.lng] = coord[1];
+      updates[p.lat] = hit.coord[0];
+      updates[p.lng] = hit.coord[1];
       geocoded++;
+      // Loga a cidade resolvida (place) pra revisão: coordenada em cidade errada
+      // salta aos olhos mesmo sem abrir o mapa.
       console.log(
-        `  ${DRY ? "[dry] " : ""}${row.full_name} · ${p.nome} → ${coord[0].toFixed(5)}, ${coord[1].toFixed(5)}`,
+        `  ${DRY ? "[dry] " : ""}${row.full_name} · ${p.nome} → ${hit.coord[0].toFixed(5)}, ${hit.coord[1].toFixed(5)}  [${hit.place}]`,
       );
     }
     if (!DRY && Object.keys(updates).length) {
