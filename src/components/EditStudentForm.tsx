@@ -82,6 +82,7 @@ export function EditStudentForm({ student }: { student: StudentDefaults }) {
         initialValue={student.pickup_address ?? ""}
         initialLat={student.pickup_lat}
         initialLng={student.pickup_lng}
+        withNumber
       />
       <AddressAutocomplete
         label="Endereço de desembarque"
@@ -91,6 +92,7 @@ export function EditStudentForm({ student }: { student: StudentDefaults }) {
         initialValue={student.dropoff_address ?? ""}
         initialLat={student.dropoff_lat}
         initialLng={student.dropoff_lng}
+        withNumber
       />
 
       {state.error && (

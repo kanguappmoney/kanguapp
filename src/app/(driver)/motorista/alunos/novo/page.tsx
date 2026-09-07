@@ -199,6 +199,7 @@ export default function NovoAlunoPage() {
                 latName="pickup_lat"
                 lngName="pickup_lng"
                 placeholder="Endereço de casa, onde pega a criança"
+                withNumber
                 onChange={setPickupData}
               />
             </div>
@@ -231,6 +232,7 @@ export default function NovoAlunoPage() {
                     latName="dropoff_lat"
                     lngName="dropoff_lng"
                     placeholder="Endereço de desembarque à tarde"
+                    withNumber
                   />
                 </div>
               )}
