@@ -49,7 +49,7 @@ export default async function EditarRotaPage({
 
   const { data: students } = await supabase
     .from("students")
-    .select("id, full_name, school, shift")
+    .select("id, full_name, school, shift, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, school_lat, school_lng")
     .eq("status", "active")
     .order("full_name");
 

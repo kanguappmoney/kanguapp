@@ -8,7 +8,7 @@ export default async function NovaRotaPage() {
   // shift entra no select: o builder filtra os candidatos pelo turno da rota.
   const { data: students } = await supabase
     .from("students")
-    .select("id, full_name, school, shift")
+    .select("id, full_name, school, shift, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, school_lat, school_lng")
     .eq("status", "active")
     .order("full_name");
 

@@ -1,18 +1,31 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { ChevronUp, ChevronDown, X, Plus, RotateCcw } from "lucide-react";
+import { ChevronUp, ChevronDown, X, Plus, RotateCcw, Wand2 } from "lucide-react";
 import {
   createRoute,
   updateRoute,
   type RouteFormState,
 } from "@/lib/actions/routes";
+import {
+  nearestNeighborOrder,
+  optimizeViaMapbox,
+  MAX_OPT_WAYPOINTS,
+  type Stop,
+} from "@/lib/route-optimize";
+import type { GeoPoint } from "@/lib/geo";
 
 interface Student {
   id: string;
   full_name: string;
   school: string | null;
   shift: "morning" | "afternoon" | "integral" | null;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
+  school_lat: number | null;
+  school_lng: number | null;
 }
 
 type Shift = "morning" | "afternoon" | "integral";
@@ -209,6 +222,7 @@ export function RouteBuilder({
             pool={pool}
             byId={byId}
             onChange={setPickup}
+            legKind="pickup"
           />
           <Leg
             title="Volta (desembarque)"
@@ -217,6 +231,7 @@ export function RouteBuilder({
             pool={pool}
             byId={byId}
             onChange={touchVolta}
+            legKind="dropoff"
             headerAction={
               pickup.length > 0 ? (
                 <button
@@ -250,6 +265,27 @@ export function RouteBuilder({
   );
 }
 
+// Coordenada da criança para esta perna (embarque usa pickup, desembarque dropoff).
+function legPoint(s: Student, legKind: "pickup" | "dropoff"): GeoPoint | null {
+  const lat = legKind === "pickup" ? s.pickup_lat : s.dropoff_lat;
+  const lng = legKind === "pickup" ? s.pickup_lng : s.dropoff_lng;
+  return lat != null && lng != null ? { lat, lng } : null;
+}
+
+// Âncora = a escola, SÓ quando toda a turma vai pra mesma (coordenadas iguais).
+// Escolas diferentes → null (TSP aberto, com aviso). Arredonda p/ tolerar ruído.
+function sharedSchoolAnchor(students: Student[]): GeoPoint | null {
+  const pts = students.map((s) =>
+    s.school_lat != null && s.school_lng != null
+      ? { lat: s.school_lat, lng: s.school_lng }
+      : null,
+  );
+  if (pts.some((p) => p === null)) return null;
+  const key = (p: GeoPoint) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+  const first = pts[0] as GeoPoint;
+  return pts.every((p) => key(p as GeoPoint) === key(first)) ? first : null;
+}
+
 function Leg({
   title,
   emptyHint,
@@ -257,6 +293,7 @@ function Leg({
   pool,
   byId,
   onChange,
+  legKind,
   headerAction,
 }: {
   title: string;
@@ -265,9 +302,12 @@ function Leg({
   pool: Student[];
   byId: Map<string, Student>;
   onChange: (next: string[]) => void;
+  legKind: "pickup" | "dropoff";
   headerAction?: React.ReactNode;
 }) {
   const unselected = pool.filter((s) => !ordered.includes(s.id));
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
 
   function move(idx: number, dir: -1 | 1) {
     const next = [...ordered];
@@ -277,12 +317,86 @@ function Leg({
     onChange(next);
   }
 
+  // "Sugerir ordem": reordena a lista pela sequência mais eficiente. Alunos sem
+  // coordenada NUNCA somem — vão pro fim com aviso. Optimization API acima do
+  // limite ou sem token/falha → cai no vizinho-mais-próximo local. MOSTRA, nunca
+  // impõe: só reordena o array editável; persiste apenas ao Salvar.
+  async function suggest() {
+    setBusy(true);
+    setNote(null);
+    try {
+      const withCoord: Stop[] = [];
+      const without: string[] = [];
+      for (const id of ordered) {
+        const s = byId.get(id);
+        const p = s ? legPoint(s, legKind) : null;
+        if (s && p) withCoord.push({ id, point: p });
+        else without.push(id);
+      }
+
+      if (withCoord.length < 2) {
+        setNote("Poucos alunos com localização para sugerir uma ordem.");
+        return;
+      }
+
+      const students = withCoord.map((w) => byId.get(w.id)!) as Student[];
+      const anchor = sharedSchoolAnchor(students);
+      const anchorRole = legKind === "pickup" ? "end" : "start"; // ida termina / volta começa na escola
+      const capacity = anchor ? MAX_OPT_WAYPOINTS - 1 : MAX_OPT_WAYPOINTS;
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
+
+      const notes: string[] = [];
+      let orderIds: string[] | null = null;
+
+      // Optimization API só até o limite de waypoints; acima, fallback direto.
+      if (token && withCoord.length <= capacity) {
+        orderIds = await optimizeViaMapbox(withCoord, anchor, anchorRole, token);
+        if (!orderIds) notes.push("usei a estimativa local (Mapbox indisponível)");
+      } else if (withCoord.length > capacity) {
+        notes.push(`muitas paradas (>${capacity}), usei a estimativa local`);
+      }
+
+      // Fallback local (sem token, acima do limite, ou API falhou).
+      if (!orderIds) orderIds = nearestNeighborOrder(withCoord, anchor);
+
+      if (!anchor) notes.push("escolas diferentes: ordem sem âncora na escola");
+      if (without.length)
+        notes.push(
+          `${without.length} sem localização ${without.length === 1 ? "foi" : "foram"} pro fim`,
+        );
+
+      onChange([...orderIds, ...without]);
+      setNote(notes.length ? `Ordem sugerida — ${notes.join("; ")}.` : "Ordem sugerida.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-navy-900/10 p-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-navy-900">{title}</span>
-        {headerAction}
+        <div className="flex items-center gap-3">
+          {headerAction}
+          {ordered.length >= 2 && (
+            <button
+              type="button"
+              onClick={suggest}
+              disabled={busy}
+              className="flex items-center gap-1 text-xs font-medium text-navy-700/70 disabled:opacity-50"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              {busy ? "Sugerindo…" : "Sugerir ordem"}
+            </button>
+          )}
+        </div>
       </div>
+
+      {note && (
+        <p className="mb-2 rounded-lg bg-yellow-400/15 px-2.5 py-1.5 text-xs text-navy-800">
+          {note}
+        </p>
+      )}
 
       {ordered.length === 0 ? (
         <p className="mb-2 text-xs text-navy-700/50">{emptyHint}</p>
