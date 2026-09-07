@@ -477,3 +477,35 @@ parada no mapa (dependeriam de expor endereço — G5).
   expor ao pai na fase 2). Próxima e última da Rotas 2.0: rota sugerida (Mapbox Optimization).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
+
+---
+
+## 10. Próximo bloco (ideia, não planejada)
+
+> **Não é escopo atual.** Registro para não se perder. Não planejar nem codar até
+> virar um bloco próprio com plano de escopo.
+
+**Descoberta pública de motoristas por escola (v2).** Hoje o app não é marketplace
+(seção 1): o motorista já chega com a carteira dele. Esta ideia adiciona uma camada
+de descoberta **sem** virar marketplace de intermediação — o pai busca pelo **nome da
+escola** do filho (sem login) e vê os motoristas cadastrados que atendem aquela
+escola/rota. O **contato acontece fora do app** (WhatsApp/telefone); ao fechar, o
+motorista manda o **link de captação que já existe hoje** — o cadastro do filho segue
+o fluxo já construído e provado (formulário público atrás do token, fila de aprovação,
+portão G5), **sem mudança nenhuma ali**.
+
+Escopo novo, quando for planejado:
+
+- **Perfil público do motorista (opt-in, toggle "publicar na busca").** O que fica
+  público precisa ser decidido com cuidado: rota/bairro/região (**não** endereço
+  exato), escola, turno, vagas disponíveis, foto da van, contato. O **endereço
+  residencial do motorista** (campo que já existe no cadastro) **NUNCA** entra nesse
+  público — hoje é dado interno; exigiria um **"perfil público" separado do perfil
+  operacional**, não expor o campo atual.
+- **Tela de busca pública por nome de escola, sem login.**
+- **CNH / verificação de documento:** cogitar como requisito para aparecer na busca —
+  aqui o contato é entre **desconhecidos**, diferente do modelo atual de indicação
+  pessoal (por isso hoje CNH está fora do v1, seção 3). Decisão a amadurecer quando for
+  planejar este bloco, **não agora**.
+- **Reaproveita 100% o link de captação e o portão G5 já existentes** — não é reescrita
+  do cadastro, é uma porta de entrada nova para o mesmo fluxo provado.
