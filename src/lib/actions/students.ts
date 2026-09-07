@@ -26,6 +26,15 @@ function studentPayloadFromForm(formData: FormData) {
     exit_time: emptyToNull(formData.get("exit_time")),
     pickup_address: emptyToNull(formData.get("pickup_address")),
     dropoff_address: emptyToNull(formData.get("dropoff_address")),
+    // Coordenadas (Rotas 2.0 Fatia A): enriquecimento opcional para a rota
+    // sugerida. Vazio = null; nunca entram em REQUIRED_LABELS (não travam o
+    // cadastro se o geocoding falhar).
+    school_lat: numOrNull(formData.get("school_lat")),
+    school_lng: numOrNull(formData.get("school_lng")),
+    pickup_lat: numOrNull(formData.get("pickup_lat")),
+    pickup_lng: numOrNull(formData.get("pickup_lng")),
+    dropoff_lat: numOrNull(formData.get("dropoff_lat")),
+    dropoff_lng: numOrNull(formData.get("dropoff_lng")),
     responsible_name: emptyToNull(formData.get("responsible_name")),
     responsible_phone: emptyToNull(formData.get("responsible_phone")),
     responsible_whatsapp: emptyToNull(formData.get("responsible_whatsapp")),
@@ -170,4 +179,12 @@ export async function revokeInvite(inviteId: string, studentId: string) {
 function emptyToNull(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
   return s.length ? s : null;
+}
+
+// Coordenada do formulário: número válido ou null (campo vazio / não geocodado).
+function numOrNull(v: FormDataEntryValue | null): number | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
 }

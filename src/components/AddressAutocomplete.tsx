@@ -12,6 +12,12 @@ interface Suggestion {
 // texto e lat/lng em inputs escondidos. Sem NEXT_PUBLIC_MAPBOX_TOKEN, degrada
 // para um campo de texto normal (o endereço ainda envia, só sem coordenada).
 // É a fatia 1 de Rotas 2.0, aplicada no lugar onde o endereço de casa é digitado.
+//
+// initialValue/initialLat/initialLng hidratam o campo na EDIÇÃO (ou onde um
+// endereço já existe): a coordenada guardada é PRESERVADA até o texto mudar de
+// fato — editar o endereço invalida a coordenada (força re-selecionar). onChange
+// avisa o pai a cada mudança de valor/coordenada — usado pelo cadastro para
+// espelhar o embarque no desembarque ("mesmo endereço") junto com a coordenada.
 export function AddressAutocomplete({
   label,
   name,
@@ -19,6 +25,10 @@ export function AddressAutocomplete({
   lngName,
   placeholder,
   required = true,
+  initialValue = "",
+  initialLat = null,
+  initialLng = null,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -26,13 +36,26 @@ export function AddressAutocomplete({
   lngName: string;
   placeholder?: string;
   required?: boolean;
+  initialValue?: string;
+  initialLat?: number | null;
+  initialLng?: number | null;
+  onChange?: (d: { value: string; lat: number | null; lng: number | null }) => void;
 }) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
-  const [value, setValue] = useState("");
-  const [coords, setCoords] = useState<[number, number] | null>(null); // [lat, lng]
+  const [value, setValue] = useState(initialValue);
+  const [coords, setCoords] = useState<[number, number] | null>(
+    initialLat != null && initialLng != null ? [initialLat, initialLng] : null,
+  ); // [lat, lng]
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Espelha valor/coordenada para o pai (quem não passa onChange ignora).
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  function emit(v: string, c: [number, number] | null) {
+    onChangeRef.current?.({ value: v, lat: c ? c[0] : null, lng: c ? c[1] : null });
+  }
 
   useEffect(() => {
     if (!token) return; // sem token: campo de texto simples, sem busca
@@ -62,10 +85,12 @@ export function AddressAutocomplete({
   }, [value, token, coords]);
 
   function pick(s: Suggestion) {
+    const c: [number, number] = [s.center[1], s.center[0]]; // [lat, lng]
     setValue(s.place_name);
-    setCoords([s.center[1], s.center[0]]); // [lat, lng]
+    setCoords(c);
     setSuggestions([]);
     setOpen(false);
+    emit(s.place_name, c);
   }
 
   return (
@@ -81,6 +106,7 @@ export function AddressAutocomplete({
           onChange={(e) => {
             setValue(e.target.value);
             setCoords(null); // editar invalida a coordenada escolhida
+            emit(e.target.value, null);
           }}
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 pr-9 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"

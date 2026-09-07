@@ -17,6 +17,7 @@ import { saveNewStudent, setStudentPhoto } from "@/lib/actions/students";
 import { createClient } from "@/lib/supabase/client";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Logo } from "@/components/Logo";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const STEPS = ["Dados", "Escola", "Rota"];
 
@@ -48,8 +49,13 @@ export default function NovoAlunoPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [step, setStep] = useState(1);
   const [shift, setShift] = useState<"morning" | "afternoon" | "integral">("morning");
-  const [pickup, setPickup] = useState("");
-  const [dropoff, setDropoff] = useState("");
+  // Embarque como {texto, coordenada}: quando "mesmo endereço" está ligado, o
+  // desembarque espelha AMBOS (endereço e lat/lng) via inputs escondidos.
+  const [pickupData, setPickupData] = useState<{
+    value: string;
+    lat: number | null;
+    lng: number | null;
+  }>({ value: "", lat: null, lng: null });
   const [sameAddress, setSameAddress] = useState(true);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -150,7 +156,13 @@ export default function NovoAlunoPage() {
           <div className={step === 2 ? "space-y-4" : "hidden"}>
             <SectionHeading>Dados escolares</SectionHeading>
             <Field label="Escola" name="school" req placeholder="Digite o nome da escola" icon={Building2} />
-            <Field label="Endereço da escola" name="school_address" req placeholder="Onde a criança é deixada de manhã" icon={MapPin} />
+            <AddressAutocomplete
+              label="Endereço da escola"
+              name="school_address"
+              latName="school_lat"
+              lngName="school_lng"
+              placeholder="Onde a criança é deixada de manhã"
+            />
             <Field label="Ano / Turma" name="turma" req placeholder="Ex.: 6º ano A" />
             <div>
               <span className="mb-1.5 block text-sm font-medium text-navy-800">Turno</span>
@@ -181,12 +193,13 @@ export default function NovoAlunoPage() {
                 </span>
                 <span className="font-semibold text-navy-900">Embarque</span>
               </div>
-              <input
+              <AddressAutocomplete
+                label=""
                 name="pickup_address"
-                value={pickup}
-                onChange={(e) => setPickup(e.target.value)}
+                latName="pickup_lat"
+                lngName="pickup_lng"
                 placeholder="Endereço de casa, onde pega a criança"
-                className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
+                onChange={setPickupData}
               />
             </div>
 
@@ -204,15 +217,22 @@ export default function NovoAlunoPage() {
                 <Toggle checked={sameAddress} onChange={setSameAddress} />
               </div>
               {sameAddress ? (
-                <input type="hidden" name="dropoff_address" value={pickup} />
+                // Espelha texto E coordenada do embarque (mesmo endereço → mesmo ponto).
+                <>
+                  <input type="hidden" name="dropoff_address" value={pickupData.value} />
+                  <input type="hidden" name="dropoff_lat" value={pickupData.lat ?? ""} />
+                  <input type="hidden" name="dropoff_lng" value={pickupData.lng ?? ""} />
+                </>
               ) : (
-                <input
-                  name="dropoff_address"
-                  value={dropoff}
-                  onChange={(e) => setDropoff(e.target.value)}
-                  placeholder="Endereço de desembarque à tarde"
-                  className="mt-3 w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
-                />
+                <div className="mt-3">
+                  <AddressAutocomplete
+                    label=""
+                    name="dropoff_address"
+                    latName="dropoff_lat"
+                    lngName="dropoff_lng"
+                    placeholder="Endereço de desembarque à tarde"
+                  />
+                </div>
               )}
             </div>
 

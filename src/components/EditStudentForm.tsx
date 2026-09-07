@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateStudent, type StudentFormState } from "@/lib/actions/students";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const initial: StudentFormState = { error: null };
 
@@ -11,12 +12,18 @@ export interface StudentDefaults {
   birth_date: string | null;
   school: string | null;
   school_address: string | null;
+  school_lat: number | null;
+  school_lng: number | null;
   shift: string | null;
   turma: string | null;
   entry_time: string | null;
   exit_time: string | null;
   pickup_address: string | null;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
   dropoff_address: string | null;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
   responsible_name: string | null;
   responsible_phone: string | null;
   responsible_whatsapp: string | null;
@@ -39,7 +46,15 @@ export function EditStudentForm({ student }: { student: StudentDefaults }) {
 
       <SectionHeading>Escola</SectionHeading>
       <Field label="Escola" name="school" defaultValue={student.school ?? ""} required />
-      <Field label="Endereço da escola" name="school_address" defaultValue={student.school_address ?? ""} required />
+      <AddressAutocomplete
+        label="Endereço da escola"
+        name="school_address"
+        latName="school_lat"
+        lngName="school_lng"
+        initialValue={student.school_address ?? ""}
+        initialLat={student.school_lat}
+        initialLng={student.school_lng}
+      />
       <Field label="Ano / Turma" name="turma" defaultValue={student.turma ?? ""} required />
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-navy-800">Turno</span>
@@ -59,8 +74,24 @@ export function EditStudentForm({ student }: { student: StudentDefaults }) {
       </div>
 
       <SectionHeading>Rota</SectionHeading>
-      <Field label="Endereço de embarque (casa)" name="pickup_address" defaultValue={student.pickup_address ?? ""} required />
-      <Field label="Endereço de desembarque" name="dropoff_address" defaultValue={student.dropoff_address ?? ""} required />
+      <AddressAutocomplete
+        label="Endereço de embarque (casa)"
+        name="pickup_address"
+        latName="pickup_lat"
+        lngName="pickup_lng"
+        initialValue={student.pickup_address ?? ""}
+        initialLat={student.pickup_lat}
+        initialLng={student.pickup_lng}
+      />
+      <AddressAutocomplete
+        label="Endereço de desembarque"
+        name="dropoff_address"
+        latName="dropoff_lat"
+        lngName="dropoff_lng"
+        initialValue={student.dropoff_address ?? ""}
+        initialLat={student.dropoff_lat}
+        initialLng={student.dropoff_lng}
+      />
 
       {state.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
