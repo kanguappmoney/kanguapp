@@ -368,10 +368,39 @@ falta é validação, não código:
   reposição no sábado; `skip` de hoje derruba a rota da home; remover devolve; labels e
   `prettyDate` corretos); tsc limpo, sem erros de console. **Radar LGPD:**
   `route_exceptions.reason` é texto livre, hoje só do motorista — revisar antes de expor ao
-  pai na fase 2 (ver seção 7). **Faltam:** rota sugerida inteligente (Mapbox Optimization +
-  trânsito, a mais pesada, por último). **Pendência anotada:** o fix do UTC ficou restrito ao
-  `routes-today`; as outras ~8 cópias de `today()` UTC (drive-board, absences, invoices,
-  revisao, alunos…) seguem para uma varredura futura — fora do escopo da R2/R3.
+  pai na fase 2 (ver seção 7).
+  **Rota sugerida — Fatia A (fundação de coordenadas): PRONTA.** A sugestão de ordem (Fatia B)
+  precisa de lat/lng de CADA ponto; sem isso ignoraria a maioria das rotas manuais (que só
+  gravavam endereço-texto) — feature quebrada. Três frentes: (1) migration 030
+  `students.school_lat/lng` (pickup/dropoff já existiam da 002; nullable — coordenada é
+  enriquecimento, nunca trava o cadastro); (2) geocoding no cadastro manual **reaproveitando o
+  AddressAutocomplete** (não cria componente): wizard novo e EditStudentForm passam a usá-lo nos
+  3 endereços, o componente ganha props opcionais retrocompatíveis (`initialValue`/`initialLat`/
+  `initialLng` p/ hidratar a edição preservando a coord; `onChange` p/ o "mesmo endereço"
+  espelhar embarque→desembarque com a coord junto), e `students.ts` grava as 6 coordenadas
+  (`numOrNull`, nunca em REQUIRED_LABELS → vazio não trava); (3) `scripts/backfill-geocode.ts`
+  geocoda alunos já cadastrados sem coord, idempotente (só nulls), rate-limit 150ms, **segredos
+  só do ambiente** (`--env-file=.env.local`, nada hardcoded; `scripts/` fora do tsc do Next).
+  Validado nos dois caminhos (sem token degrada p/ texto e salva coord null sem crash; com token,
+  o pick grava a coord, persiste e re-hidrata). Migration 030 aplicada no SQL Editor. Backfill
+  `--dry`/run fica com o Abner (usa a secret key local). Commit `3f8ef38`.
+  **Campo número/complemento (precisão do geocoding): PRONTO.** O Mapbox às vezes não tem o
+  número exato da casa → coord no meio da rua, ruim p/ rota otimizada e gate 100m. `withNumber`
+  (opcional) no AddressAutocomplete, só embarque/desembarque: sub-campo que entra na query do
+  geocoding e é **concatenado ao endereço salvo** — sem coluna nova (número em campo próprio é o
+  Endereço 2.0 da seção 10). Visibilidade (pedido do Abner): o sub-campo NÃO aparece ao abrir a
+  edição de aluno salvo (número já embutido no texto; campo vazio confundiria), só surge quando o
+  motorista mexe no endereço (`showNumber = !initialValue`). **Bug pego e corrigido antes do
+  commit:** ao selecionar uma sugestão que já traz o número no place_name, o `combine` duplicava
+  ("Av Paulista 1578 … , 1578") — a correção zera o sub-campo no pick (o place_name canônico já
+  tem o número) e, depois do pick, tratar o sub-campo como complemento (apto/bloco) anexa ao
+  texto **preservando** a coord. Sem migration, sem guarda nova. Validado ponta-a-ponta
+  (edição de salvo não mostra o campo; mexer revela; pick sem duplicar; complemento preserva
+  coord; espelho carrega o número). Commit `05d4879`. **Falta:** Fatia B — a sugestão de ordem
+  em si (Optimization API, proposta editável no builder, fallback nearest-neighbor). **Pendência
+  anotada:** o fix do UTC ficou restrito ao `routes-today`; as outras ~8 cópias de `today()` UTC
+  (drive-board, absences, invoices, revisao, alunos…) seguem para uma varredura futura — fora do
+  escopo da R2/R3.
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -475,6 +504,23 @@ parada no mapa (dependeriam de expor endereço — G5).
   Validado ponta-a-ponta no navegador (sugestão feriado↔reposição; skip de hoje some da home;
   remover devolve). Nota LGPD registrada na seção 7 (`reason` texto livre, revisar antes de
   expor ao pai na fase 2). Próxima e última da Rotas 2.0: rota sugerida (Mapbox Optimization).
+- **Rotas 2.0 — rota sugerida Fatia A (fundação de coordenadas):** garante lat/lng p/ todo
+  aluno e escola, base da Fatia B. Migration 030 (`students.school_lat/lng`; pickup/dropoff já
+  existiam); geocoding no cadastro manual reaproveitando o AddressAutocomplete (props opcionais
+  retrocompatíveis `initialValue`/`initialLat`/`initialLng` + `onChange` p/ o espelho "mesmo
+  endereço"); `students.ts` grava as 6 coords (nunca obrigatórias); `scripts/backfill-geocode.ts`
+  idempotente, segredos só do `--env-file=.env.local` (nada hardcoded), backfill fica com o Abner.
+  Validado nos dois caminhos (degradado sem token; pick grava coord com token, persiste, hidrata).
+  Migration 030 aplicada no SQL Editor. Commit `3f8ef38`.
+- **Rotas 2.0 — campo número/complemento:** melhora a precisão do geocoding (Mapbox às vezes não
+  tem o número da casa → coord no meio da rua, ruim p/ rota otimizada e 100m). `withNumber` no
+  AddressAutocomplete (só embarque/desembarque): entra na query e é concatenado ao endereço salvo,
+  sem coluna nova (número persistido = Endereço 2.0 da seção 10). Sub-campo só aparece quando o
+  motorista mexe no endereço (não sobre um já salvo — pedido do Abner, testado). **Bug pego e
+  corrigido antes do commit:** duplicação do número quando o place_name da sugestão já o traz —
+  corrigido zerando o sub-campo no pick e tratando texto pós-pick como complemento que preserva a
+  coord. Sem migration/guarda. Validado ponta-a-ponta. Commit `05d4879`. Falta a Fatia B (sugestão
+  de ordem: Optimization API + proposta editável no builder + fallback nearest-neighbor).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
