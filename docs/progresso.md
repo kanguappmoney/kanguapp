@@ -524,6 +524,25 @@ falta é validação, não código:
   Validado no navegador (mobile): mapa tela cheia renderiza (mapbox-gl), bottom sheet com a parada
   certa (Bruna Santos), "Cheguei no embarque" aciona o gate (0/1 → 1/1, hero vira "Todas as
   paradas resolvidas"). Commit `609838e`.
+  **Modo Direção — gesto de arrastar no confirmar da parada (R5): PRONTO.** O botão de toque
+  "Cheguei no embarque/desembarque" vira um **"deslize para confirmar"** (estilo apps de entrega,
+  `DragConfirm` novo — pointer events, threshold 85%, spring-back). Ao completar o arraste, revela
+  **"Embarcou"/"Desembarcou" + "Ausente"**. **UI pura sobre lógica provada** — "Embarcou" dispara
+  a MESMA ação de embarque (com o `forced` do gate); "Ausente" a MESMA ausência operacional
+  (`route_events.student_absent`). O gate de 100m **nunca bloqueia** — só muda visual/copy (perto =
+  sólido "deslize para confirmar"; longe/sem GPS/sem coord = tracejado "deslize mesmo assim"); o
+  arraste funciona a qualquer distância. **Reconciliação do #4 (Ausente × ausência do pai):** são
+  dados DISTINTOS em camadas diferentes — a do motorista é operacional (`route_events`, por
+  execução), a do pai é planejada (tabela `absences`, `reported_by`=pai, dispara a Revisão de hoje).
+  **Não há ponte automática** (`apply_route_review` só trata suspensão/G1). Coexistem sem conflito
+  (pai declara + motorista marca ausente = consistente; + motorista embarca = a G1 já protege a
+  volta de quem embarcou). **Decisão: manter separado**, NÃO gravar a "Ausente" do motorista em
+  `absences` — sem guarda nova. **#3 (só arrastar, sem toque simples):** a lista "Ver todas" perdeu
+  o toque-embarcar (pendente = overview; concluída = "Desfazer"); embarque só pelo arraste do hero.
+  Sem migration. Validado no navegador (mobile): arraste revela Embarcou/Ausente; "Desembarcou"
+  marca (0/2 → 1/2, avança e reseta o arraste); "Ausente" marca (2/2, "Todas as paradas
+  resolvidas"); banco confirma os eventos (`disembarked` + `student_absent`), iguais aos do toque
+  anterior. Commit `05822bc`.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -717,6 +736,15 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   paralelo; turn-by-turn próprio segue fora de escopo. Sem migration/guarda. Validado no navegador
   (mobile): tela cheia + bottom sheet com a parada certa + "Cheguei" aciona o gate (0/1 → 1/1).
   Commit `609838e`.
+- **Modo Direção — gesto de arrastar (R5):** o botão "Cheguei no embarque/desembarque" vira
+  "deslize para confirmar" (`DragConfirm`), que ao completar revela "Embarcou/Desembarcou" +
+  "Ausente". UI pura: as ações são as mesmas (embarque com forced do gate; ausência operacional
+  `route_events.student_absent`). Gate de 100m só muda visual/copy (sólido perto; "mesmo assim"
+  longe), nunca bloqueia. Reconciliação do #4: a "Ausente" do motorista (operacional, por execução)
+  é distinta da ausência do pai (tabela `absences`, planejada) — sem ponte automática, coexistem
+  sem conflito; decisão de manter separado, sem guarda nova. #3: lista "Ver todas" sem
+  toque-embarcar (só arrastar). Sem migration. Validado no navegador (arraste → 2 botões;
+  Desembarcou/Ausente marcam; banco confirma disembarked + student_absent). Commit `05822bc`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
