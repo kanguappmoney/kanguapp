@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { HomeContent } from "@/components/HomeContent";
 import { getRoutesWithTodayExecs } from "@/lib/routes-today";
 import { getActiveDriverBoard } from "@/lib/drive-board";
+import { buildRouteMapUrl } from "@/lib/route-path";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -89,6 +90,12 @@ export default async function DriverHome() {
   // Bloco vivo: se há perna em andamento, a home mostra o quadro real dela.
   const board = await getActiveDriverBoard();
 
+  // Mini-mapa da rota (traçado das paradas pendentes + escola). Server-side: a
+  // Directions roda aqui com timeout; se falhar, a URL vem só com os pinos.
+  const mapUrl = board
+    ? await buildRouteMapUrl(process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "", board)
+    : null;
+
   return (
     <HomeContent
       firstName={user?.fullName.split(" ")[0] ?? "motorista"}
@@ -99,7 +106,7 @@ export default async function DriverHome() {
       ausencias={ausencias}
       paradas={paradas}
       board={board}
-      mapToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ""}
+      mapUrl={mapUrl}
       routes={todayRoutes}
       execByLeg={execByLeg}
       routesEmptyText={

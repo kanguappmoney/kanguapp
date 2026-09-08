@@ -15,6 +15,8 @@ export interface BoardStop {
   address: string | null;
   lat: number | null; // coordenada da parada na perna (gate de embarque a 100m)
   lng: number | null;
+  schoolLat: number | null; // coord da escola do aluno (âncora do traçado)
+  schoolLng: number | null;
   photoUrl: string | null;
   state: StopState;
 }
@@ -60,7 +62,7 @@ export async function resolveBoardStops(
   let stopsQuery = supabase
     .from("route_stops")
     .select(
-      "student_id, position, students(full_name, pickup_address, dropoff_address, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, photo_path)",
+      "student_id, position, students(full_name, pickup_address, dropoff_address, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, school_lat, school_lng, photo_path)",
     )
     .eq("route_id", exec.route_id)
     .order("position");
@@ -94,6 +96,8 @@ export async function resolveBoardStops(
         pickup_lng: number | null;
         dropoff_lat: number | null;
         dropoff_lng: number | null;
+        school_lat: number | null;
+        school_lng: number | null;
         photo_path: string | null;
       };
       let photoUrl: string | null = null;
@@ -110,6 +114,8 @@ export async function resolveBoardStops(
         address: kind === "pickup" ? st.pickup_address : st.dropoff_address,
         lat: kind === "pickup" ? st.pickup_lat : st.dropoff_lat,
         lng: kind === "pickup" ? st.pickup_lng : st.dropoff_lng,
+        schoolLat: st.school_lat,
+        schoolLng: st.school_lng,
         photoUrl,
         state: (stateByStudent.get(s.student_id) ?? "pending") as StopState,
       };
@@ -125,6 +131,21 @@ export interface ActiveBoard {
   nextStop: BoardStop | null; // 1ª parada ainda pendente (a "próxima parada")
   boardedCount: number;
   total: number;
+  // Coord da escola como ÂNCORA do traçado, só quando a perna toda compartilha a
+  // mesma (coords iguais). Escolas diferentes → null (traçado só entre paradas).
+  schoolAnchor: { lat: number; lng: number } | null;
+}
+
+// Escola compartilhada por todas as paradas com coord de escola (arredonda p/
+// tolerar ruído). Espelha sharedSchoolAnchor do builder — mesma decisão travada.
+function sharedSchool(stops: BoardStop[]): { lat: number; lng: number } | null {
+  const pts = stops
+    .filter((s) => s.schoolLat != null && s.schoolLng != null)
+    .map((s) => ({ lat: s.schoolLat as number, lng: s.schoolLng as number }));
+  if (!pts.length) return null;
+  const key = (p: { lat: number; lng: number }) =>
+    `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+  return pts.every((p) => key(p) === key(pts[0])) ? pts[0] : null;
 }
 
 // O quadro da execução EM ANDAMENTO do motorista hoje (se houver). RLS
@@ -159,5 +180,6 @@ export async function getActiveDriverBoard(): Promise<ActiveBoard | null> {
     nextStop,
     boardedCount,
     total: stops.length,
+    schoolAnchor: sharedSchool(stops),
   };
 }

@@ -26,7 +26,7 @@ export interface HomeContentProps {
   ausencias: number;
   paradas: number;
   board: ActiveBoard | null;
-  mapToken: string;
+  mapUrl: string | null;
   routes: RouteWithStops[];
   execByLeg: Map<string, TodayExec>;
   routesEmptyText: string;
@@ -41,7 +41,7 @@ export function HomeContent({
   ausencias,
   paradas,
   board,
-  mapToken,
+  mapUrl,
   routes,
   execByLeg,
   routesEmptyText,
@@ -122,7 +122,13 @@ export function HomeContent({
         </div>
 
         {board ? (
-          <RunningBlock board={board} mapToken={mapToken} />
+          <RunningBlock
+            board={board}
+            mapUrl={mapUrl}
+            vehicleLabel={vehicleLabel}
+            avatarUrl={avatarUrl}
+            firstName={firstName}
+          />
         ) : (
           <>
             <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
@@ -149,60 +155,63 @@ export function HomeContent({
   );
 }
 
-// Mapa estático (Mapbox Static Images API) da próxima parada. Um <img>, sem
-// mapbox-gl na home — leve. G5-safe: é a parada do próprio aluno do motorista.
-// Sem token/coordenada, devolve null (degrada sem mapa, como o resto).
-function stopMapUrl(
-  token: string,
-  lat: number | null,
-  lng: number | null,
-): string | null {
-  if (!token || lat == null || lng == null) return null;
-  const marker = `pin-l+FFD000(${lng},${lat})`;
-  return (
-    `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/` +
-    `${marker}/${lng},${lat},14,0/640x260@2x?access_token=${token}`
-  );
-}
-
 // --- Perna em andamento: próxima parada + embarque real. -----------------------
 function RunningBlock({
   board,
-  mapToken,
+  mapUrl,
+  vehicleLabel,
+  avatarUrl,
+  firstName,
 }: {
   board: ActiveBoard;
-  mapToken: string;
+  mapUrl: string | null;
+  vehicleLabel: string | null;
+  avatarUrl: string | null;
+  firstName: string;
 }) {
   const pct = board.total
     ? Math.round((board.boardedCount / board.total) * 100)
     : 0;
   const label = board.kind === "pickup" ? "embarcaram" : "desembarcaram";
-  const mapUrl = board.nextStop
-    ? stopMapUrl(mapToken, board.nextStop.lat, board.nextStop.lng)
-    : null;
 
   return (
     <>
+      {/* Faixa do motorista: foto + placa/modelo da van (dado já existente). */}
+      <div className="mt-6 flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-3">
+        <Avatar url={avatarUrl} name={firstName} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-navy-900">{firstName}</p>
+          {vehicleLabel && (
+            <p className="flex items-center gap-1 truncate text-sm text-navy-700/60">
+              <Truck className="h-3.5 w-3.5 shrink-0" />
+              {vehicleLabel}
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Próxima parada (dado vivo). Endereço é do próprio aluno do motorista. */}
       {board.nextStop && (
-        <div className="mt-6 overflow-hidden rounded-2xl bg-navy-900 text-white">
-          {/* Mini-mapa estático da parada (some sem token/coordenada). */}
+        <div className="mt-4 overflow-hidden rounded-2xl bg-navy-900 text-white">
+          {/* Mini-mapa da rota (traçado + pinos). Some sem token/coordenada. */}
           {mapUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={mapUrl}
-              alt={`Localização de ${board.nextStop.name}`}
-              className="h-32 w-full object-cover"
+              alt={`Rota até ${board.nextStop.name}`}
+              className="h-52 w-full object-cover"
             />
           )}
-          <div className="p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-yellow-400">
+          <div className="p-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-yellow-400">
               Próxima parada
             </p>
             <div className="flex items-center gap-3">
               <Avatar url={board.nextStop.photoUrl} name={board.nextStop.name} dark />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{board.nextStop.name}</p>
+                <p className="truncate text-lg font-semibold">
+                  {board.nextStop.name}
+                </p>
                 {board.nextStop.address && (
                   <p className="truncate text-sm text-white/60">
                     {board.nextStop.address}
