@@ -568,7 +568,10 @@ falta é validação, não código:
   (center + pitch + bearing) compartilhado pelo seguir e pelo recenter. Botão no canto
   superior-direito do mapa (não atrapalha o bottom sheet), ícone `LocateFixed`. Sem migration, sem
   guarda nova. Validado no navegador (mobile): oculto no início; arraste manual do mapa faz
-  aparecer; tocar oculta e retoma o seguir. Commit `5f3d24d`.
+  aparecer; tocar oculta e retoma o seguir. Commit `5f3d24d`. **Fix (`a362761`):** o recenter só
+  agia com posição de GPS (`lastPosRef`) — no preview e antes de o sinal chegar ficava mudo.
+  Fallback: sem GPS, reenquadra na ROTA (centroide das paradas + escola em `routeViewRef`, com o
+  pitch de condução); com GPS segue centrando no motorista. O botão nunca fica mudo.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
