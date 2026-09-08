@@ -557,6 +557,18 @@ falta é validação, não código:
   `in_progress` — sem botão de alternar modos. Sem migration, sem guarda nova. Validado no navegador
   (mobile): abre inclinado (perspectiva). O seguir-o-rumo ao vivo (bearing) é código direto
   (heading→bearing) e precisa de GPS em movimento p/ confirmar no device. Commit `18a15db`.
+  **DriveMap — botão de recentralizar (padrão Waze/Google): PRONTO.** Botão flutuante que só
+  aparece quando o motorista **mexeu na câmera à mão** (arrastou/girou/deu zoom e saiu do "seguir");
+  ao tocar, volta pra câmera de condução — centrada na posição atual, com pitch/bearing certos — e
+  retoma o seguir automático. Detecção do gesto manual: listeners `dragstart`/`rotatestart`/
+  `zoomstart`/`pitchstart` só desligam o seguir quando o evento tem `originalEvent` (gesto do
+  usuário); os movimentos programáticos da própria câmera (`easeTo`) não têm `originalEvent` →
+  ignorados (não se auto-desligam). O marcador da van acompanha sempre; a câmera só segue se
+  `followRef`; a última posição fica em `lastPosRef` p/ o recenter usar; helper `driveCamera`
+  (center + pitch + bearing) compartilhado pelo seguir e pelo recenter. Botão no canto
+  superior-direito do mapa (não atrapalha o bottom sheet), ícone `LocateFixed`. Sem migration, sem
+  guarda nova. Validado no navegador (mobile): oculto no início; arraste manual do mapa faz
+  aparecer; tocar oculta e retoma o seguir. Commit `5f3d24d`.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -767,6 +779,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   plano por pitch + bearing seguindo a van (mantém bearing quando heading é null). Sem
   migration/guarda. Validado no navegador (abre inclinado); o seguir-o-rumo ao vivo precisa de GPS
   em movimento p/ confirmar no device. Commit `18a15db`.
+- **DriveMap — botão de recentralizar (Waze/Google):** botão flutuante que só aparece quando o
+  motorista mexeu na câmera à mão (arrastou/girou/deu zoom); ao tocar, volta pro modo condução
+  (centra na posição atual com pitch/bearing) e retoma o seguir. Gesto manual detectado por
+  `dragstart`/`rotatestart`/`zoomstart`/`pitchstart` com `originalEvent` (os `easeTo` programáticos
+  não têm → não se auto-desligam). `followRef` + `lastPosRef`; helper `driveCamera` compartilhado.
+  Canto sup.-direito, ícone `LocateFixed`. Sem migration/guarda. Validado no navegador (oculto →
+  arraste manual mostra → tocar oculta e retoma o seguir). Commit `5f3d24d`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
