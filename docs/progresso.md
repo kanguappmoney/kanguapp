@@ -437,10 +437,29 @@ falta é validação, não código:
   selo "rota otimizada" (dropado — cosmético sem dado real por trás, evita mentir). Sem migration,
   sem guarda nova. Validado no navegador (hrefs certos; mini-mapa carrega 200 sobre o card).
   Commit `1caefb3`.
+  **Traçado da rota no mini-mapa + refino visual: PRONTO.** O mini-mapa ganha o TRAÇADO
+  (paradas pendentes + escola) por cima dos pinos, via o overlay `path` da Static Images API
+  com a geometria polyline da **Directions API** — continua um `<img>` (sem `mapbox-gl`).
+  **Directions roda no SERVER** (SSR, `lib/route-path`): a lista de coordenadas das paradas não
+  vai pro cliente (espírito G5). **Fallback em camadas, NUNCA trava a home:** `AbortController` +
+  timeout 1,2s → `traçado+pinos` → `só pinos` (Directions falha/lenta) → `sem mapa` (sem
+  token/coord). **Caps:** ≤25 coords (teto da Directions) e cap de pinos (acima, só a próxima
+  parada) p/ não estourar a URL da Static Images (~8192; medido ~500 chars); custo = 1 request
+  Directions só com perna rodando (Static continua 1 request — `path` não adiciona chamada).
+  Próxima parada = pino grande amarelo, demais + escola = pino pequeno navy, `auto` enquadra.
+  `drive-board` passa a trazer `school_lat/lng` e expõe `ActiveBoard.schoolAnchor` (escola
+  compartilhada pela perna, espelha `sharedSchoolAnchor` do builder) — âncora do traçado (fim na
+  ida, começo na volta). Refino visual (dado já existente): mapa maior (`h-52`), nome da parada
+  `text-lg`, faixa do motorista com **foto + placa/modelo da van** (some quando não há veículo).
+  ETA e selo "rota otimizada" seguem FORA (decisão). Validado: navegador (a volta desenha o
+  traçado sobre ruas reais); Node (camadas de fallback — token válido→path; Directions falha→só
+  pinos; sem token→null). Sem migration, sem guarda nova. Commit `9bb2db4`. **Nota:** a exclusão
+  "Directions/traçado/marcadores no mapa" abaixo era do **Modo Mapa do PAI** (exporia endereço de
+  criança a responsável = G5); no lado do MOTORISTA o traçado é do próprio dado dele — permitido.
 
-**Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
+**Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
-parada no mapa (dependeriam de expor endereço — G5).
+parada no mapa **do responsável** (dependeriam de expor endereço — G5).
 
 ---
 
@@ -579,6 +598,15 @@ parada no mapa (dependeriam de expor endereço — G5).
   (um `<img>`, sem `mapbox-gl` na home — mais leve; G5-safe; degrada sem token/coord). ETA e selo
   "rota otimizada" ficaram FORA por decisão (ETA vira infra futura na seção 10; selo dropado —
   cosmético sem dado real). Sem migration/guarda. Validado no navegador. Commit `1caefb3`.
+- **Home — traçado da rota no mini-mapa + refino visual:** o mini-mapa ganha o TRAÇADO (paradas
+  pendentes + escola) via overlay `path` da Static Images API + polyline da **Directions API**
+  (segue sendo um `<img>`, sem `mapbox-gl`). **Directions no SERVER** (`lib/route-path`, SSR — as
+  coords não vão pro cliente). **Fallback em camadas, nunca trava:** timeout 1,2s → `traçado+pinos`
+  → `só pinos` → `sem mapa`. Caps: ≤25 coords + cap de pinos (URL ~500 chars, teto ~8192); 1
+  request Directions só com perna rodando. `drive-board` traz `school_lat/lng` e expõe
+  `schoolAnchor` (âncora do traçado). Refino: mapa maior, texto maior, faixa do motorista com foto
+  + placa/modelo da van. ETA e selo seguem fora. Validado (navegador: traçado sobre ruas reais;
+  Node: camadas de fallback). Sem migration/guarda. Commit `9bb2db4`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
