@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type PointerEvent } from "react";
 import { ArrowLeft, MapPin, MapPinOff, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import {
@@ -90,6 +90,33 @@ export function DriveScreen({
     setRevealed(false);
   }, [current?.studentId]);
 
+  // Bottom sheet recolhe/expande por distância (padrão; manual sempre disponível).
+  // Longe da parada (mensurável E fora do 100m) → recolhe, dando tela ao mapa;
+  // perto (≤100m) OU sem dado (sem GPS/coord) → expande. Nunca esconde a ação por
+  // falta de dado — mesmo espírito do gate de 100m.
+  const [collapsed, setCollapsed] = useState(false);
+  const autoCollapsed = currentDist != null && !currentInRange;
+  // Aplica o padrão só quando o alvo AUTOMÁTICO muda (cruza o threshold). Entre
+  // transições, o arraste manual manda — o auto não briga com a mão.
+  useEffect(() => {
+    setCollapsed(autoCollapsed);
+  }, [autoCollapsed]);
+
+  // Arraste manual do sheet (pra cima expande, pra baixo recolhe; toque alterna).
+  const dragStartY = useRef<number | null>(null);
+  function onSheetDown(e: PointerEvent<HTMLDivElement>) {
+    dragStartY.current = e.clientY;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+  function onSheetUp(e: PointerEvent<HTMLDivElement>) {
+    if (dragStartY.current == null) return;
+    const dy = e.clientY - dragStartY.current;
+    dragStartY.current = null;
+    if (dy > 8) setCollapsed(true);
+    else if (dy < -8) setCollapsed(false);
+    else setCollapsed((v) => !v); // toque = alterna
+  }
+
   const mapStops = stops.map((s) => ({
     studentId: s.studentId,
     position: s.position,
@@ -148,11 +175,36 @@ export function DriveScreen({
           </div>
         </div>
 
-        {/* Bottom sheet por cima do mapa. */}
-        <div className="relative z-10 mt-auto flex max-h-[74dvh] flex-col rounded-t-3xl bg-white shadow-[0_-8px_24px_rgba(13,27,61,0.18)]">
-          <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-navy-900/15" />
+        {/* Bottom sheet por cima do mapa. Recolhe/expande por distância (auto) +
+            arraste manual. Recolhido = só a faixa da próxima parada; o mapa cresce. */}
+        <div
+          className={`relative z-10 mt-auto flex flex-col rounded-t-3xl bg-white shadow-[0_-8px_24px_rgba(13,27,61,0.18)] ${
+            collapsed ? "" : "max-h-[74dvh]"
+          }`}
+        >
+          {/* Alça arrastável (sempre visível). Recolhido: mostra a próxima parada. */}
+          <div
+            onPointerDown={onSheetDown}
+            onPointerUp={onSheetUp}
+            className="shrink-0 cursor-grab touch-none px-4 pb-1 pt-2"
+          >
+            <div className="mx-auto h-1 w-10 rounded-full bg-navy-900/15" />
+            {collapsed && (
+              <div className="mt-2 flex items-center gap-2 pb-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
+                  Próxima
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-bold text-navy-900">
+                  {current ? current.name : "Todas as paradas resolvidas"}
+                </span>
+                <ChevronUp className="h-4 w-4 shrink-0 text-navy-700/40" />
+              </div>
+            )}
+          </div>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-2 pt-3">
+          {!collapsed && (
+          <>
+          <div className="flex-1 overflow-y-auto px-4 pb-2 pt-1">
             {/* Parada ATUAL (hero) — nome + gate de 100m no botão grande. */}
             {current ? (
               <div className="rounded-2xl border border-navy-900/10 p-4">
@@ -322,6 +374,8 @@ export function DriveScreen({
               Encerrar rota
             </button>
           </div>
+          </>
+          )}
         </div>
 
         {confirming && (
