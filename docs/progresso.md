@@ -476,6 +476,18 @@ falta é validação, não código:
   21min − 10min; cache grava 1 linha, reload reusa; sem endereço a home renderiza sem o chip). tsc
   limpo. Commit `ffa7c8b`. **Nota:** primeiro passo da "rota sugerida inteligente" completa (ETA de
   um trecho único, sem otimizar ordem nem trânsito).
+  **Exceções (R3) — atalho no editar (fecha o gap de descoberta):** reconciliação confirmou que
+  a **UI de exceções (R3) já estava PRONTA** desde o commit `5458781` (sub-tela dedicada
+  `/rotas/[id]/excecoes` — lista/adicionar/excluir/sugestão contextual, por rota, datas só-futuro)
+  e que **a home já filtrava "hoje" por `route_runs_on`** (R2a, `ddfff18`, via `routeRunsToday` em
+  `routes-today`). O único furo era **descoberta**: não dava pra chegar nas exceções de dentro do
+  editar. Esta fatia adicionou só uma seção "Exceções" no fim da tela de editar rota — contagem das
+  próximas (hoje pra frente, mesmo recorte da sub-tela) + link "Ver/gerenciar" → a sub-tela. Decisão
+  (AskUserQuestion): **manter a sub-tela dedicada** (não desmontar/duplicar), **datas seguem
+  só-futuro** (não mexer). **Sem migration:** a RLS dono-only de `route_exceptions` da 029 é `for
+  all` (cobre delete — o `removeException` já funcionava). Validado no navegador (atalho aparece;
+  0 → texto genérico, 1 → "1 marcada"; link leva à sub-tela; criar/remover reflete na contagem).
+  Commit `b8ea731`.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -641,6 +653,14 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   chip 06:59 = 07:30 − 21min − 10min; cache grava e reload reusa; sem endereço, home sem o chip).
   Commit `ffa7c8b`. Nota de validação: setei um endereço de teste no perfil do Abner via
   service-role (campo estava vazio) — ele deve trocar pelo endereço real em Perfil.
+- **Exceções (R3) — atalho no editar (reconciliação):** a checagem contra o repo confirmou que a
+  UI de exceções (R3, sub-tela dedicada `/rotas/[id]/excecoes`, commit `5458781`) e o filtro "hoje"
+  da home por `route_runs_on` (R2a, `ddfff18`) **já estavam prontos antes deste ciclo** — a cópia
+  do Cowork estava defasada. Esta sessão fechou só o **gap de descoberta**: uma seção "Exceções"
+  no fim da tela de editar rota (contagem das próximas + link "Ver/gerenciar" → a sub-tela).
+  Decisão (AskUserQuestion): manter a sub-tela dedicada, datas só-futuro, sem migration (RLS `for
+  all` da 029 já cobre delete). Validado no navegador (contagem 0/1, link leva à sub-tela certa,
+  criar/remover reflete). Commit `b8ea731`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
