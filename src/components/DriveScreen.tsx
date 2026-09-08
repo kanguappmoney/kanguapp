@@ -8,6 +8,7 @@ import {
   type BoardingProximity,
 } from "@/lib/actions/drive";
 import { OccurrenceSheet } from "@/components/OccurrenceSheet";
+import { NavMenu } from "@/components/NavMenu";
 import { usePositionBroadcast } from "@/components/usePositionBroadcast";
 import { useDriverPosition } from "@/components/useDriverPosition";
 import {
@@ -127,6 +128,13 @@ export function DriveScreen({
               boardVerb={boardVerb}
               onSet={set}
             />
+
+            {/* Navegação externa (Waze/Google Maps) para ESTA parada. Só abre um
+                link externo com o endereço da própria parada — não é rastreio,
+                G4/G5 intactos. */}
+            <div className="mt-2">
+              <NavMenu lat={s.lat} lng={s.lng} address={s.address} label={s.name} />
+            </div>
           </div>
         ))}
       </div>

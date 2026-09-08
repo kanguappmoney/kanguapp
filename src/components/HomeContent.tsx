@@ -28,6 +28,7 @@ export interface HomeContentProps {
   paradas: number;
   board: ActiveBoard | null;
   mapUrl: string | null;
+  idleMapUrl: string | null;
   routes: RouteWithStops[];
   execByLeg: Map<string, TodayExec>;
   departureByRoute: Map<string, DepartureSuggestion>;
@@ -44,6 +45,7 @@ export function HomeContent({
   paradas,
   board,
   mapUrl,
+  idleMapUrl,
   routes,
   execByLeg,
   departureByRoute,
@@ -124,6 +126,8 @@ export function HomeContent({
           />
         </div>
 
+        {/* Mapa sempre visível: bloco vivo (traçado da perna rodando) OU mapa
+            idle centrado no endereço do motorista quando nada roda (G4-safe). */}
         {board ? (
           <RunningBlock
             board={board}
@@ -133,18 +137,20 @@ export function HomeContent({
             firstName={firstName}
           />
         ) : (
-          <>
-            <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
-              Rota de hoje
-            </h2>
-            <RouteRunList
-              routes={routes}
-              execByLeg={execByLeg}
-              departureByRoute={departureByRoute}
-              emptyText={routesEmptyText}
-            />
-          </>
+          <IdleMap mapUrl={idleMapUrl} />
         )}
+
+        {/* Lista das rotas de hoje SEMPRE abaixo do mapa — concluídas e próximas,
+            não só quando ocioso. */}
+        <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
+          Rota de hoje
+        </h2>
+        <RouteRunList
+          routes={routes}
+          execByLeg={execByLeg}
+          departureByRoute={departureByRoute}
+          emptyText={routesEmptyText}
+        />
 
         {/* Ponte home ↔ /rotas: gestão vive lá (criar/editar). */}
         <Link
@@ -156,6 +162,26 @@ export function HomeContent({
         </Link>
       </div>
     </>
+  );
+}
+
+// --- Home ociosa: mapa estático da região do motorista (endereço geocodificado,
+// SEM GPS — G4 não permite rastreio fora de in_progress) + aviso. ----------------
+function IdleMap({ mapUrl }: { mapUrl: string | null }) {
+  return (
+    <div className="mt-6 overflow-hidden rounded-2xl border border-navy-900/10 bg-navy-900/[0.03]">
+      {mapUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={mapUrl} alt="Sua região" className="h-48 w-full object-cover" />
+      ) : (
+        <div className="flex h-32 items-center justify-center text-sm text-navy-700/40">
+          Mapa indisponível
+        </div>
+      )}
+      <p className="px-4 py-3 text-center text-sm text-navy-700/60">
+        Nenhuma rota em andamento agora
+      </p>
+    </div>
   );
 }
 

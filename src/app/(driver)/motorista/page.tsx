@@ -5,6 +5,7 @@ import { getRoutesWithTodayExecs } from "@/lib/routes-today";
 import { getActiveDriverBoard } from "@/lib/drive-board";
 import { buildRouteMapUrl } from "@/lib/route-path";
 import { getDepartureSuggestions } from "@/lib/departure";
+import { getDriverHomeMapUrl } from "@/lib/driver-map";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -93,14 +94,15 @@ export default async function DriverHome() {
 
   // Mini-mapa da rota (traçado das paradas pendentes + escola). Server-side: a
   // Directions roda aqui com timeout; se falhar, a URL vem só com os pinos.
-  const mapUrl = board
-    ? await buildRouteMapUrl(process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "", board)
-    : null;
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
+  // Mapa do bloco vivo (traçado da perna rodando) OU mapa idle centrado no
+  // endereço do motorista (G4-safe, sem GPS) quando nada roda. Um dos dois.
+  const mapUrl = board ? await buildRouteMapUrl(token, board) : null;
+  const idleMapUrl = board ? null : await getDriverHomeMapUrl(token);
 
-  // Sugestão de horário de saída (só na tela ociosa, onde a lista de rotas aparece).
-  const departureByRoute = board
-    ? new Map()
-    : await getDepartureSuggestions(todayRoutes, execByLeg);
+  // Sugestão de horário de saída — a lista de rotas agora aparece sempre (rodando
+  // ou não), então as sugestões das idas não iniciadas também.
+  const departureByRoute = await getDepartureSuggestions(todayRoutes, execByLeg);
 
   return (
     <HomeContent
@@ -113,6 +115,7 @@ export default async function DriverHome() {
       paradas={paradas}
       board={board}
       mapUrl={mapUrl}
+      idleMapUrl={idleMapUrl}
       routes={todayRoutes}
       execByLeg={execByLeg}
       departureByRoute={departureByRoute}

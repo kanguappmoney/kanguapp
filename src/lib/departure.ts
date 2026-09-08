@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { saoPauloToday } from "@/lib/day";
-import { regionParams } from "@/lib/geo-region";
+import { geocodeAddress } from "@/lib/geocode";
 import { execKey, type RouteWithStops, type TodayExec } from "@/lib/routes-today";
 
 // Sugestão de horário de saída de casa (perna de IDA). "Saia até HH:MM para não
@@ -12,7 +12,6 @@ import { execKey, type RouteWithStops, type TodayExec } from "@/lib/routes-today
 // Cache 1x por rota por dia em route_departure_suggestions.
 
 const MARGIN_MIN = 10;
-const GEO_TIMEOUT_MS = 1500;
 const DIRECTIONS_TIMEOUT_MS = 1500;
 
 export interface DepartureSuggestion {
@@ -40,21 +39,6 @@ async function fetchWithTimeout(url: string, ms: number): Promise<Response | nul
   } catch {
     return null;
   }
-}
-
-async function geocode(
-  address: string,
-  token: string,
-): Promise<{ lat: number; lng: number } | null> {
-  const url =
-    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json` +
-    `?access_token=${token}&country=br&language=pt&limit=1&types=address,place,locality,neighborhood` +
-    regionParams();
-  const res = await fetchWithTimeout(url, GEO_TIMEOUT_MS);
-  if (!res) return null;
-  const json = (await res.json()) as { features?: { center: [number, number] }[] };
-  const c = json.features?.[0]?.center; // [lng, lat]
-  return c ? { lat: c[1], lng: c[0] } : null;
 }
 
 async function drivingDurationSeconds(
@@ -126,7 +110,7 @@ export async function getDepartureSuggestions(
       .select("address")
       .eq("user_id", user?.id ?? "")
       .maybeSingle();
-    origin = profile?.address ? await geocode(profile.address, token) : null;
+    origin = profile?.address ? await geocodeAddress(profile.address, token) : null;
     return origin;
   };
 
