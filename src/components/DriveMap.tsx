@@ -1,9 +1,25 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { LocateFixed } from "lucide-react";
 import type { GeoPoint } from "@/lib/geo";
+
+type DriverPos = GeoPoint & { heading: number | null };
+const PITCH = 55;
+const FOLLOW_ZOOM = 16;
+
+// easeTo da câmera de condução: centra na van, inclina e gira com o rumo.
+function driveCamera(map: mapboxgl.Map, pos: DriverPos, duration: number) {
+  map.easeTo({
+    center: [pos.lng, pos.lat],
+    bearing: pos.heading != null ? pos.heading : map.getBearing(),
+    pitch: PITCH,
+    zoom: FOLLOW_ZOOM,
+    duration,
+  });
+}
 
 // Mapa interativo do Modo Direção 2.0 (mapbox-gl, tela cheia). Desenha a linha da
 // rota + os pinos das paradas + o pino do motorista AO VIVO (GPS). Roda só durante
@@ -38,6 +54,20 @@ export function DriveMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const readyRef = useRef(false);
+  // "Seguindo" a van (câmera automática) vs. o motorista mexeu na câmera à mão.
+  const followRef = useRef(true);
+  const lastPosRef = useRef<DriverPos | null>(null);
+  const [showRecenter, setShowRecenter] = useState(false);
+
+  // Voltar pro modo condução: recentra na posição atual com pitch/bearing certos
+  // e retoma o "seguir" automático.
+  function recenter() {
+    followRef.current = true;
+    setShowRecenter(false);
+    const map = mapRef.current;
+    const pos = lastPosRef.current;
+    if (map && pos) driveCamera(map, pos, 600);
+  }
 
   // Cria o mapa uma vez, com a linha, os pinos das paradas e a escola.
   useEffect(() => {
@@ -61,6 +91,23 @@ export function DriveMap({
       attributionControl: false,
     });
     mapRef.current = map;
+
+    // Interação MANUAL do motorista (originalEvent presente) desliga o "seguir" e
+    // mostra o botão de recentralizar. Os movimentos programáticos da própria
+    // câmera de condução (easeTo) não têm originalEvent → são ignorados aqui.
+    const onUserGesture = (e: {
+      type: string;
+      target: unknown;
+      originalEvent?: unknown;
+    }) => {
+      if (!e.originalEvent) return; // sem originalEvent = movimento programático
+      followRef.current = false;
+      setShowRecenter(true);
+    };
+    map.on("dragstart", onUserGesture);
+    map.on("rotatestart", onUserGesture);
+    map.on("zoomstart", onUserGesture);
+    map.on("pitchstart", onUserGesture);
 
     map.on("load", () => {
       readyRef.current = true;
@@ -120,10 +167,12 @@ export function DriveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // Pino do motorista ao vivo: cria/atualiza conforme o GPS chega.
+  // Pino do motorista ao vivo: cria/atualiza conforme o GPS chega. O marcador
+  // acompanha SEMPRE; a câmera só segue se o motorista não mexeu (followRef).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !driverPos) return;
+    lastPosRef.current = driverPos;
     if (!driverMarkerRef.current) {
       const el = document.createElement("div");
       el.style.cssText =
@@ -134,16 +183,24 @@ export function DriveMap({
     } else {
       driverMarkerRef.current.setLngLat([driverPos.lng, driverPos.lat]);
     }
-    // Segue a van + gira com o rumo (bearing = heading). Parado/sem bússola
-    // (heading null) → mantém o bearing atual, não pula. Pitch fixo (inclinado).
-    map.easeTo({
-      center: [driverPos.lng, driverPos.lat],
-      bearing: driverPos.heading != null ? driverPos.heading : map.getBearing(),
-      pitch: 55,
-      zoom: 16,
-      duration: 800,
-    });
+    if (followRef.current) driveCamera(map, driverPos, 800);
   }, [driverPos]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      {/* Recentralizar (padrão Waze/Google): só aparece quando o motorista mexeu
+          na câmera. Canto superior-direito do mapa, acima do bottom sheet. */}
+      {showRecenter && (
+        <button
+          type="button"
+          onClick={recenter}
+          aria-label="Recentralizar no meu local"
+          className="absolute right-3 top-28 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white text-navy-900 shadow-lg"
+        >
+          <LocateFixed className="h-5 w-5" />
+        </button>
+      )}
+    </div>
+  );
 }
