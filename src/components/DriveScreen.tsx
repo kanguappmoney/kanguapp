@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ArrowLeft, MapPin, MapPinOff, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions/drive";
 import { OccurrenceSheet } from "@/components/OccurrenceSheet";
 import { NavMenu } from "@/components/NavMenu";
+import { DragConfirm } from "@/components/DragConfirm";
 import { DriveMapLoader } from "@/components/DriveMapLoader";
 import { usePositionBroadcast } from "@/components/usePositionBroadcast";
 import { useDriverPosition } from "@/components/useDriverPosition";
@@ -60,6 +61,9 @@ export function DriveScreen({
   const [, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  // R4: o arraste "abre" a escolha Embarcou/Ausente da parada atual. Reseta a
+  // cada parada nova (quando o 1º pendente muda).
+  const [revealed, setRevealed] = useState(false);
 
   usePositionBroadcast(executionId, active);
   // GPS ao vivo (in_progress + foreground). Alimenta o gate de 100m E o pino do
@@ -67,11 +71,24 @@ export function DriveScreen({
   const driverPos = useDriverPosition(inProgress);
 
   const heroVerb = kind === "pickup" ? "Cheguei no embarque" : "Cheguei no desembarque";
-  const listVerb = kind === "pickup" ? "Embarcar" : "Desembarcar";
   const doneCount = stops.filter((s) => s.state !== "pending").length;
   const allHandled = doneCount === stops.length;
   const current = stops.find((s) => s.state === "pending") ?? null;
   const pct = Math.round((doneCount / (stops.length || 1)) * 100);
+
+  // Gate de 100m da parada ATUAL (mesma lógica de sempre) — só decide o
+  // visual/copy do arraste (perto = sólido; longe = "mesmo assim"). Nunca trava.
+  const currentPoint =
+    current && current.lat != null && current.lng != null
+      ? { lat: current.lat, lng: current.lng }
+      : null;
+  const currentDist = stopDistanceMeters(driverPos, currentPoint);
+  const currentInRange = withinBoardingRange(currentDist);
+
+  // Nova parada vira "current" → fecha a escolha aberta na anterior.
+  useEffect(() => {
+    setRevealed(false);
+  }, [current?.studentId]);
 
   const mapStops = stops.map((s) => ({
     studentId: s.studentId,
@@ -148,15 +165,60 @@ export function DriveScreen({
                 {current.address && (
                   <p className="mt-0.5 text-sm text-navy-700/60">{current.address}</p>
                 )}
+
+                {/* Dica do gate de 100m (quando longe/sem GPS/sem coord). */}
+                {!currentInRange && (
+                  <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-navy-900/[0.04] px-3 py-2 text-xs text-navy-700/70">
+                    {currentPoint === null ? (
+                      <MapPinOff className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                    {currentPoint === null
+                      ? "Endereço sem localização no mapa"
+                      : driverPos === null
+                        ? "Sem sinal de GPS agora"
+                        : `Você está a ~${Math.round(currentDist!)} m do endereço`}
+                  </div>
+                )}
+
                 <div className="mt-3">
-                  <StopActions
-                    stop={current}
-                    driverPos={driverPos}
-                    boardVerb={heroVerb}
-                    big
-                    onSet={set}
-                  />
+                  {revealed ? (
+                    // Arraste concluído → escolha da parada atual. "Embarcou" =
+                    // MESMA ação de embarque de sempre (com o forced do gate);
+                    // "Ausente" = MESMA ausência operacional (route_event).
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          set(current.studentId, "boarded", {
+                            forced: !currentInRange,
+                            distanceM: currentDist,
+                          })
+                        }
+                        className="flex-1 rounded-xl bg-yellow-400 py-4 text-lg font-semibold text-navy-900"
+                      >
+                        {kind === "pickup" ? "Embarcou" : "Desembarcou"}
+                      </button>
+                      <button
+                        onClick={() => set(current.studentId, "absent")}
+                        className="rounded-xl border border-navy-900/15 px-5 text-sm font-medium text-navy-700/70"
+                      >
+                        Ausente
+                      </button>
+                    </div>
+                  ) : (
+                    <DragConfirm
+                      label={
+                        currentInRange
+                          ? `${heroVerb} — deslize para confirmar`
+                          : `${heroVerb} — deslize mesmo assim`
+                      }
+                      solid={currentInRange}
+                      onConfirm={() => setRevealed(true)}
+                    />
+                  )}
                 </div>
+
                 <div className="mt-2">
                   <NavMenu
                     lat={current.lat}
@@ -220,12 +282,22 @@ export function DriveScreen({
                         </span>
                       )}
                     </div>
-                    <StopActions
-                      stop={s}
-                      driverPos={driverPos}
-                      boardVerb={listVerb}
-                      onSet={set}
-                    />
+                    {/* R4: embarque SÓ pelo arraste do hero. Na lista, pendente
+                        é overview (sem toque-embarcar); concluída tem "Desfazer". */}
+                    {s.state === "pending" ? (
+                      <p className="text-xs text-navy-700/50">
+                        {s.studentId === current?.studentId
+                          ? "Parada atual — confirme no painel acima."
+                          : "Aguardando"}
+                      </p>
+                    ) : (
+                      <button
+                        onClick={() => set(s.studentId, "pending")}
+                        className="w-full rounded-xl border border-navy-900/10 py-2 text-sm font-medium text-navy-700/60"
+                      >
+                        Desfazer
+                      </button>
+                    )}
                     <div className="mt-2">
                       <NavMenu
                         lat={s.lat}
@@ -285,101 +357,6 @@ export function DriveScreen({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// Controle de embarque de uma parada, com o gate de 100m (G1/G2) — LÓGICA
-// INALTERADA do Modo Direção 1.0. A ≤100m libera o botão sólido; longe, sem GPS
-// ou sem coordenada, vira "…mesmo assim" (registrado como forçado), sempre
-// disponível. `big` só engrossa o botão da parada atual (hero). Nada trava.
-function StopActions({
-  stop,
-  driverPos,
-  boardVerb,
-  big,
-  onSet,
-}: {
-  stop: DriveStop;
-  driverPos: GeoPoint | null;
-  boardVerb: string;
-  big?: boolean;
-  onSet: (id: string, state: StopState, proximity?: BoardingProximity) => void;
-}) {
-  if (stop.state !== "pending") {
-    return (
-      <button
-        onClick={() => onSet(stop.studentId, "pending")}
-        className="w-full rounded-xl border border-navy-900/10 py-2 text-sm font-medium text-navy-700/60"
-      >
-        Desfazer
-      </button>
-    );
-  }
-
-  const stopPoint =
-    stop.lat != null && stop.lng != null
-      ? { lat: stop.lat, lng: stop.lng }
-      : null;
-  const distance = stopDistanceMeters(driverPos, stopPoint);
-  const inRange = withinBoardingRange(distance);
-
-  const hint =
-    stopPoint === null
-      ? "Endereço sem localização no mapa"
-      : driverPos === null
-        ? "Sem sinal de GPS agora"
-        : `Você está a ~${Math.round(distance!)} m do endereço`;
-
-  const bigCls = big ? "py-4 text-lg" : "py-2.5";
-
-  return (
-    <div className="space-y-2">
-      {inRange ? (
-        <div className="flex gap-2">
-          <button
-            onClick={() =>
-              onSet(stop.studentId, "boarded", { forced: false, distanceM: distance })
-            }
-            className={`flex-1 rounded-xl bg-yellow-400 font-semibold text-navy-900 ${bigCls}`}
-          >
-            {boardVerb}
-          </button>
-          <button
-            onClick={() => onSet(stop.studentId, "absent")}
-            className="rounded-xl border border-navy-900/15 px-4 text-sm font-medium text-navy-700/70"
-          >
-            Ausente
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center gap-1.5 rounded-lg bg-navy-900/[0.04] px-3 py-2 text-xs text-navy-700/70">
-            {stopPoint === null ? (
-              <MapPinOff className="h-3.5 w-3.5 shrink-0" />
-            ) : (
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-            )}
-            {hint}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() =>
-                onSet(stop.studentId, "boarded", { forced: true, distanceM: distance })
-              }
-              className={`flex-1 rounded-xl border-2 border-yellow-400 font-semibold text-navy-900 ${bigCls}`}
-            >
-              {boardVerb} mesmo assim
-            </button>
-            <button
-              onClick={() => onSet(stop.studentId, "absent")}
-              className="rounded-xl border border-navy-900/15 px-4 text-sm font-medium text-navy-700/70"
-            >
-              Ausente
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 }
