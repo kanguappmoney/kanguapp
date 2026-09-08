@@ -32,7 +32,7 @@ export function DriveMap({
   stops: DriveMapStop[];
   line: [number, number][] | null; // GeoJSON da rota (lng,lat), pode faltar
   anchor: GeoPoint | null; // escola (âncora)
-  driverPos: GeoPoint | null; // posição ao vivo da van
+  driverPos: (GeoPoint & { heading: number | null }) | null; // posição + rumo
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -50,11 +50,14 @@ export function DriveMap({
     const all = [...coords, ...(anchor ? [[anchor.lng, anchor.lat] as [number, number]] : [])];
     const center: [number, number] = all[0] ?? [-46.46, -23.67]; // fallback Mauá
 
+    // Câmera de condução (estilo Waze/Google): já abre INCLINADA. O bearing gira
+    // com o rumo do GPS no efeito de posição. Não é turn-by-turn — só a câmera.
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
       center,
-      zoom: 13,
+      zoom: 15,
+      pitch: 55,
       attributionControl: false,
     });
     mapRef.current = map;
@@ -104,14 +107,8 @@ export function DriveMap({
           .addTo(map);
       }
 
-      // Enquadra tudo (paradas + escola) na 1ª carga.
-      if (all.length >= 2) {
-        const b = all.reduce(
-          (acc, c) => acc.extend(c),
-          new mapboxgl.LngLatBounds(all[0], all[0]),
-        );
-        map.fitBounds(b, { padding: 60, maxZoom: 15, duration: 0 });
-      }
+      // Sem fitBounds (que achataria o pitch): a câmera de condução abre inclinada
+      // e centrada no início da rota; assim que o GPS chega, passa a seguir a van.
     });
 
     return () => {
@@ -137,7 +134,15 @@ export function DriveMap({
     } else {
       driverMarkerRef.current.setLngLat([driverPos.lng, driverPos.lat]);
     }
-    map.easeTo({ center: [driverPos.lng, driverPos.lat], duration: 800 });
+    // Segue a van + gira com o rumo (bearing = heading). Parado/sem bússola
+    // (heading null) → mantém o bearing atual, não pula. Pitch fixo (inclinado).
+    map.easeTo({
+      center: [driverPos.lng, driverPos.lat],
+      bearing: driverPos.heading != null ? driverPos.heading : map.getBearing(),
+      pitch: 55,
+      zoom: 16,
+      duration: 800,
+    });
   }, [driverPos]);
 
   return <div ref={containerRef} className="h-full w-full" />;

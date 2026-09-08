@@ -20,7 +20,7 @@ export function DriveMapLoader(props: {
   stops: DriveMapStop[];
   line: [number, number][] | null;
   anchor: GeoPoint | null;
-  driverPos: GeoPoint | null;
+  driverPos: (GeoPoint & { heading: number | null }) | null;
 }) {
   return <DriveMap {...props} />;
 }
