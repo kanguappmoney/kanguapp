@@ -427,6 +427,16 @@ falta é validação, não código:
   anotada:** o fix do UTC ficou restrito ao `routes-today`; as outras ~8 cópias de `today()` UTC
   (drive-board, absences, invoices, revisao, alunos…) seguem para uma varredura futura — fora do
   escopo da R2/R3.
+  **Polimento da home (versão enxuta): PRONTO.** Cards contadores viram atalhos (alunos →
+  `/motorista/alunos`, paradas → `/motorista/rotas`); **ausências fica NÃO-clicável** de propósito
+  (não tem tela de motorista — só aparece na Revisão de hoje; apontar pra `/rotas` enganaria).
+  Mini-mapa da próxima parada no bloco vivo via **Mapbox Static Images API** (um `<img>`, **sem
+  carregar `mapbox-gl` na home** — bem mais leve que o Modo Mapa do pai); G5-safe (parada do
+  próprio aluno); sem token/coordenada, degrada sem mapa. **Fora desta fatia por decisão:** ETA
+  (registrado como infra futura na seção 10 — chamada de rota real + custo/cache + janela G4) e o
+  selo "rota otimizada" (dropado — cosmético sem dado real por trás, evita mentir). Sem migration,
+  sem guarda nova. Validado no navegador (hrefs certos; mini-mapa carrega 200 sobre o card).
+  Commit `1caefb3`.
 
 **Fora do Modo Mapa v1** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -563,6 +573,12 @@ parada no mapa (dependeriam de expor endereço — G5).
   validados no navegador (fixture temporária de 13 alunos, criados e removidos por id, banco limpo):
   feliz ≤11 via Optimization; >11 → fallback; sem-coord → fim. Commit `0bb0bba`. **Rotas 2.0
   COMPLETA** (recorrência R1→R3 + rota sugerida: coordenadas → número → viés de região → ordem).
+- **Polimento da home (versão enxuta):** cards contadores viram atalhos (alunos → `/motorista/alunos`,
+  paradas → `/motorista/rotas`; ausências fica NÃO-clicável — sem tela de motorista, apontar pra
+  `/rotas` enganaria). Mini-mapa da próxima parada no bloco vivo via **Mapbox Static Images API**
+  (um `<img>`, sem `mapbox-gl` na home — mais leve; G5-safe; degrada sem token/coord). ETA e selo
+  "rota otimizada" ficaram FORA por decisão (ETA vira infra futura na seção 10; selo dropado —
+  cosmético sem dado real). Sem migration/guarda. Validado no navegador. Commit `1caefb3`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
