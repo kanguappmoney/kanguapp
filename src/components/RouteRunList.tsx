@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil, CalendarClock } from "lucide-react";
+import { Pencil, CalendarClock, Clock } from "lucide-react";
 import { Card, Placeholder } from "@/components/ui";
 import { startOrReview } from "@/lib/actions/routes";
 import {
@@ -7,6 +7,7 @@ import {
   type RouteWithStops,
   type TodayExec,
 } from "@/lib/routes-today";
+import type { DepartureSuggestion } from "@/lib/departure";
 
 const DIRECTION_LABEL: Record<string, string> = {
   outbound: "Ida",
@@ -20,11 +21,13 @@ const DIRECTION_LABEL: Record<string, string> = {
 export function RouteRunList({
   routes,
   execByLeg,
+  departureByRoute,
   showEdit = false,
   emptyText = "Nenhuma rota ainda.",
 }: {
   routes: RouteWithStops[];
   execByLeg: Map<string, TodayExec>;
+  departureByRoute?: Map<string, DepartureSuggestion>;
   showEdit?: boolean;
   emptyText?: string;
 }) {
@@ -78,6 +81,21 @@ export function RouteRunList({
                 </div>
               )}
             </div>
+
+            {/* Sugestão de horário de saída (só perna de ida não iniciada, quando
+                a home passa o mapa). Informativo — nunca bloqueia iniciar. */}
+            {departureByRoute?.get(r.id) && (
+              <div className="flex items-center gap-2 rounded-xl bg-yellow-400/15 px-3 py-2 text-sm text-navy-800">
+                <Clock className="h-4 w-4 shrink-0 text-navy-700/60" />
+                <span>
+                  Saia até as{" "}
+                  <strong className="font-semibold">
+                    {departureByRoute.get(r.id)!.leaveBy}
+                  </strong>{" "}
+                  para não atrasar {departureByRoute.get(r.id)!.studentName}
+                </span>
+              </div>
+            )}
 
             {r.direction === "both" ? (
               // Rota encorpada: duas pernas, cada uma sua execução no dia. Dois

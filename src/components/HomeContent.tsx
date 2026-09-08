@@ -12,6 +12,7 @@ import { Card } from "@/components/ui";
 import { RouteRunList } from "@/components/RouteRunList";
 import type { RouteWithStops, TodayExec } from "@/lib/routes-today";
 import type { ActiveBoard, BoardStop } from "@/lib/drive-board";
+import type { DepartureSuggestion } from "@/lib/departure";
 
 // Parte visual da home do motorista, com props puras (sem I/O). A page faz as
 // leituras e passa aqui — separar dado de apresentação deixa o layout testável e
@@ -29,6 +30,7 @@ export interface HomeContentProps {
   mapUrl: string | null;
   routes: RouteWithStops[];
   execByLeg: Map<string, TodayExec>;
+  departureByRoute: Map<string, DepartureSuggestion>;
   routesEmptyText: string;
 }
 
@@ -44,6 +46,7 @@ export function HomeContent({
   mapUrl,
   routes,
   execByLeg,
+  departureByRoute,
   routesEmptyText,
 }: HomeContentProps) {
   return (
@@ -137,6 +140,7 @@ export function HomeContent({
             <RouteRunList
               routes={routes}
               execByLeg={execByLeg}
+              departureByRoute={departureByRoute}
               emptyText={routesEmptyText}
             />
           </>

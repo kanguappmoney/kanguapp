@@ -4,6 +4,7 @@ import { HomeContent } from "@/components/HomeContent";
 import { getRoutesWithTodayExecs } from "@/lib/routes-today";
 import { getActiveDriverBoard } from "@/lib/drive-board";
 import { buildRouteMapUrl } from "@/lib/route-path";
+import { getDepartureSuggestions } from "@/lib/departure";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -96,6 +97,11 @@ export default async function DriverHome() {
     ? await buildRouteMapUrl(process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "", board)
     : null;
 
+  // Sugestão de horário de saída (só na tela ociosa, onde a lista de rotas aparece).
+  const departureByRoute = board
+    ? new Map()
+    : await getDepartureSuggestions(todayRoutes, execByLeg);
+
   return (
     <HomeContent
       firstName={user?.fullName.split(" ")[0] ?? "motorista"}
@@ -109,6 +115,7 @@ export default async function DriverHome() {
       mapUrl={mapUrl}
       routes={todayRoutes}
       execByLeg={execByLeg}
+      departureByRoute={departureByRoute}
       routesEmptyText={
         routes.length === 0
           ? "Nenhuma rota ainda. Monte a primeira na aba Rotas."

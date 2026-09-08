@@ -38,6 +38,7 @@ export interface RouteToEdit {
   pickup: string[];
   dropoff: string[];
   weekdays: number[];
+  pickupTargetTime: string; // "HH:MM" ou "" (âncora da sugestão de saída)
 }
 
 const SHIFT_LABEL: Record<Shift, string> = {
@@ -83,6 +84,11 @@ export function RouteBuilder({
   // hidrata do banco. Vazio é válido (rota que só roda em dia 'extra').
   const [weekdays, setWeekdays] = useState<number[]>(
     route?.weekdays ?? DEFAULT_WEEKDAYS,
+  );
+  // Horário-alvo de começar a pegar (perna de ida). Ancora a sugestão de "saia
+  // até HH:MM" na home. Opcional — vazio = sem sugestão.
+  const [pickupTargetTime, setPickupTargetTime] = useState(
+    route?.pickupTargetTime ?? "",
   );
   // Na edição a volta veio do banco (não é proposta), então já nasce "tocada".
   const [voltaTouched, setVoltaTouched] = useState(editing);
@@ -137,6 +143,7 @@ export function RouteBuilder({
       <input type="hidden" name="pickup_ids" value={JSON.stringify(pickup)} />
       <input type="hidden" name="dropoff_ids" value={JSON.stringify(dropoff)} />
       <input type="hidden" name="weekdays" value={JSON.stringify(weekdays)} />
+      <input type="hidden" name="pickup_target_time" value={pickupTargetTime} />
       <input type="hidden" name="shift" value={shift} />
 
       <label className="block">
@@ -203,6 +210,23 @@ export function RouteBuilder({
           </p>
         )}
       </div>
+
+      <label className="block">
+        <span className="mb-1 block text-sm font-medium text-navy-800">
+          Horário de começar a pegar{" "}
+          <span className="text-navy-700/50">(opcional)</span>
+        </span>
+        <input
+          type="time"
+          value={pickupTargetTime}
+          onChange={(e) => setPickupTargetTime(e.target.value)}
+          className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
+        />
+        <span className="mt-1 block text-xs text-navy-700/50">
+          A home sugere a que horas você deve sair de casa para não atrasar o 1º
+          aluno. Sem isto, a sugestão não aparece.
+        </span>
+      </label>
 
       {!shift ? (
         <p className="rounded-xl border border-dashed border-navy-900/15 p-3 text-sm text-navy-700/60">

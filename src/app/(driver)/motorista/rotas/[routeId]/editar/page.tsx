@@ -17,7 +17,7 @@ export default async function EditarRotaPage({
   const { data: route } = await supabase
     .from("routes")
     .select(
-      "id, name, direction, shift, weekdays, route_stops(student_id, position, kind)",
+      "id, name, direction, shift, weekdays, pickup_target_time, route_stops(student_id, position, kind)",
     )
     .eq("id", routeId)
     .maybeSingle();
@@ -45,6 +45,9 @@ export default async function EditarRotaPage({
     pickup: ordered("pickup"),
     dropoff: ordered("dropoff"),
     weekdays: (route.weekdays ?? []) as number[],
+    pickupTargetTime: route.pickup_target_time
+      ? String(route.pickup_target_time).slice(0, 5)
+      : "",
   };
 
   const { data: students } = await supabase

@@ -12,6 +12,7 @@ export interface RouteWithStops {
   name: string;
   direction: string;
   weekdays: number[] | null;
+  pickup_target_time: string | null; // âncora da sugestão de horário de saída
   route_stops: { kind: string }[] | null;
 }
 
@@ -44,7 +45,7 @@ export async function getRoutesWithTodayExecs(): Promise<{
 
   const { data: routes } = await supabase
     .from("routes")
-    .select("id, name, direction, weekdays, route_stops(kind)")
+    .select("id, name, direction, weekdays, pickup_target_time, route_stops(kind)")
     .order("created_at", { ascending: false });
 
   const list = (routes ?? []) as RouteWithStops[];

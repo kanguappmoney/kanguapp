@@ -22,6 +22,13 @@ function parseIds(raw: FormDataEntryValue | null): string[] {
   }
 }
 
+// Horário-alvo de começar a pegar: "HH:MM" válido ou null (campo vazio = sem
+// sugestão de saída na home). Descarta lixo em vez de gravar valor inválido.
+function parsePickupTargetTime(raw: FormDataEntryValue | null): string | null {
+  const s = String(raw ?? "").trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? s : null;
+}
+
 // Dias da semana em ISO dow (1=Seg … 7=Dom): só 1..7, sem repetição, ordenados.
 // Vazio é válido (rota que só roda em dia 'extra') — espelha o check da 029.
 function parseWeekdays(raw: FormDataEntryValue | null): number[] {
@@ -62,6 +69,7 @@ export async function createRoute(
     return { error: "Adicione ao menos um aluno na ida ou na volta." };
 
   const weekdays = parseWeekdays(formData.get("weekdays"));
+  const pickup_target_time = parsePickupTargetTime(formData.get("pickup_target_time"));
 
   const { data: route, error: routeError } = await supabase
     .from("routes")
@@ -71,6 +79,7 @@ export async function createRoute(
       direction: "both",
       shift: shift as Shift,
       weekdays,
+      pickup_target_time,
     })
     .select("id")
     .single();
@@ -157,10 +166,11 @@ export async function updateRoute(
     };
 
   const weekdays = parseWeekdays(formData.get("weekdays"));
+  const pickup_target_time = parsePickupTargetTime(formData.get("pickup_target_time"));
 
   const { error: nameError } = await supabase
     .from("routes")
-    .update({ name, shift: shift as Shift, weekdays })
+    .update({ name, shift: shift as Shift, weekdays, pickup_target_time })
     .eq("id", routeId);
   if (nameError) return { error: nameError.message };
 
