@@ -488,6 +488,24 @@ falta é validação, não código:
   all` (cobre delete — o `removeException` já funcionava). Validado no navegador (atalho aparece;
   0 → texto genérico, 1 → "1 marcada"; link leva à sub-tela; criar/remover reflete na contagem).
   Commit `b8ea731`.
+  **Mapa sempre visível na home (fecha o R2) + navegação externa por parada: PRONTO.**
+  Reconciliação: o mapa só aparecia com perna `in_progress` (vivia no ramo `board ?` da
+  HomeContent; `getActiveDriverBoard` só devolve board p/ `in_progress`) — daí "Concluída hoje"
+  sem mapa nenhum. **(1) Mapa sempre visível:** ocioso (sem rota / antes do horário / concluída)
+  → **mapa estático centrado no endereço cadastrado do motorista, geocodificado** (`lib/driver-map`
+  + `lib/geocode`, extraído da sugestão de saída) + "Nenhuma rota em andamento agora". **Conflito
+  com a G4 resolvido por AskUserQuestion:** a G4 proíbe GPS fora de `in_progress`, então a home
+  idle **NÃO usa GPS ao vivo** — usa o endereço (decisão: não relaxar a G4). O bloco vivo
+  (`in_progress`) segue com o traçado, inalterado. A **lista de rotas de hoje agora aparece SEMPRE
+  abaixo do mapa** (concluídas e próximas), não só no ocioso; a sugestão de saída idem. Degrada sem
+  mapa se faltar endereço/token/geocode. **(2) Navegação externa por parada (`NavMenu`):** botão
+  "Abrir navegação" em cada parada do Modo Direção → menu rápido **Waze / Google Maps** com a
+  coordenada (ou endereço) DAQUELA parada como **destino único** (uma por vez — Waze não faz
+  multi-parada por deep link); pergunta o app toda vez, sem config no perfil. **Não é rastreio** —
+  só abre link externo com a parada do próprio motorista: G4/G5 intactos, sem guarda nova. Sem
+  migration. Validado no navegador nos 3 estados (idle: mapa da região + lista; `in_progress`:
+  traçado + lista; concluída: cai no idle com "Ida/Volta concluída" na lista) e o NavMenu (destino =
+  coord da parada, `target=_blank`). Commit `c8d187e`.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -661,6 +679,15 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   Decisão (AskUserQuestion): manter a sub-tela dedicada, datas só-futuro, sem migration (RLS `for
   all` da 029 já cobre delete). Validado no navegador (contagem 0/1, link leva à sub-tela certa,
   criar/remover reflete). Commit `b8ea731`.
+- **Home — mapa sempre visível (R2) + navegação externa por parada:** reconciliação mostrou que
+  o mapa só aparecia com perna `in_progress` (ramo `board ?` da HomeContent). (1) Mapa idle
+  centrado no endereço cadastrado do motorista, geocodificado (`lib/driver-map`/`lib/geocode`),
+  **sem GPS** — a G4 proíbe rastreio fora de `in_progress` e a decisão (AskUserQuestion) foi não
+  relaxá-la; o bloco vivo segue com traçado; a lista de rotas passa a aparecer sempre abaixo do
+  mapa (concluídas + próximas). (2) `NavMenu`: botão "Abrir navegação" por parada → Waze/Google
+  Maps com a coord/endereço daquela parada como destino único (uma por vez); não é rastreio, G4/G5
+  intactos, sem guarda. Sem migration. Validado nos 3 estados + o menu (destino certo, target
+  _blank). Commit `c8d187e`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
