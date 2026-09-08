@@ -572,6 +572,20 @@ falta é validação, não código:
   agia com posição de GPS (`lastPosRef`) — no preview e antes de o sinal chegar ficava mudo.
   Fallback: sem GPS, reenquadra na ROTA (centroide das paradas + escola em `routeViewRef`, com o
   pitch de condução); com GPS segue centrando no motorista. O botão nunca fica mudo.
+  **Modo Direção — bottom sheet recolhe/expande por distância: PRONTO.** O bottom sheet do Modo
+  Direção 2.0 recolhe/expande sozinho por distância, com controle manual sempre disponível — UI
+  sobre o gate de 100m que já existe, sem lógica/guarda/migration nova. **Auto (padrão):** longe
+  da próxima parada (distância **mensurável** E fora do 100m) → recolhe pra só a faixa "Próxima
+  <aluno>", dando tela ao mapa; perto (≤100m) **ou sem dado** (sem GPS/coord) → expande — nunca
+  esconde a ação por falta de dado (mesmo espírito do 100m). O padrão só se aplica quando o alvo
+  automático **cruza o threshold** (`useEffect` no booleano `autoCollapsed = currentDist != null &&
+  !currentInRange`), então não briga com o manual. **Manual:** alça arrastável sempre visível —
+  arrastar pra baixo recolhe, pra cima expande, toque alterna; a qualquer distância. Recolhido
+  esconde ação/lista/rodapé e mostra só a faixa da próxima parada; o mapa (câmera de condução)
+  ocupa quase a tela toda. Reusa `currentDist`/`currentInRange` do gate. Validado no navegador
+  (mobile): default expandido sem GPS (#4); arraste manual baixo→recolhe, cima→expande,
+  toque→alterna (#3). O auto por distância (#1/#2) é código direto sobre as funções `geo` já
+  testadas e precisa de GPS em movimento p/ ver no device. Commit `99bf686`.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -788,7 +802,16 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   `dragstart`/`rotatestart`/`zoomstart`/`pitchstart` com `originalEvent` (os `easeTo` programáticos
   não têm → não se auto-desligam). `followRef` + `lastPosRef`; helper `driveCamera` compartilhado.
   Canto sup.-direito, ícone `LocateFixed`. Sem migration/guarda. Validado no navegador (oculto →
-  arraste manual mostra → tocar oculta e retoma o seguir). Commit `5f3d24d`.
+  arraste manual mostra → tocar oculta e retoma o seguir). Commit `5f3d24d`. Fix (`a362761`):
+  recenter reenquadra na rota (centroide) quando não há GPS, em vez de ficar mudo.
+- **Modo Direção — bottom sheet recolhe/expande por distância:** o sheet recolhe sozinho quando
+  longe da próxima parada (distância mensurável E fora do 100m) → só a faixa "Próxima <aluno>", o
+  mapa cresce; perto (≤100m) ou sem dado (sem GPS/coord) → expande. Aplica o padrão só na travessia
+  do threshold (`autoCollapsed`), sem brigar com o manual. Manual sempre disponível: alça
+  arrastável (baixo recolhe, cima expande, toque alterna), a qualquer distância. Reusa
+  `currentDist`/`currentInRange` do gate; sem lógica/guarda/migration nova. Validado no navegador
+  (default expandido sem GPS; arraste manual nos dois sentidos + toque); o auto por distância
+  precisa de GPS em movimento p/ device. Commit `99bf686`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
