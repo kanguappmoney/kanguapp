@@ -32,6 +32,36 @@ function sequence(board: ActiveBoard): LngLat[] {
     : [anchor, ...pending];
 }
 
+// Linha da rota (GeoJSON, segue as ruas) para o mapa INTERATIVO do Modo Direção
+// 2.0. Diferente do mini-mapa da home (Static Images/polyline): aqui devolvemos as
+// coordenadas cruas p/ o mapbox-gl desenhar. Server-side; null se falhar (o mapa
+// desenha sem a linha, só os pinos). `coords` já vem ordenado (paradas + escola).
+export async function getRouteLineCoords(
+  token: string,
+  coords: LngLat[],
+): Promise<[number, number][] | null> {
+  if (!token || coords.length < 2 || coords.length > MAX_COORDS) return null;
+  const path = coords.map((c) => `${c.lng},${c.lat}`).join(";");
+  const url =
+    `https://api.mapbox.com/directions/v5/mapbox/driving/${path}` +
+    `?overview=full&geometries=geojson&access_token=${token}`;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), DIRECTIONS_TIMEOUT_MS);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      code?: string;
+      routes?: { geometry?: { coordinates?: [number, number][] } }[];
+    };
+    if (json.code !== "Ok") return null;
+    return json.routes?.[0]?.geometry?.coordinates ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function directionsPolyline(
   coords: LngLat[],
   token: string,
