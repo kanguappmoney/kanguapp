@@ -57,16 +57,30 @@ export function DriveMap({
   // "Seguindo" a van (câmera automática) vs. o motorista mexeu na câmera à mão.
   const followRef = useRef(true);
   const lastPosRef = useRef<DriverPos | null>(null);
+  // Enquadramento da rota (centro/zoom), pra recentrar quando ainda não há GPS.
+  const routeViewRef = useRef<{ center: [number, number]; zoom: number } | null>(null);
   const [showRecenter, setShowRecenter] = useState(false);
 
-  // Voltar pro modo condução: recentra na posição atual com pitch/bearing certos
-  // e retoma o "seguir" automático.
+  // Voltar pro modo condução e retomar o "seguir". Com GPS: centra no motorista
+  // (pitch/bearing certos). Sem GPS ainda (preview / sinal não chegou): recentra
+  // na rota — o botão nunca fica mudo.
   function recenter() {
     followRef.current = true;
     setShowRecenter(false);
     const map = mapRef.current;
+    if (!map) return;
     const pos = lastPosRef.current;
-    if (map && pos) driveCamera(map, pos, 600);
+    if (pos) {
+      driveCamera(map, pos, 600);
+    } else if (routeViewRef.current) {
+      map.easeTo({
+        center: routeViewRef.current.center,
+        zoom: routeViewRef.current.zoom,
+        pitch: PITCH,
+        bearing: 0,
+        duration: 600,
+      });
+    }
   }
 
   // Cria o mapa uma vez, com a linha, os pinos das paradas e a escola.
@@ -79,6 +93,18 @@ export function DriveMap({
       .map((s) => [s.lng as number, s.lat as number] as [number, number]);
     const all = [...coords, ...(anchor ? [[anchor.lng, anchor.lat] as [number, number]] : [])];
     const center: [number, number] = all[0] ?? [-46.46, -23.67]; // fallback Mauá
+
+    // Centroide da rota (paradas + escola) p/ o recenter sem GPS reenquadrar.
+    routeViewRef.current =
+      all.length > 0
+        ? {
+            center: [
+              all.reduce((s, c) => s + c[0], 0) / all.length,
+              all.reduce((s, c) => s + c[1], 0) / all.length,
+            ],
+            zoom: all.length > 1 ? 13 : 15,
+          }
+        : { center, zoom: 15 };
 
     // Câmera de condução (estilo Waze/Google): já abre INCLINADA. O bearing gira
     // com o rumo do GPS no efeito de posição. Não é turn-by-turn — só a câmera.
