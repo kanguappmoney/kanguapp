@@ -543,6 +543,20 @@ falta é validação, não código:
   marca (0/2 → 1/2, avança e reseta o arraste); "Ausente" marca (2/2, "Todas as paradas
   resolvidas"); banco confirma os eventos (`disembarked` + `student_absent`), iguais aos do toque
   anterior. Commit `05822bc`.
+  **DriveMap — câmera de condução (inclinada + girando com o rumo): PRONTO.** O mapa do Modo
+  Direção deixa de ser visto-de-cima e abre em **câmera de condução estilo Waze/Google**:
+  inclinada (`pitch 55`) e girando com o rumo do GPS (`bearing = heading`). **NÃO é turn-by-turn**
+  (segue fora do v1) — é só o comportamento da câmera do mapbox-gl: sem SDK novo, sem custo extra,
+  **sem tocar a G4** (mesma janela `in_progress` + foreground do `useDriverPosition`). Reconciliação:
+  o `useDriverPosition` só devolvia `{lat,lng}` (descartava o rumo, embora o `usePositionBroadcast`
+  do pai já lesse `coords.heading`); o DriveMap usava `zoom 13` + `fitBounds` (achatado) + `easeTo`
+  só de centro. Agora: `useDriverPosition` expõe `heading` (null quando parado/sem bússola; segue
+  `GeoPoint`, o gate de 100m não muda); o DriveMap abre com `pitch 55` (sem `fitBounds`, que
+  achataria) e no update segue a van com `bearing = heading` (mantém o bearing atual quando heading
+  é null, não pula), pitch fixo, zoom de condução. **Padrão automático** assim que a perna vira
+  `in_progress` — sem botão de alternar modos. Sem migration, sem guarda nova. Validado no navegador
+  (mobile): abre inclinado (perspectiva). O seguir-o-rumo ao vivo (bearing) é código direto
+  (heading→bearing) e precisa de GPS em movimento p/ confirmar no device. Commit `18a15db`.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -745,6 +759,14 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   sem conflito; decisão de manter separado, sem guarda nova. #3: lista "Ver todas" sem
   toque-embarcar (só arrastar). Sem migration. Validado no navegador (arraste → 2 botões;
   Desembarcou/Ausente marcam; banco confirma disembarked + student_absent). Commit `05822bc`.
+- **DriveMap — câmera de condução (inclinada + girando com o rumo):** o mapa do Modo Direção abre
+  em câmera estilo Waze/Google — inclinada (pitch 55) e girando com o rumo do GPS (bearing =
+  heading), padrão automático em `in_progress` (sem botão de alternar). Não é turn-by-turn (segue
+  fora do v1), só a câmera do mapbox-gl — sem SDK, sem custo, sem tocar a G4. `useDriverPosition`
+  passa a expor `heading` (o gate de 100m não muda, segue GeoPoint); DriveMap troca o fitBounds
+  plano por pitch + bearing seguindo a van (mantém bearing quando heading é null). Sem
+  migration/guarda. Validado no navegador (abre inclinado); o seguir-o-rumo ao vivo precisa de GPS
+  em movimento p/ confirmar no device. Commit `18a15db`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
