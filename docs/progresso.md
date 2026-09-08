@@ -456,6 +456,26 @@ falta é validação, não código:
   pinos; sem token→null). Sem migration, sem guarda nova. Commit `9bb2db4`. **Nota:** a exclusão
   "Directions/traçado/marcadores no mapa" abaixo era do **Modo Mapa do PAI** (exporia endereço de
   criança a responsável = G5); no lado do MOTORISTA o traçado é do próprio dado dele — permitido.
+  **Sugestão de horário de saída de casa (perna de ida): PRONTA.** Chip no card da rota de hoje
+  — "Saia até as HH:MM para não atrasar [1º aluno]" — quando há uma ida agendada ainda não
+  iniciada. Informativo, NUNCA bloqueia (espírito 100m/recorrência). **Âncora (decisão desta
+  sessão, via AskUserQuestion):** `routes.pickup_target_time` (time, nullable) — campo novo no
+  RouteBuilder ("horário de começar a pegar"); sem ele, sem sugestão (nunca quebra), sem preencher
+  retroativo. **NÃO é o "ETA ao vivo" do sketch da seção 10** (posição da van + janela G4): é a
+  variante PRÉ-PARTIDA — origem = `driver_profiles.address` **geocodificado** (não GPS, então
+  existe antes de abrir o app e sem permissão de localização), destino = 1º aluno da lista de
+  pickup ordenada, `driving` sem trânsito (driving-traffic segue fora). Cálculo: `leave_by =
+  pickup_target_time − duração(casa→1º aluno) − 10min`. **Só server** (`lib/departure`): endereço e
+  coords nunca vão pro cliente; geocoding + Directions com timeout; qualquer furo (sem
+  endereço/coord, API falha) → aquela rota fica sem sugestão, sem crash. **Cache 1x por rota por
+  dia:** tabela dedicada `route_departure_suggestions` (PK `route_id+service_date`, RLS dono-only)
+  — **não** usa `route_executions` porque a sugestão aparece ANTES de iniciar; recargas reusam, só
+  recalcula no 1º load do dia. Some quando a ida começa (home vira bloco vivo). Migration 031
+  (`routes.pickup_target_time` + tabela) aplicada no SQL Editor. Validado no navegador (input
+  valida/hidrata/persiste 07:30; chip "Saia até as 06:59 para não atrasar Bruna Santos" = 07:30 −
+  21min − 10min; cache grava 1 linha, reload reusa; sem endereço a home renderiza sem o chip). tsc
+  limpo. Commit `ffa7c8b`. **Nota:** primeiro passo da "rota sugerida inteligente" completa (ETA de
+  um trecho único, sem otimizar ordem nem trânsito).
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -607,6 +627,20 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   `schoolAnchor` (âncora do traçado). Refino: mapa maior, texto maior, faixa do motorista com foto
   + placa/modelo da van. ETA e selo seguem fora. Validado (navegador: traçado sobre ruas reais;
   Node: camadas de fallback). Sem migration/guarda. Commit `9bb2db4`.
+- **Home — sugestão de horário de saída de casa (perna de ida):** chip "Saia até as HH:MM para
+  não atrasar [1º aluno]" no card da rota de hoje, quando a ida está agendada e não iniciada.
+  Informativo, nunca bloqueia. Âncora decidida por AskUserQuestion: **`routes.pickup_target_time`**
+  (time, nullable; sem ele, sem sugestão) — campo novo no RouteBuilder. `leave_by =
+  pickup_target_time − duração(casa→1º aluno) − 10min`; origem = `driver_profiles.address`
+  geocodificado (não GPS), destino = 1º aluno da lista de pickup, Directions `driving` sem trânsito.
+  **Só server** (`lib/departure`, coords fora do cliente); qualquer furo → sem sugestão, sem crash.
+  **Cache 1x/rota/dia** em tabela dedicada `route_departure_suggestions` (PK route_id+service_date,
+  RLS dono-only; não usa route_executions — sugestão aparece antes de iniciar). Migration 031
+  aplicada no SQL Editor. É a variante PRÉ-PARTIDA — diferente do "ETA ao vivo" que segue como ideia
+  na seção 10 (aquele usa posição da van + janela G4). Validado no navegador (input persiste/hidrata;
+  chip 06:59 = 07:30 − 21min − 10min; cache grava e reload reusa; sem endereço, home sem o chip).
+  Commit `ffa7c8b`. Nota de validação: setei um endereço de teste no perfil do Abner via
+  service-role (campo estava vazio) — ele deve trocar pelo endereço real em Perfil.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
@@ -658,10 +692,11 @@ próprio:
   "certa" do que a fatia do número/complemento resolve de forma mínima hoje — fica para
   quando valer o investimento.
 
-**ETA na home (ideia futura, não escopo agora).** O polimento da home ficou enxuto (cards
-clicáveis + mini-mapa estático da próxima parada) de propósito: **ETA não é polimento, é
-infraestrutura nova.** Mostrar "chega em ~X min na próxima parada / termina ~HH:MM" exige uma
-chamada de rota real (Mapbox Directions ou o `duration` da Optimization) sobre as paradas
-pendentes + escola, recalculada com a posição da van — com custo de API, cache e a janela do
-G4 (só com rota `in_progress` em foreground). Merece fatia própria com plano de escopo; a
-Optimization v1 (Fatia B) já devolve `trips[].duration`, então há de onde partir.
+**ETA ao vivo durante a rota (ideia futura, não escopo agora).** — *Atualização: a variante
+PRÉ-PARTIDA já foi construída (ver seção 8, "Sugestão de horário de saída de casa", commit
+`ffa7c8b`): "saia até HH:MM" antes de iniciar, origem = endereço cadastrado geocodificado, sem
+GPS/janela G4. O que segue aqui é a OUTRA variante, ao vivo, ainda não feita.* Mostrar "chega em
+~X min na próxima parada / termina ~HH:MM" **durante** a rota exige uma chamada de rota
+recalculada com a **posição da van** — custo de API, cache e a **janela do G4** (só com rota
+`in_progress` em foreground). Merece fatia própria; a Optimization v1 (Fatia B) devolve
+`trips[].duration` e a Directions já é usada no traçado, então há de onde partir.
