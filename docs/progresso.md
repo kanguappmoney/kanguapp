@@ -506,6 +506,24 @@ falta é validação, não código:
   migration. Validado no navegador nos 3 estados (idle: mapa da região + lista; `in_progress`:
   traçado + lista; concluída: cai no idle com "Ida/Volta concluída" na lista) e o NavMenu (destino =
   coord da parada, `target=_blank`). Commit `c8d187e`.
+  **Modo Direção 2.0 — mapa em tela cheia (padrão Uber/99): PRONTO.** Reconciliação: a DriveScreen
+  NÃO tinha mapa (era lista de cards); o mapa+traçado do bloco vivo é da HOME e é **estático**
+  (Static Images, sem GPS); o único mapa interativo ao vivo era o do PAI (`LiveMap`). No lado do
+  motorista, o GPS ao vivo só existia pro gate de 100m (`useDriverPosition`), sem mapa. Esta fatia
+  introduz o **1º mapa interativo com GPS ao vivo do lado do motorista**: `DriveMap` (mapbox-gl,
+  lazy via `DriveMapLoader` — mesmo corte de peso do `LiveMap`) em tela cheia, com a **linha da
+  rota** (Directions/GeoJSON, `getRouteLineCoords` novo em `route-path`), **pinos das paradas**
+  (feitas esmaecidas), a **escola** (âncora) e o **pino do motorista ao vivo**. Por cima, um
+  **bottom sheet** com a PARADA ATUAL (nome/endereço + botão grande **"Cheguei no embarque/
+  desembarque"** = o antigo "Embarcar", **mesmo gate de 100m, mesmas G1/G2** — só a apresentação
+  muda) + "Ausente" + `NavMenu`; colapsável "Ver todas as paradas"; rodapé com ocorrência/encerrar;
+  o painel avança conforme as paradas são resolvidas. **G4 ok:** o mapa/GPS roda só na janela do
+  G4 (`in_progress` + foreground) — diferente da home idle, aqui é permitido; é o mapa do próprio
+  motorista (paradas dele, G5 ok). O Waze/Google (`NavMenu`) segue como **fluxo paralelo**, sem
+  mudança. Turn-by-turn próprio segue **fora** de escopo. Sem migration, sem guarda nova.
+  Validado no navegador (mobile): mapa tela cheia renderiza (mapbox-gl), bottom sheet com a parada
+  certa (Bruna Santos), "Cheguei no embarque" aciona o gate (0/1 → 1/1, hero vira "Todas as
+  paradas resolvidas"). Commit `609838e`.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -688,6 +706,17 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   Maps com a coord/endereço daquela parada como destino único (uma por vez); não é rastreio, G4/G5
   intactos, sem guarda. Sem migration. Validado nos 3 estados + o menu (destino certo, target
   _blank). Commit `c8d187e`.
+- **Modo Direção 2.0 — mapa em tela cheia (Uber/99):** a DriveScreen (que era lista de cards, sem
+  mapa) vira um painel imersivo: `DriveMap` (mapbox-gl, lazy via `DriveMapLoader`) em tela cheia
+  com a linha da rota (Directions/GeoJSON, `getRouteLineCoords` novo em `route-path`), pinos das
+  paradas + escola + pino do motorista ao vivo; por cima, um bottom sheet com a PARADA ATUAL +
+  botão grande "Cheguei no embarque/desembarque" (o antigo "Embarcar" — **mesmo gate de 100m,
+  mesmas G1/G2**, só a apresentação muda) + Ausente + NavMenu + "Ver todas as paradas" + encerrar.
+  1º mapa interativo com GPS ao vivo do motorista; roda só na janela do G4 (in_progress +
+  foreground) — sem conflito, é dado do próprio motorista (G5 ok). NavMenu segue como fluxo
+  paralelo; turn-by-turn próprio segue fora de escopo. Sem migration/guarda. Validado no navegador
+  (mobile): tela cheia + bottom sheet com a parada certa + "Cheguei" aciona o gate (0/1 → 1/1).
+  Commit `609838e`.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
