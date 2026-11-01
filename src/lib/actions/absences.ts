@@ -2,12 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { saoPauloToday } from "@/lib/day";
 
 export type AbsenceState = { error: string | null };
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // Responsável informa que o filho não vai num dia/trajeto. RLS (absences_insert_
 // guardian) garante que só dá pra informar ausência de aluno vinculado.
@@ -31,7 +28,7 @@ export async function reportAbsence(
 
   if (!student_id) return { error: "Selecione a criança." };
   if (!service_date) return { error: "Escolha a data." };
-  if (service_date < today())
+  if (service_date < saoPauloToday())
     return { error: "Não dá para informar ausência em data passada." };
 
   const { error } = await supabase.from("absences").insert({

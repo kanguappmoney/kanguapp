@@ -3,16 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { brlToCents } from "@/lib/money";
+import { saoPauloToday } from "@/lib/day";
 
 export type FinanceState = { error: string | null };
 
+// Mês corrente no fuso de São Paulo ('YYYY-MM' do saoPauloToday).
 function firstOfMonth() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  return `${saoPauloToday().slice(0, 7)}-01`;
 }
 function dueDay10() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-10`;
+  return `${saoPauloToday().slice(0, 7)}-10`;
 }
 
 // Define a mensalidade do aluno. RLS (students update owner) garante o dono.
@@ -126,10 +126,6 @@ export async function markInvoicePaid(invoiceId: string): Promise<FinanceState> 
   return { error: null };
 }
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 // pending -> overdue para as faturas vencidas (hoje > vencimento). Manual no
 // piloto (botão "Atualizar vencidas"); a lógica já serve de tarefa agendada.
 export async function markOverdueInvoices(): Promise<FinanceState> {
@@ -144,7 +140,7 @@ export async function markOverdueInvoices(): Promise<FinanceState> {
     .select("id")
     .eq("driver_id", user.id)
     .eq("status", "pending")
-    .lt("due_date", today());
+    .lt("due_date", saoPauloToday());
 
   const ids = (dueList ?? []).map((d) => d.id);
   if (!ids.length) {

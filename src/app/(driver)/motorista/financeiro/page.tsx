@@ -3,10 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/ui";
 import { DriverActions } from "@/components/DriverHeaderActions";
 import { FinanceiroPanel } from "@/components/FinanceiroPanel";
+import { saoPauloToday } from "@/lib/day";
 
+// Mês corrente no fuso de São Paulo ('YYYY-MM' do saoPauloToday).
 function firstOfMonth() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  return `${saoPauloToday().slice(0, 7)}-01`;
 }
 
 export default async function FinanceiroPage() {

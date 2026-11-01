@@ -13,6 +13,8 @@
 --      rodando e o journey a conta inteira, como antes.
 --
 -- Rodar como role privilegiado (SQL Editor / psql). Transacional c/ ROLLBACK.
+-- "Hoje" = sp_today() (fuso de São Paulo, migration 033) — a mesma data das funções.
+-- APLICAR a migration 033 ANTES de rodar.
 -- ===========================================================================
 
 begin;
@@ -90,20 +92,20 @@ end $$;
 -- CHECK 1 — ida e volta como execuções INDEPENDENTES no mesmo dia.
 -- ===========================================================================
 insert into route_executions (id, route_id, service_date, leg, status, started_at) values
-  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', current_date, 'pickup',  'in_progress', now()),
-  ('00000000-0000-0000-0000-0000009e0002', '00000000-0000-0000-0000-0000007a0001', current_date, 'dropoff', 'in_progress', now());
+  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', sp_today(), 'pickup',  'in_progress', now()),
+  ('00000000-0000-0000-0000-0000009e0002', '00000000-0000-0000-0000-0000007a0001', sp_today(), 'dropoff', 'in_progress', now());
 
 do $$
 declare n int; barrou boolean := false;
 begin
   select count(*) into n from route_executions
-    where route_id = '00000000-0000-0000-0000-0000007a0001' and service_date = current_date;
+    where route_id = '00000000-0000-0000-0000-0000007a0001' and service_date = sp_today();
   if n <> 2 then raise exception 'FALHOU: rota both não teve ida E volta no mesmo dia (n=%)', n; end if;
 
   -- Segunda execução da MESMA perna (pickup) no dia é barrada pelo índice único.
   begin
     insert into route_executions (route_id, service_date, leg, status)
-    values ('00000000-0000-0000-0000-0000007a0001', current_date, 'pickup', 'in_progress');
+    values ('00000000-0000-0000-0000-0000007a0001', sp_today(), 'pickup', 'in_progress');
   exception when unique_violation then barrou := true;
   end;
   if not barrou then raise exception 'FALHOU: aceitou duas execuções da mesma perna no dia'; end if;
@@ -169,7 +171,7 @@ end $$;
 -- CHECK 4 — ponte de compatibilidade: rota antiga de uma perna segue rodando.
 -- ===========================================================================
 insert into route_executions (id, route_id, service_date, leg, status, started_at) values
-  ('00000000-0000-0000-0000-0000009e0003', '00000000-0000-0000-0000-0000007a0002', current_date, null, 'in_progress', now());
+  ('00000000-0000-0000-0000-0000009e0003', '00000000-0000-0000-0000-0000007a0002', sp_today(), null, 'in_progress', now());
 
 do $$
 declare j json := _journey('00000000-0000-0000-0000-0000000c0001'); -- Pai Legado (Quatro)

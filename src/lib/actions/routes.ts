@@ -3,12 +3,9 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { saoPauloToday } from "@/lib/day";
 
 export type RouteFormState = { error: string | null };
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 const SHIFTS = ["morning", "afternoon", "integral"] as const;
 type Shift = (typeof SHIFTS)[number];
@@ -157,7 +154,7 @@ export async function updateRoute(
     .from("route_executions")
     .select("id", { count: "exact", head: true })
     .eq("route_id", routeId)
-    .eq("service_date", today())
+    .eq("service_date", saoPauloToday())
     .eq("status", "in_progress");
   if ((running ?? 0) > 0)
     return {
@@ -250,7 +247,7 @@ export async function startOrReview(routeId: string, leg?: Leg) {
     let absQuery = supabase
       .from("absences")
       .select("id", { count: "exact", head: true })
-      .eq("service_date", today())
+      .eq("service_date", saoPauloToday())
       .in("student_id", studentIds);
     // Numa perna específica, só ausências daquela perna disparam a revisão.
     if (leg) absQuery = absQuery.in("leg", LEG_TO_TRIP[leg]);
@@ -284,7 +281,7 @@ export async function startExecution(routeId: string, leg?: Leg) {
     .from("route_executions")
     .select("id, status")
     .eq("route_id", routeId)
-    .eq("service_date", today());
+    .eq("service_date", saoPauloToday());
   existingQuery = leg
     ? existingQuery.eq("leg", leg)
     : existingQuery.is("leg", null);
@@ -297,7 +294,7 @@ export async function startExecution(routeId: string, leg?: Leg) {
       .from("route_executions")
       .insert({
         route_id: routeId,
-        service_date: today(),
+        service_date: saoPauloToday(),
         leg: leg ?? null,
         status: "in_progress",
         started_at: new Date().toISOString(),

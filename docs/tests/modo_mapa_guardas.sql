@@ -11,6 +11,8 @@
 -- Tudo roda numa transação que termina em ROLLBACK: NÃO deixa resíduo no banco.
 -- Cada checagem imprime "OK ..." via RAISE NOTICE; qualquer falha aborta com
 -- RAISE EXCEPTION descrevendo a guarda violada.
+-- "Hoje" = sp_today() (fuso de São Paulo, migration 033) — a mesma data das funções.
+-- APLICAR a migration 033 ANTES de rodar.
 -- ===========================================================================
 
 begin;
@@ -62,7 +64,7 @@ insert into route_stops (route_id, student_id, position, kind) values
 
 -- Execução começa 'scheduled' (rota ainda não saiu).
 insert into route_executions (id, route_id, service_date, status) values
-  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', current_date, 'scheduled');
+  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', sp_today(), 'scheduled');
 
 -- Posição da van no banco (o motorista já emitiu). A RLS decide quem lê.
 insert into live_positions (execution_id, lat, lng) values

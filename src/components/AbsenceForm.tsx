@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { reportAbsence, type AbsenceState } from "@/lib/actions/absences";
+import { saoPauloToday } from "@/lib/day";
 
 const initial: AbsenceState = { error: null };
 
@@ -10,8 +11,9 @@ interface Child {
   full_name: string;
 }
 
+// Data no fuso de São Paulo (o toISOString daria UTC: às 21h já seria amanhã).
 function iso(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return saoPauloToday(d);
 }
 
 export function AbsenceForm({ children }: { children: Child[] }) {

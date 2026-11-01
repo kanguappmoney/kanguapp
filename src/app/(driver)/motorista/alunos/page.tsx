@@ -3,6 +3,7 @@ import { Link2 as LinkIcon, ClipboardCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
 import { DriverActions } from "@/components/DriverHeaderActions";
+import { saoPauloToday } from "@/lib/day";
 
 const PAY_CHIP: Record<string, { label: string; cls: string }> = {
   ok: { label: "Em dia", cls: "bg-green-100 text-green-800" },
@@ -30,7 +31,7 @@ export default async function AlunosPage() {
     ? await supabase
         .from("absences")
         .select("student_id")
-        .eq("service_date", new Date().toISOString().slice(0, 10))
+        .eq("service_date", saoPauloToday())
         .in("student_id", ids)
     : { data: [] };
   const absentSet = new Set((absToday ?? []).map((a) => a.student_id));

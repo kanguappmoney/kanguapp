@@ -11,6 +11,8 @@
 --
 -- Rodar como role privilegiado (SQL Editor / psql). Transacional c/ ROLLBACK.
 -- APLICAR a migration 028 ANTES de rodar.
+-- "Hoje" = sp_today() (fuso de São Paulo, migration 033) — a mesma data das funções.
+-- APLICAR a migration 033 ANTES de rodar.
 -- ===========================================================================
 
 begin;
@@ -46,7 +48,7 @@ insert into route_stops (route_id, student_id, position, kind) values
   ('00000000-0000-0000-0000-0000007a0001', '00000000-0000-0000-0000-0000005c0001', 1, 'pickup'),
   ('00000000-0000-0000-0000-0000007a0001', '00000000-0000-0000-0000-0000005c0002', 2, 'pickup');
 insert into route_executions (id, route_id, service_date, leg, status, started_at) values
-  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', current_date, 'pickup', 'in_progress', now());
+  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', sp_today(), 'pickup', 'in_progress', now());
 
 -- Helper: journey que ESTE responsável enxerga.
 create or replace function _journey(p_uid uuid) returns json

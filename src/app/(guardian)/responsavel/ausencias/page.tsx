@@ -2,16 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { AbsenceForm } from "@/components/AbsenceForm";
 import { UndoAbsenceButton } from "@/components/UndoAbsenceButton";
+import { saoPauloToday } from "@/lib/day";
 
 const LEG_LABEL: Record<string, string> = {
   outbound: "Ida",
   inbound: "Volta",
   both: "Ida e volta",
 };
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function brDate(d: string) {
   const [y, m, day] = d.slice(0, 10).split("-");
@@ -34,7 +31,7 @@ export default async function AusenciasPage() {
   const { data: absences } = await supabase
     .from("absences")
     .select("id, student_id, service_date, leg")
-    .gte("service_date", today())
+    .gte("service_date", saoPauloToday())
     .order("service_date");
 
   return (

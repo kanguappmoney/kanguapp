@@ -5,16 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, SectionTitle } from "@/components/ui";
 import { startExecution } from "@/lib/actions/routes";
 import { SuspensionReview } from "@/components/SuspensionReview";
+import { saoPauloToday } from "@/lib/day";
 
 const LEG_LABEL: Record<string, string> = {
   outbound: "ida",
   inbound: "volta",
   both: "ida e volta",
 };
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 const LEG_KIND_LABEL: Record<string, string> = {
   pickup: "ida",
@@ -65,7 +62,7 @@ export default async function RevisaoHojePage({
   let absQuery = supabase
     .from("absences")
     .select("student_id, leg")
-    .eq("service_date", today())
+    .eq("service_date", saoPauloToday())
     .in("student_id", studentIds.length ? studentIds : ["00000000-0000-0000-0000-000000000000"]);
   if (leg) absQuery = absQuery.in("leg", legTrips[leg]);
   const { data: absences } = studentIds.length

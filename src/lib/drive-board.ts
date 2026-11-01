@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { saoPauloToday } from "@/lib/day";
 
 // Fonte única do "quadro de embarque" de uma execução: as paradas da perna em
 // andamento, com o estado de cada aluno (pendente / embarcou / ausente). Usado
@@ -153,7 +154,7 @@ function sharedSchool(stops: BoardStop[]): { lat: number; lng: number } | null {
 // dono. Se mais de uma perna roda, pega a iniciada mais recentemente.
 export async function getActiveDriverBoard(): Promise<ActiveBoard | null> {
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = saoPauloToday();
 
   const { data: exec } = await supabase
     .from("route_executions")

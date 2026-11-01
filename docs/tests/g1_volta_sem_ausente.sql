@@ -12,6 +12,8 @@
 --
 -- Rodar como role privilegiado (SQL Editor / psql). Transacional c/ ROLLBACK.
 -- APLICAR a migration 032 ANTES de rodar.
+-- "Hoje" = sp_today() (fuso de São Paulo, migration 033) — a mesma data das funções.
+-- APLICAR a migration 033 ANTES de rodar.
 -- ===========================================================================
 
 begin;
@@ -45,9 +47,9 @@ insert into route_stops (route_id, student_id, position, kind) values
 
 -- Execuções: ida de ONTEM (encerrada), ida de HOJE (encerrada), volta de HOJE.
 insert into route_executions (id, route_id, service_date, leg, status, started_at) values
-  ('00000000-0000-0000-0000-0000009e0000', '00000000-0000-0000-0000-0000007a0001', current_date - 1, 'pickup',  'completed',   now() - interval '1 day'),
-  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', current_date,     'pickup',  'completed',   now() - interval '6 hours'),
-  ('00000000-0000-0000-0000-0000009e0002', '00000000-0000-0000-0000-0000007a0001', current_date,     'dropoff', 'in_progress', now());
+  ('00000000-0000-0000-0000-0000009e0000', '00000000-0000-0000-0000-0000007a0001', sp_today() - 1, 'pickup',  'completed',   now() - interval '1 day'),
+  ('00000000-0000-0000-0000-0000009e0001', '00000000-0000-0000-0000-0000007a0001', sp_today(),     'pickup',  'completed',   now() - interval '6 hours'),
+  ('00000000-0000-0000-0000-0000009e0002', '00000000-0000-0000-0000-0000007a0001', sp_today(),     'dropoff', 'in_progress', now());
 
 -- Embarques: Um na ida de hoje; Três só na ida de ontem. Dois não embarcou.
 insert into route_events (execution_id, student_id, type) values
@@ -108,7 +110,7 @@ end $$;
 -- ===========================================================================
 -- Ida de amanhã em andamento (nova execução; a trava nunca olha a ida).
 insert into route_executions (id, route_id, service_date, leg, status, started_at) values
-  ('00000000-0000-0000-0000-0000009e0003', '00000000-0000-0000-0000-0000007a0001', current_date + 1, 'pickup', 'in_progress', now());
+  ('00000000-0000-0000-0000-0000009e0003', '00000000-0000-0000-0000-0000007a0001', sp_today() + 1, 'pickup', 'in_progress', now());
 
 do $$
 declare n int;

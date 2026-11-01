@@ -11,6 +11,8 @@
 --      position intacto; cada lista contígua a partir de 1).
 --
 -- Rodar como role privilegiado (SQL Editor / psql). Transacional c/ ROLLBACK.
+-- "Hoje" = sp_today() (fuso de São Paulo, migration 033) — a mesma data das funções.
+-- APLICAR a migration 033 ANTES de rodar.
 -- ===========================================================================
 
 begin;
@@ -131,7 +133,7 @@ end $$;
 -- CHECK 3 — G2 no banco: perna in_progress HOJE congela as paradas.
 -- ===========================================================================
 insert into route_executions (route_id, service_date, leg, status, started_at) values
-  ('00000000-0000-0000-0000-0000007a0001', current_date, 'pickup', 'in_progress', now());
+  ('00000000-0000-0000-0000-0000007a0001', sp_today(), 'pickup', 'in_progress', now());
 
 do $$
 declare del_barrou boolean := false; ins_barrou boolean := false; n int;

@@ -12,6 +12,8 @@
 --
 -- Rodar como role privilegiado (SQL Editor / psql). Transacional c/ ROLLBACK.
 -- APLICAR a migration 029 ANTES de rodar.
+-- "Hoje" = sp_today() (fuso de São Paulo, migration 033) — a mesma data das funções.
+-- APLICAR a migration 033 ANTES de rodar.
 -- ===========================================================================
 
 begin;
@@ -41,7 +43,7 @@ insert into routes (id, driver_id, name, direction, shift) values
 -- Datas robustas: segunda desta semana (isodow 1) e derivados.
 -- date_trunc('week') retorna a segunda-feira (semana ISO começa na segunda).
 create or replace function _monday() returns date
-language sql stable as $$ select date_trunc('week', current_date)::date $$;
+language sql stable as $$ select date_trunc('week', sp_today())::date $$;
 
 -- Helper: entra na pele de um usuário autenticado (RLS enxerga auth.uid()).
 create or replace function _become(p_uid uuid) returns void

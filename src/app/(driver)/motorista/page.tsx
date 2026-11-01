@@ -7,10 +7,7 @@ import { buildRouteMapUrl } from "@/lib/route-path";
 import { getDepartureSuggestions } from "@/lib/departure";
 import { getDriverHomeMapUrl } from "@/lib/driver-map";
 import { getDriverHeader } from "@/lib/driver-header";
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { saoPauloToday } from "@/lib/day";
 
 // Saudação pelo horário local (região do piloto: São Paulo, UTC-3).
 function greeting() {
@@ -58,7 +55,7 @@ export default async function DriverHome() {
     const { count } = await supabase
       .from("absences")
       .select("id", { count: "exact", head: true })
-      .eq("service_date", today())
+      .eq("service_date", saoPauloToday())
       .in("student_id", studentIds);
     ausencias = count ?? 0;
   }
