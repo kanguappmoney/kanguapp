@@ -586,6 +586,23 @@ falta é validação, não código:
   (mobile): default expandido sem GPS (#4); arraste manual baixo→recolhe, cima→expande,
   toque→alterna (#3). O auto por distância (#1/#2) é código direto sobre as funções `geo` já
   testadas e precisa de GPS em movimento p/ ver no device. Commit `99bf686`.
+  **Modo Direção — volta sem "Ausente" para quem embarcou na ida (R10, extensão da G1): PRONTO.**
+  Quem **embarcou na ida** hoje não pode ser marcado **ausente na volta** — o dia fecha com o
+  desembarque. Duas camadas: **(1) banco (lei):** migration 032, trigger
+  `enforce_no_absent_after_ida_embark` (`SECURITY DEFINER`) recusa `student_absent` numa perna
+  `dropoff` quando o aluno tem `embarked` na perna `pickup` da mesma rota + dia. Dispara em
+  **INSERT e UPDATE** (a RLS do dono permite update em `route_events`; trocar um `disembarked` por
+  ausência via update seria bypass do delete+insert do `setStopState`). Ida e legado (`leg` null)
+  seguem livres — "Ausente" no embarque continua o caso real. **(2) UI (conveniência):** a página do
+  Modo Direção busca, na volta, os `student_id` com `embarked` na ida do dia; a `DriveScreen`
+  esconde o "Ausente" desse aluno e mostra "Embarcou na ida hoje — precisa desembarcar". Migration
+  032 aplicada pelo SQL Editor (fora do histórico `supabase_migrations`, idempotente). Provado
+  (`docs/tests/g1_volta_sem_ausente.sql`, 3/3: volta recusa ausente de quem embarcou — insert e
+  update — e aceita o desembarque; volta aceita ausente de quem não embarcou, inclusive embarque de
+  outro dia; ida segue livre). Validado no navegador (rota "Olavo Hansen"): ida mostra
+  Embarcou/Ausente; após embarcar na ida, a volta mostra só "Desembarcou" + o aviso; "Desembarcou"
+  marca (1/1); banco confirma `embarked` na ida e `disembarked` na volta, sem `student_absent`.
+  Execuções de teste removidas ao final.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -812,6 +829,14 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   `currentDist`/`currentInRange` do gate; sem lógica/guarda/migration nova. Validado no navegador
   (default expandido sem GPS; arraste manual nos dois sentidos + toque); o auto por distância
   precisa de GPS em movimento p/ device. Commit `99bf686`.
+
+- **Modo Direção — volta sem "Ausente" para quem embarcou na ida (R10, G1):** migration 032 —
+  trigger `enforce_no_absent_after_ida_embark` recusa `student_absent` na volta de quem tem
+  `embarked` na ida da mesma rota + dia; estendido para INSERT **e UPDATE** antes de aplicar (o
+  update era bypass via RLS do dono). UI: a volta esconde o "Ausente" desse aluno e mostra o aviso
+  "Embarcou na ida hoje — precisa desembarcar". Aplicada pelo SQL Editor. Teste
+  `g1_volta_sem_ausente.sql` 3/3. Validado no navegador (ida → embarcou → volta só com
+  Desembarcou + aviso); execuções de teste removidas.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
