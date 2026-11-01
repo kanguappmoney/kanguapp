@@ -713,6 +713,33 @@ trânsito, arte com a grafia certa ("Kangu", não "Cangu").
   "falta: Prefixo"; prefixo preenchido pelo formulário → as 4 liberam; **bypass**: com o formulário
   de link já aberto, prefixo zerado no banco e o envio é **recusado pelo servidor** (nenhum link
   criado). Prefixo de teste revertido ao final (o motorista de teste segue sem prefixo = bloqueado).
+  **Painel financeiro + despesas (R11): PRONTO.** A aba Financeiro (não é aba nova) ganhou no topo
+  um **seletor de mês** (anterior/atual/próximo, `?mes=YYYY-MM`) + **painel** (3 grupos, 1 número por
+  card, sem gráfico) e, abaixo, 2 sub-abas: **"A receber"** (o `FinanceiroPanel` de antes, intocado —
+  segue no mês corrente) e **"Despesas"** (nova). Fonte única `lib/finance-dashboard`.
+  **Reconciliação do schema:** receita = `invoices.status='paid'` com `paid_at` no mês (instante, fuso
+  SP); a receber = `pending` (estado atual, sem filtro de mês); em atraso = `overdue`+`suspended`
+  (valor + nº de `student_id` distintos — **estado atual, sem filtro de mês**, como "a receber");
+  inadimplência = faturas `overdue`+`suspended` do mês ÷ faturas do mês (`billing_period` = dia 1,
+  `canceled` fora); `invoice_events` não é necessária. **Despesas** (migration 035, tabela
+  `driver_expenses` + enum `expense_category` combustivel/manutencao/outros, RLS dono-only):
+  formulário + lista (com excluir) + total por categoria + total do mês selecionado; lucro líquido
+  = recebido − despesas (vermelho se negativo). **Alunos:** ativos (total), novos no mês
+  (`created_at`), top 5 escolas por `school_address` **bruto** (decisão travada). **Frequência**
+  (proxy escolhido por AskUserQuestion: agenda + execuções) = 1 − ausências/oportunidades;
+  oportunidade = aluno ativo × dia do mês (até hoje, a partir do cadastro do aluno e da rota) em
+  que uma rota dele roda pela recorrência (`routeRunsToday` + exceções, espelho do `route_runs_on`);
+  ausência = (aluno, dia) com ausência do pai (`absences`) OU "Ausente" do motorista
+  (`route_events.student_absent`). **Operação:** atraso de rota = `started_at` da ida (perna
+  `pickup` ou legado `outbound`) > `pickup_target_time`, **sem margem**, só rotas com horário-alvo.
+  Sem base honesta → **"sem dado suficiente"** (nunca 0% inventado): inadimplência sem fatura no mês,
+  frequência sem dia agendado (mês futuro / domingo dia 1), atraso sem ida elegível. Validado no
+  navegador com dado real: nov (atual) — frequência e atraso "sem dado"; out — frequência **100%**
+  (bate com o esperado: aluna e rota desde 6/9, seg–sex, 0 ausências); dez — tudo do mês "sem
+  dado"; despesa de R$ 50 em nov → card "Despesas do mês" R$ 50, lucro −R$ 50, total/categoria na
+  aba; em out a despesa não aparece; ida iniciada à noite → atraso **100% (1 de 1)**. Bug achado e
+  corrigido na validação: mês passado dava frequência nula (último dia contável). Dados de teste
+  removidos (despesa pela tela; execução pelo id).
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -979,6 +1006,14 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   actions) + aviso na tela — não RLS/trigger (exigência de cadastro, não guarda; `students` tem
   UPDATEs de outros fluxos). Aprovação de captação segue livre. Validado: bloqueio, liberação e
   recusa no servidor com o formulário aberto.
+
+- **Painel financeiro + despesas (R11):** Financeiro com seletor de mês (anterior/atual/próximo) +
+  painel (Financeiro: recebido, a receber, em atraso, inadimplência, despesas, lucro; Alunos:
+  ativos, novos, frequência, top 5 escolas por `school_address` bruto; Operação: atraso da ida vs
+  `pickup_target_time`, sem margem) + sub-abas "A receber" (intocada) e "Despesas" (migration 035,
+  `driver_expenses`, RLS dono-only). Frequência pelo proxy agenda + execuções (decisão do Abner).
+  "Sem dado suficiente" quando não há base. Validado com dado real (out 100%, atraso 1 de 1,
+  despesa no total e isolada por mês).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
