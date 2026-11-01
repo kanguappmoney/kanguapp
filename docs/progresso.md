@@ -615,6 +615,30 @@ falta é validação, não código:
   arraste completo revela Embarcou/Ausente. **De brinde, o auto-recolher do bottom sheet por
   distância (pendente de device desde `99bf686`) foi visto funcionando**: ao afastar a van o sheet
   recolheu sozinho para a faixa "Próxima". Execução de teste removida.
+  **Cabeçalho fixo + Configurações absorvendo o Perfil (R6): PRONTO.** (1) **Cabeçalho fixo** nas
+  telas principais do motorista (Início, Rotas, Alunos, Financeiro, Configurações e Notificações):
+  avatar (→ Configurações) + sininho no topo direito, `sticky` ao rolar, visual idêntico — fonte
+  única `lib/driver-header` (`getDriverHeader`, com `cache`: avatar assinado + não-lidas) e
+  componente `DriverHeaderActions`; o `AppHeader` ganhou o slot `actions` (com ações vira sticky).
+  Subtelas com "voltar" e o Modo Direção (imersivo) ficam como estavam. (2) **"Perfil" virou
+  "Configurações"** no menu de baixo (ícone `Settings`; rótulos do menu a 10px para caber) — é a
+  MESMA tela (`/motorista/perfil`, rota mantida p/ não quebrar links como `/perfil/editar`): dados
+  pessoais, veículo, foto, assinatura e G6 no topo; abaixo, as seções novas **Notificações** (link
+  p/ a lista, com contagem de novas), **Suporte** ("Falar no WhatsApp" → `wa.me/55<número>`;
+  "Enviar e-mail" → `mailto:house@domhub.co`) e **Sair** (o "Sair" saiu do cabeçalho do Perfil e
+  desceu p/ cá, já que o canto direito agora é avatar + sino). **⚠️ O número do WhatsApp é
+  PLACEHOLDER:** constante `SUPPORT_WHATSAPP_NUMBER = "TODO_TROCAR_NUMERO_REAL"` no topo de
+  `motorista/perfil/page.tsx` — **trocar pelo número real antes do piloto.** (3) **Sininho —
+  reconciliação:** já existia um modelo genérico — tabela `notifications` **por `user_id`** (não só
+  do pai), RLS `select_self`/`update_self`, ação `markAllNotificationsRead` e o `AvisoList`.
+  Reaproveitado sem migration: nova tela `/motorista/notificacoes` (mesmo `AvisoList`, vazio =
+  "Nenhuma notificação") + badge de não-lidas no sino; `markAllNotificationsRead` passou a
+  revalidar também o layout `/motorista` (zera o badge). **Hoje nada grava notificação para o
+  motorista** (o único gerador, `register_occurrence`, escreve para os pais) — a tela mostra o vazio
+  até existir um gerador do lado dele. Sem guarda nova. Validado no navegador: cabeçalho igual em
+  Início, Rotas, Alunos, Financeiro, Configurações e Notificações; sticky ao rolar; links de
+  suporte com os hrefs certos; sino → lista vazia; console e servidor sem erros. O badge com
+  contagem > 0 não foi visto (não há notificação de motorista no banco).
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -854,6 +878,14 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   oficial `/brand/kangu-icon.png` via `Logo`, nada novo). Só visual: threshold 85%, spring-back e
   trilha sólida × tracejada intocados. Validado com geo simulada (perto/longe, arraste parcial e
   completo); de brinde, o auto-recolher do sheet por distância foi visto funcionando.
+
+- **Cabeçalho fixo + Configurações (R6):** avatar + sininho fixos (sticky) no topo direito das
+  telas principais do motorista (`lib/driver-header` + `DriverHeaderActions`; `AppHeader` com slot
+  `actions`). "Perfil" → "Configurações" no menu (mesma tela/rota), com as seções novas
+  Notificações, Suporte (WhatsApp + e-mail) e Sair. **WhatsApp de suporte é PLACEHOLDER**
+  (`SUPPORT_WHATSAPP_NUMBER = "TODO_TROCAR_NUMERO_REAL"` — trocar antes do piloto). Sininho
+  reaproveita `notifications` (por `user_id`) + `AvisoList`, sem migration; nova
+  `/motorista/notificacoes` (vazia — nada gera notificação p/ o motorista ainda). Validado em 6 telas.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
