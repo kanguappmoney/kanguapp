@@ -258,18 +258,22 @@ falta é validação, não código:
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
   WhatsApp real (N8N).
 
-### Pendências em aberto (atualizado 2026-11-01)
+### Pendências em aberto (atualizado 2026-11-01, 2ª rodada)
 
-Resolvido nesta sessão e **retirado daqui**: R10 (volta sem "Ausente" para quem embarcou), R8
-(thumb do DragConfirm), R6 (cabeçalho fixo + Configurações), dívida do `today()` em UTC (app +
-banco, migration 033), a validação do auto-recolher do bottom sheet (visto com geo simulada) e o
-número real do WhatsApp de suporte.
+Resolvido e **retirado daqui**: R10 (volta sem "Ausente" para quem embarcou), R8 (thumb do
+DragConfirm), R6 (cabeçalho fixo + Configurações), dívida do `today()` em UTC (app + banco,
+migration 033), auto-recolher do bottom sheet (visto com geo simulada), número real do WhatsApp de
+suporte, push/deploy da 1ª rodada, **portão de perfil completo** (migration 034) e **R11 — painel
+financeiro + despesas** (migration 035).
 
 **Antes do piloto**
-- **Push / deploy:** as migrations **032 e 033 já estão aplicadas no banco**, mas os commits desta
-  sessão ainda **não foram para o `main` remoto** — a Vercel segue servindo o código anterior
-  (UI sem o gate do "Ausente"; app com "hoje" em UTC contra um banco já em São Paulo). Fazer o push
-  logo para alinhar.
+- **Push / deploy da 2ª rodada:** as migrations **034 (prefixo) e 035 (despesas) já estão no banco**,
+  mas os commits do portão de perfil e do R11 **ainda não foram para o `main` remoto**. São mudanças
+  aditivas (coluna nova nullable, tabela nova): o app publicado segue funcionando, só não tem as
+  telas novas até o push.
+- **Prefixo do veículo** — a conta de teste (`house@domhub.com`) está **sem prefixo**, então cadastrar
+  aluno, gerar link e enviar convite ficam bloqueados até preencher em Configurações → Editar perfil.
+  Todo motorista que já tinha cadastro cai no mesmo aviso.
 - **Testes manuais do Abner** — fotos, financeiro, "Suspensões a revisar".
 - **Validação de LGPD** com profissional antes de qualquer dado real de criança (seção 7).
 - **Device real com GPS em movimento** — confirmar a câmera seguindo o rumo (bearing) e o
@@ -286,7 +290,13 @@ número real do WhatsApp de suporte.
   seção 10). Confirmar o que é.
 - **Rota sugerida "inteligente"** — a ordem sugerida está COMPLETA; o próximo passo é o **ETA ao
   vivo durante a rota** (seção 10), ainda não feito.
-- **Histórico `supabase_migrations`** termina na 018; 019–033 foram aplicadas pelo SQL Editor.
+- **Painel R11 — decisões a confirmar:** "Em atraso" mostra o **estado atual** (overdue+suspended de
+  qualquer mês), como "A receber" — não filtra pelo mês selecionado. Frequência e atraso de rota usam
+  a configuração **atual** da rota (dias da semana, paradas, horário-alvo), não a de meses
+  anteriores: se a rota mudar, o histórico é recalculado com a regra nova.
+- **Aprovação de cadastro vindo de captação** segue liberada com perfil incompleto (o link já passou
+  pelo portão; travar deixaria o pai preso na fila). Rever se o portão deve valer ali também.
+- **Histórico `supabase_migrations`** termina na 018; 019–035 foram aplicadas pelo SQL Editor.
   Reconciliar o histórico antes de usar `supabase db push`.
 
 **Fase 2 (decidido, fora do piloto):** webhook Asaas, WhatsApp real (N8N), "hora de sair" com
