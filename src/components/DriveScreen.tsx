@@ -46,6 +46,7 @@ export function DriveScreen({
   mapToken,
   mapLine,
   mapAnchor,
+  embarkedIdaIds,
 }: {
   executionId: string;
   routeName: string;
@@ -56,6 +57,7 @@ export function DriveScreen({
   mapToken: string;
   mapLine: [number, number][] | null;
   mapAnchor: GeoPoint | null;
+  embarkedIdaIds: string[]; // alunos que embarcaram na ida hoje (G1 na volta)
 }) {
   const [stops, setStops] = useState(initial);
   const [, startTransition] = useTransition();
@@ -84,6 +86,14 @@ export function DriveScreen({
       : null;
   const currentDist = stopDistanceMeters(driverPos, currentPoint);
   const currentInRange = withinBoardingRange(currentDist);
+
+  // Extensão da G1: na VOLTA, quem embarcou na ida hoje não pode ficar ausente —
+  // só desembarca. Esconde o "Ausente" desse aluno (o trigger no banco é o
+  // backstop à prova de bypass). Na ida, "Ausente" segue sempre disponível.
+  const currentEmbarkedIda =
+    kind === "dropoff" &&
+    current != null &&
+    embarkedIdaIds.includes(current.studentId);
 
   // Nova parada vira "current" → fecha a escolha aberta na anterior.
   useEffect(() => {
@@ -239,6 +249,7 @@ export function DriveScreen({
                     // Arraste concluído → escolha da parada atual. "Embarcou" =
                     // MESMA ação de embarque de sempre (com o forced do gate);
                     // "Ausente" = MESMA ausência operacional (route_event).
+                    <>
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
@@ -251,13 +262,24 @@ export function DriveScreen({
                       >
                         {kind === "pickup" ? "Embarcou" : "Desembarcou"}
                       </button>
-                      <button
-                        onClick={() => set(current.studentId, "absent")}
-                        className="rounded-xl border border-navy-900/15 px-5 text-sm font-medium text-navy-700/70"
-                      >
-                        Ausente
-                      </button>
+                      {/* Ausente só quando faz sentido. Na volta, oculto p/ quem
+                          embarcou na ida (G1: deve fechar com o desembarque). */}
+                      {!currentEmbarkedIda && (
+                        <button
+                          onClick={() => set(current.studentId, "absent")}
+                          className="rounded-xl border border-navy-900/15 px-5 text-sm font-medium text-navy-700/70"
+                        >
+                          Ausente
+                        </button>
+                      )}
                     </div>
+                    {currentEmbarkedIda && (
+                      <p className="mt-2 text-xs text-navy-700/60">
+                        Embarcou na ida hoje — precisa desembarcar (não pode
+                        ficar ausente na volta).
+                      </p>
+                    )}
+                    </>
                   ) : (
                     <DragConfirm
                       label={

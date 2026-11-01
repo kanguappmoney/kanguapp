@@ -15,7 +15,7 @@ export default async function ModoDirecaoPage({
 
   const { data: execution } = await supabase
     .from("route_executions")
-    .select("id, status, route_id, leg, routes(name, direction)")
+    .select("id, status, route_id, leg, service_date, routes(name, direction)")
     .eq("id", executionId)
     .single();
 
@@ -49,6 +49,31 @@ export default async function ModoDirecaoPage({
     state: s.state,
   }));
   const routeName = boardRouteName(execution);
+
+  // Extensão da G1 (só na volta): quem embarcou na IDA de hoje não pode ser
+  // marcado ausente na volta — só "Desembarcou". Busca os student_ids que têm
+  // `embarked` na execução de pickup da mesma rota + dia. O trigger no banco é o
+  // backstop à prova de bypass; aqui é o gate de UI (esconde o "Ausente").
+  let embarkedIdaIds: string[] = [];
+  if (kind === "dropoff") {
+    const { data: idaExecs } = await supabase
+      .from("route_executions")
+      .select("id")
+      .eq("route_id", execution.route_id)
+      .eq("service_date", execution.service_date)
+      .eq("leg", "pickup");
+    const idaIds = (idaExecs ?? []).map((e) => e.id);
+    if (idaIds.length) {
+      const { data: ev } = await supabase
+        .from("route_events")
+        .select("student_id")
+        .in("execution_id", idaIds)
+        .eq("type", "embarked");
+      embarkedIdaIds = [
+        ...new Set((ev ?? []).map((e) => e.student_id).filter(Boolean) as string[]),
+      ];
+    }
+  }
 
   // --- Mapa do Modo Direção 2.0 (server): escola compartilhada como âncora + a
   // linha da rota (Directions). A lista de coords não vai pro cliente pronta —
@@ -85,6 +110,7 @@ export default async function ModoDirecaoPage({
       mapToken={token}
       mapLine={line}
       mapAnchor={anchor}
+      embarkedIdaIds={embarkedIdaIds}
     />
   );
 }
