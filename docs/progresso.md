@@ -750,6 +750,23 @@ trânsito, arte com a grafia certa ("Kangu", não "Cangu").
   aba; em out a despesa não aparece; ida iniciada à noite → atraso **100% (1 de 1)**. Bug achado e
   corrigido na validação: mês passado dava frequência nula (último dia contável). Dados de teste
   removidos (despesa pela tela; execução pelo id).
+  **Gráficos do painel R11: PRONTO.** Visualização em 4 pontos, **só do mês selecionado** (sem
+  histórico multi-mês) e **sem tocar nos cálculos** (`lib/finance-dashboard` intocado). **Sem lib nova:**
+  o projeto não tinha nenhuma lib de gráfico, e as 4 formas são simples — SVG puro em
+  `components/charts.tsx`, renderizado no servidor (0 KB de dependência; hover = `<title>` nativo).
+  (1) **Donut** de despesas por categoria na sub-aba Despesas, com legenda (nome + valor sempre
+  visíveis); (2) **barras lado a lado** recebido × despesas × lucro ("Resultado do mês"), um eixo em
+  R$, lucro negativo desce abaixo da linha de base; (3) **barra horizontal** no ranking top 5 de
+  escolas; (4) **aro/gauge** ao lado do número em Inadimplência, Frequência e Atraso de rota —
+  "sem dado suficiente" mostra **só o trilho cinza**, nunca um gráfico quebrado. Cores: categorias
+  usam os 3 primeiros slots da paleta categórica validada (azul/laranja/água — passam CVD e visão
+  normal em todos os pares no branco; o aviso de contraste da água é coberto pela legenda com
+  rótulo); magnitude única (barras, ranking, aros) no marinho da marca sobre trilho cinza.
+  Validado no navegador em out (frequência 100% = aro cheio, aros cinza nos sem dado, barras
+  zeradas), nov (3 despesas de teste 50/30/20 → donut proporcional; barras com lucro −R$ 100 abaixo
+  da base) e dez (tudo cinza/vazio, "Sem despesas no mês"). Ajustes de layout achados na validação:
+  base no rodapé quando tudo é zero, espaço p/ o rótulo da barra negativa, legenda do donut sem
+  colisão em 375px. Console limpo; despesas de teste removidas.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -1024,6 +1041,11 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   `driver_expenses`, RLS dono-only). Frequência pelo proxy agenda + execuções (decisão do Abner).
   "Sem dado suficiente" quando não há base. Validado com dado real (out 100%, atraso 1 de 1,
   despesa no total e isolada por mês).
+
+- **Gráficos do painel R11:** SVG puro (sem lib — o projeto não tinha nenhuma), só o mês selecionado,
+  cálculos intocados: donut de despesas por categoria, barras recebido × despesas × lucro, barra
+  horizontal no top 5 de escolas e aro/gauge nas 3 taxas (cinza vazio quando "sem dado suficiente").
+  Paleta categórica validada (3 slots). Validado em out/nov/dez; console limpo.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
