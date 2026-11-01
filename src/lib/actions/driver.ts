@@ -21,6 +21,7 @@ export async function updateDriverProfile(
   const full_name = String(formData.get("full_name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
+  const prefix = String(formData.get("prefix") ?? "").trim();
   const plate = String(formData.get("plate") ?? "").trim();
   const model = String(formData.get("model") ?? "").trim();
   const yearRaw = String(formData.get("year") ?? "").trim();
@@ -32,6 +33,7 @@ export async function updateDriverProfile(
   if (!full_name) missing.push("Nome");
   if (!phone) missing.push("Telefone");
   if (!address) missing.push("Endereço");
+  if (!prefix) missing.push("Prefixo");
   if (!plate) missing.push("Placa");
   if (!model) missing.push("Modelo");
   if (!yearRaw) missing.push("Ano");
@@ -73,7 +75,7 @@ export async function updateDriverProfile(
     .limit(1)
     .maybeSingle();
 
-  const vehicle = { label: `${model} ${plate}`.trim(), plate, model, year, color, capacity };
+  const vehicle = { label: `${model} ${plate}`.trim(), prefix, plate, model, year, color, capacity };
   const { error: vErr } = existing
     ? await supabase.from("vehicles").update(vehicle).eq("id", existing.id)
     : await supabase.from("vehicles").insert({ driver_id: user.id, ...vehicle });

@@ -48,7 +48,7 @@ export default async function PerfilMotoristaPage() {
 
   const { data: vehicle } = await supabase
     .from("vehicles")
-    .select("plate, model, year, color, capacity")
+    .select("prefix, plate, model, year, color, capacity")
     .eq("driver_id", user!.id)
     .limit(1)
     .maybeSingle();
@@ -133,6 +133,7 @@ export default async function PerfilMotoristaPage() {
                 {vehicle.year ? ` • ${vehicle.year}` : ""}
               </p>
               <p className="text-sm text-navy-700/60">
+                {vehicle.prefix ? `Prefixo ${vehicle.prefix} • ` : ""}
                 Placa {vehicle.plate ?? "—"}
                 {vehicle.color ? ` • ${vehicle.color}` : ""} • {vehicle.capacity}{" "}
                 vagas

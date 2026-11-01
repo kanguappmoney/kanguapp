@@ -3,6 +3,8 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EditStudentForm } from "@/components/EditStudentForm";
+import { ProfileGateNotice } from "@/components/ProfileGateNotice";
+import { getProfileGate } from "@/lib/profile-gate";
 
 // Postgres time volta como "HH:MM:SS"; o input type=time quer "HH:MM".
 function hhmm(t: string | null): string | null {
@@ -26,6 +28,7 @@ export default async function EditarAlunoPage({
     .single();
 
   if (!student) notFound();
+  const gate = await getProfileGate();
 
   return (
     <>
@@ -36,13 +39,19 @@ export default async function EditarAlunoPage({
         <h1 className="text-lg font-bold text-navy-900">Editar aluno</h1>
       </header>
       <div className="px-4 pb-8">
-        <EditStudentForm
-          student={{
-            ...student,
-            entry_time: hhmm(student.entry_time),
-            exit_time: hhmm(student.exit_time),
-          }}
-        />
+        {gate.complete ? (
+          <EditStudentForm
+            student={{
+              ...student,
+              entry_time: hhmm(student.entry_time),
+              exit_time: hhmm(student.exit_time),
+            }}
+          />
+        ) : (
+          <div className="mt-4">
+            <ProfileGateNotice missing={gate.missing} action="editar alunos" />
+          </div>
+        )}
       </div>
     </>
   );

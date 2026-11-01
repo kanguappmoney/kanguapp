@@ -3,6 +3,8 @@ import { Link2 as LinkIcon, ClipboardCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
 import { DriverActions } from "@/components/DriverHeaderActions";
+import { ProfileGateNotice } from "@/components/ProfileGateNotice";
+import { getProfileGate } from "@/lib/profile-gate";
 import { saoPauloToday } from "@/lib/day";
 
 const PAY_CHIP: Record<string, { label: string; cls: string }> = {
@@ -42,6 +44,7 @@ export default async function AlunosPage() {
     .from("capture_submissions")
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
+  const gate = await getProfileGate();
 
   return (
     <>
@@ -51,6 +54,14 @@ export default async function AlunosPage() {
         actions={<DriverActions />}
       />
       <div className="px-4 pb-6">
+        {!gate.complete && (
+          <div className="mt-4">
+            <ProfileGateNotice
+              missing={gate.missing}
+              action="cadastrar alunos, gerar links e enviar convites"
+            />
+          </div>
+        )}
         <div className="mt-4 space-y-2">
           <Link
             href="/motorista/alunos/novo"

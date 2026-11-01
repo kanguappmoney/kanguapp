@@ -7,6 +7,7 @@ import {
   revokeCaptureLink,
   regenerateCaptureLink,
 } from "@/lib/actions/capture";
+import { ProfileGateNotice } from "@/components/ProfileGateNotice";
 
 export interface CaptureLink {
   id: string;
@@ -24,13 +25,25 @@ const SHIFT_LABEL: Record<CaptureLink["shift"], string> = {
   integral: "Integral",
 };
 
-export function CaptureLinkManager({ links }: { links: CaptureLink[] }) {
+// `gateMissing` (portão de perfil completo): não-nulo = perfil incompleto →
+// aviso no lugar do formulário e sem "Regenerar" (o servidor também recusa).
+export function CaptureLinkManager({
+  links,
+  gateMissing = null,
+}: {
+  links: CaptureLink[];
+  gateMissing?: string[] | null;
+}) {
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
 
   return (
     <div className="space-y-6">
-      <NewLinkForm />
+      {gateMissing ? (
+        <ProfileGateNotice missing={gateMissing} action="gerar links de captação" />
+      ) : (
+        <NewLinkForm />
+      )}
       <div>
         <h2 className="mb-2 mt-2 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
           Links ativos
@@ -43,7 +56,12 @@ export function CaptureLinkManager({ links }: { links: CaptureLink[] }) {
         ) : (
           <div className="space-y-3">
             {links.map((l) => (
-              <LinkCard key={l.id} link={l} origin={origin} />
+              <LinkCard
+                key={l.id}
+                link={l}
+                origin={origin}
+                canRegenerate={!gateMissing}
+              />
             ))}
           </div>
         )}
@@ -135,7 +153,15 @@ function ShiftIcon({ shift }: { shift: CaptureLink["shift"] }) {
   return <Clock className={cls} />;
 }
 
-function LinkCard({ link, origin }: { link: CaptureLink; origin: string }) {
+function LinkCard({
+  link,
+  origin,
+  canRegenerate,
+}: {
+  link: CaptureLink;
+  origin: string;
+  canRegenerate: boolean;
+}) {
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const url = origin ? `${origin}/captacao/${link.token}` : "";
@@ -181,14 +207,16 @@ function LinkCard({ link, origin }: { link: CaptureLink; origin: string }) {
       </div>
 
       <div className="flex gap-3">
-        <button
-          onClick={() => startTransition(() => regenerateCaptureLink(link.id))}
-          disabled={pending}
-          className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-navy-900/15 py-2 text-sm font-medium text-navy-900 disabled:opacity-60"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Regenerar
-        </button>
+        {canRegenerate && (
+          <button
+            onClick={() => startTransition(() => regenerateCaptureLink(link.id))}
+            disabled={pending}
+            className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-navy-900/15 py-2 text-sm font-medium text-navy-900 disabled:opacity-60"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Regenerar
+          </button>
+        )}
         <button
           onClick={() => startTransition(() => revokeCaptureLink(link.id))}
           disabled={pending}

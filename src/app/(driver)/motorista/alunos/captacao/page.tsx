@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/ui";
+import { getProfileGate } from "@/lib/profile-gate";
 import {
   CaptureLinkManager,
   type CaptureLink,
@@ -16,6 +17,7 @@ export default async function CaptacaoPage() {
     .select("id, shift, school, school_address, entry_time, exit_time, token")
     .eq("status", "active")
     .order("created_at", { ascending: false });
+  const gate = await getProfileGate();
 
   return (
     <>
@@ -38,7 +40,10 @@ export default async function CaptacaoPage() {
           depois que você aprovar.
         </p>
 
-        <CaptureLinkManager links={(links ?? []) as CaptureLink[]} />
+        <CaptureLinkManager
+          links={(links ?? []) as CaptureLink[]}
+          gateMissing={gate.complete ? null : gate.missing}
+        />
       </div>
     </>
   );

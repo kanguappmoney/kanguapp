@@ -10,6 +10,7 @@ export interface DriverDefaults {
   email: string | null;
   phone: string | null;
   address: string | null;
+  prefix: string | null;
   plate: string | null;
   model: string | null;
   year: number | null;
@@ -41,6 +42,7 @@ export function EditDriverForm({ driver }: { driver: DriverDefaults }) {
       <Field label="Endereço residencial" name="address" defaultValue={driver.address ?? ""} placeholder="Rua, número, bairro, cidade" required />
 
       <SectionHeading>Veículo</SectionHeading>
+      <Field label="Prefixo" name="prefix" defaultValue={driver.prefix ?? ""} placeholder="Nº de identificação da van" required />
       <Field label="Placa" name="plate" defaultValue={driver.plate ?? ""} placeholder="ABC-1D23" required />
       <Field label="Modelo" name="model" defaultValue={driver.model ?? ""} placeholder="Ex.: Mercedes-Benz Sprinter" required />
       <div className="grid grid-cols-2 gap-3">

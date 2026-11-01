@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/lib/consent";
+import { getProfileGate } from "@/lib/profile-gate";
 
 const CAPTURE_PATH = "/motorista/alunos/captacao";
 const SHIFTS = ["morning", "afternoon", "integral"] as const;
@@ -35,6 +36,7 @@ export async function createCaptureLink(formData: FormData): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
+  if (!(await getProfileGate()).complete) return; // a tela mostra o aviso
 
   const shift = String(formData.get("shift") ?? "");
   const school = emptyToNull(formData.get("school"));
@@ -170,6 +172,7 @@ export async function regenerateCaptureLink(id: string): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
+  if (!(await getProfileGate()).complete) return; // a tela mostra o aviso
 
   // RLS restringe a leitura ao dono; ainda assim filtramos por driver_id.
   const { data: old } = await supabase

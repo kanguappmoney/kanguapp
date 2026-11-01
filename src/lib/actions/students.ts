@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getProfileGate, profileGateError } from "@/lib/profile-gate";
 
 export type StudentFormState = { error: string | null };
 
@@ -77,6 +78,10 @@ export async function saveNewStudent(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sessão expirada. Entre novamente." };
 
+  // Portão de perfil completo (veículo com prefixo/placa/modelo/cor).
+  const gate = await getProfileGate();
+  if (!gate.complete) return { error: profileGateError(gate) };
+
   const payload = studentPayloadFromForm(formData);
   const missing = missingFields(payload);
   if (missing.length)
@@ -113,6 +118,9 @@ export async function updateStudent(
 ): Promise<StudentFormState> {
   const supabase = await createClient();
 
+  const gate = await getProfileGate();
+  if (!gate.complete) return { error: profileGateError(gate) };
+
   const payload = studentPayloadFromForm(formData);
   const missing = missingFields(payload);
   if (missing.length)
@@ -148,6 +156,7 @@ export async function createInvite(studentId: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
+  if (!(await getProfileGate()).complete) return; // a tela mostra o aviso
 
   await supabase
     .from("student_invites")

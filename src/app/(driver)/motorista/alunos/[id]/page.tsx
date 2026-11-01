@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, SectionTitle } from "@/components/ui";
 import { InvitePanel } from "@/components/InvitePanel";
+import { ProfileGateNotice } from "@/components/ProfileGateNotice";
+import { getProfileGate } from "@/lib/profile-gate";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { ArchiveButton } from "@/components/ArchiveButton";
 
@@ -72,6 +74,9 @@ export default async function DetalheAlunoPage({
   const { data: guardians } = guardianIds.length
     ? await supabase.from("users").select("id, full_name").in("id", guardianIds)
     : { data: [] };
+
+  // Portão de perfil completo: sem veículo completo, não gera convite.
+  const gate = await getProfileGate();
 
   return (
     <>
@@ -143,9 +148,13 @@ export default async function DetalheAlunoPage({
         )}
 
         <SectionTitle>Convite do responsável</SectionTitle>
-        <Card>
-          <InvitePanel studentId={id} invite={invite ?? null} />
-        </Card>
+        {gate.complete ? (
+          <Card>
+            <InvitePanel studentId={id} invite={invite ?? null} />
+          </Card>
+        ) : (
+          <ProfileGateNotice missing={gate.missing} action="enviar convites" />
+        )}
 
         <div className="mt-8">
           <ArchiveButton studentId={id} />

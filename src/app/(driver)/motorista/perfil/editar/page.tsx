@@ -20,7 +20,7 @@ export default async function EditarPerfilPage() {
     .single();
   const { data: vehicle } = await supabase
     .from("vehicles")
-    .select("plate, model, year, color, capacity")
+    .select("prefix, plate, model, year, color, capacity")
     .eq("driver_id", user!.id)
     .limit(1)
     .maybeSingle();
@@ -40,6 +40,7 @@ export default async function EditarPerfilPage() {
             email: user?.email ?? null,
             phone: userRow?.phone ?? null,
             address: profile?.address ?? null,
+            prefix: vehicle?.prefix ?? null,
             plate: vehicle?.plate ?? null,
             model: vehicle?.model ?? null,
             year: vehicle?.year ?? null,
