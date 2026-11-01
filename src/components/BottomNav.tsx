@@ -8,6 +8,7 @@ import {
   Users,
   Wallet,
   User,
+  Settings,
   CreditCard,
   type LucideIcon,
 } from "lucide-react";
@@ -26,7 +27,7 @@ const NAV: Record<"driver" | "guardian", NavItem[]> = {
     { href: "/motorista/rotas", label: "Rotas", icon: Route },
     { href: "/motorista/alunos", label: "Alunos", icon: Users },
     { href: "/motorista/financeiro", label: "Financeiro", icon: Wallet },
-    { href: "/motorista/perfil", label: "Perfil", icon: User },
+    { href: "/motorista/perfil", label: "Configurações", icon: Settings },
   ],
   guardian: [
     { href: "/responsavel", label: "Início", icon: Home },
@@ -58,7 +59,7 @@ export function BottomNav({ role }: { role: "driver" | "guardian" }) {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-1 py-2.5 text-xs font-medium ${
+            className={`flex flex-col items-center gap-1 whitespace-nowrap py-2.5 text-[10px] font-medium ${
               active ? "text-yellow-400" : "text-navy-700/40"
             }`}
           >

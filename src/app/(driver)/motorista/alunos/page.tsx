@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Link2 as LinkIcon, ClipboardCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
+import { DriverActions } from "@/components/DriverHeaderActions";
 
 const PAY_CHIP: Record<string, { label: string; cls: string }> = {
   ok: { label: "Em dia", cls: "bg-green-100 text-green-800" },
@@ -43,7 +44,11 @@ export default async function AlunosPage() {
 
   return (
     <>
-      <AppHeader title="Alunos" subtitle="Quem você atende" />
+      <AppHeader
+        title="Alunos"
+        subtitle="Quem você atende"
+        actions={<DriverActions />}
+      />
       <div className="px-4 pb-6">
         <div className="mt-4 space-y-2">
           <Link

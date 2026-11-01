@@ -6,6 +6,7 @@ import { getActiveDriverBoard } from "@/lib/drive-board";
 import { buildRouteMapUrl } from "@/lib/route-path";
 import { getDepartureSuggestions } from "@/lib/departure";
 import { getDriverHomeMapUrl } from "@/lib/driver-map";
+import { getDriverHeader } from "@/lib/driver-header";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -29,19 +30,8 @@ export default async function DriverHome() {
   const user = await getCurrentUser();
   const supabase = await createClient();
 
-  // Foto do motorista (URL assinada, bucket privado) para o avatar do cabeçalho.
-  let avatarUrl: string | null = null;
-  const { data: profile } = await supabase
-    .from("driver_profiles")
-    .select("photo_path")
-    .eq("user_id", user?.id ?? "")
-    .maybeSingle();
-  if (profile?.photo_path) {
-    const { data } = await supabase.storage
-      .from("driver-photos")
-      .createSignedUrl(profile.photo_path, 3600);
-    avatarUrl = data?.signedUrl ?? null;
-  }
+  // Avatar + não-lidas do cabeçalho fixo (fonte única com as outras telas).
+  const { avatarUrl, unread } = await getDriverHeader();
 
   // Chip da placa (dado real do perfil). Só a identificação do veículo — sem
   // status "online" (isso dependeria de GPS ao vivo, que a home não tem).
@@ -108,6 +98,7 @@ export default async function DriverHome() {
     <HomeContent
       firstName={user?.fullName.split(" ")[0] ?? "motorista"}
       avatarUrl={avatarUrl}
+      unread={unread}
       vehicleLabel={vehicleLabel}
       greeting={greeting()}
       alunos={alunos}

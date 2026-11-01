@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppHeader, SectionTitle } from "@/components/ui";
+import { DriverActions } from "@/components/DriverHeaderActions";
 import { RouteRunList } from "@/components/RouteRunList";
 import { getRoutesWithTodayExecs } from "@/lib/routes-today";
 
@@ -8,7 +9,11 @@ export default async function RotasPage() {
 
   return (
     <>
-      <AppHeader title="Rotas" subtitle="Suas rotas e o dia de hoje" />
+      <AppHeader
+        title="Rotas"
+        subtitle="Suas rotas e o dia de hoje"
+        actions={<DriverActions />}
+      />
       <div className="px-4 pb-6">
         <div className="mt-4">
           <Link

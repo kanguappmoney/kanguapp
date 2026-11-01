@@ -18,7 +18,9 @@ export async function markAllNotificationsRead() {
     .eq("user_id", user.id)
     .is("read_at", null);
 
-  // Só a home (contador). NÃO revalida a própria tela de avisos, para os
-  // itens "novo" continuarem destacados na visualização atual.
+  // Só os contadores: a home do pai e o sininho do cabeçalho do motorista. NÃO
+  // revalida a própria tela de avisos do pai, para os itens "novo" continuarem
+  // destacados na visualização atual (o AvisoList também congela o estado).
   revalidatePath("/responsavel");
+  revalidatePath("/motorista", "layout");
 }

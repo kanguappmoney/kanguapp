@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/ui";
+import { DriverActions } from "@/components/DriverHeaderActions";
 import { FinanceiroPanel } from "@/components/FinanceiroPanel";
 
 function firstOfMonth() {
@@ -38,7 +39,11 @@ export default async function FinanceiroPage() {
 
   return (
     <>
-      <AppHeader title="Financeiro" subtitle="Gestão inteligente" />
+      <AppHeader
+        title="Financeiro"
+        subtitle="Gestão inteligente"
+        actions={<DriverActions />}
+      />
       <div className="px-4 pb-6 pt-4">
         <FinanceiroPanel students={students ?? []} invoices={invoiceRows} />
       </div>

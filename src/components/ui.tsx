@@ -1,17 +1,25 @@
 import { SignOutButton } from "@/components/SignOutButton";
 import { Logo } from "@/components/Logo";
 
+// `actions` = canto direito (ex.: avatar + sininho do motorista). Com ações, o
+// cabeçalho fica fixo no topo (sticky) ao rolar.
 export function AppHeader({
   title,
   subtitle,
   showSignOut,
+  actions,
 }: {
   title: string;
   subtitle?: string;
   showSignOut?: boolean;
+  actions?: React.ReactNode;
 }) {
   return (
-    <header className="flex items-start justify-between border-b border-navy-900/10 bg-white px-5 pb-5 pt-6 text-navy-900">
+    <header
+      className={`flex items-start justify-between border-b border-navy-900/10 bg-white px-5 pb-5 pt-6 text-navy-900 ${
+        actions ? "sticky top-0 z-20 items-center" : ""
+      }`}
+    >
       <div className="flex items-center gap-3">
         <Logo variant="icon" className="h-9 w-9 shrink-0" />
         <div>
@@ -20,6 +28,7 @@ export function AppHeader({
         </div>
       </div>
       {showSignOut && <SignOutButton />}
+      {actions}
     </header>
   );
 }

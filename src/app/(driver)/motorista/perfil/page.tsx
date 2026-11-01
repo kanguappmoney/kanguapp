@@ -8,13 +8,28 @@ import {
   Mail,
   MapPin,
   Pencil,
+  Bell,
+  MessageCircle,
+  LogOut,
+  ChevronRight,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { TrackingModeToggle } from "@/components/TrackingModeToggle";
 import { DriverPhotoUploader } from "@/components/DriverPhotoUploader";
+import { DriverActions } from "@/components/DriverHeaderActions";
+import { getDriverHeader } from "@/lib/driver-header";
+import { signOut } from "@/lib/actions/auth";
 
+// TODO: trocar pelo número real do suporte (DDD + número, só dígitos) antes do
+// piloto. O link vira https://wa.me/55<número>.
+const SUPPORT_WHATSAPP_NUMBER = "TODO_TROCAR_NUMERO_REAL";
+const SUPPORT_EMAIL = "house@domhub.co";
+
+// Configurações do motorista (era "Perfil" no menu — mesmo conteúdo no topo:
+// dados pessoais, veículo, foto, assinatura, G6; abaixo, Notificações, Suporte
+// e Sair). A rota segue /motorista/perfil.
 export default async function PerfilMotoristaPage() {
   const user = await getCurrentUser();
   const supabase = await createClient();
@@ -62,10 +77,15 @@ export default async function PerfilMotoristaPage() {
     paused: { label: "Assinatura pausada", cls: "bg-red-100 text-red-800" },
   };
   const sub = SUB[profile?.subscription_status ?? "trial"] ?? SUB.trial;
+  const { unread } = await getDriverHeader();
 
   return (
     <>
-      <AppHeader title="Perfil" subtitle="Conta profissional" showSignOut />
+      <AppHeader
+        title="Configurações"
+        subtitle="Conta profissional"
+        actions={<DriverActions />}
+      />
       <div className="px-4 pb-6">
         {/* Cabeçalho do perfil — foto + nome + verificação + editar */}
         <Card className="mt-4 flex items-center gap-4">
@@ -146,6 +166,58 @@ export default async function PerfilMotoristaPage() {
           Vale para todas as suas rotas. No modo Linha do tempo, o app nunca
           compartilha a localização por GPS.
         </p>
+
+        {/* Notificações — o mesmo destino do sininho do cabeçalho */}
+        <SectionTitle>Notificações</SectionTitle>
+        <Link
+          href="/motorista/notificacoes"
+          className="flex items-center gap-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
+            <Bell className="h-5 w-5" />
+          </span>
+          <span className="flex-1">
+            <span className="block font-semibold text-navy-900">
+              Ver notificações
+            </span>
+            <span className="block text-xs text-navy-700/60">
+              {unread
+                ? `${unread} ${unread === 1 ? "nova" : "novas"}`
+                : "Nenhuma nova"}
+            </span>
+          </span>
+          <ChevronRight className="h-5 w-5 text-navy-700/40" />
+        </Link>
+
+        {/* Suporte */}
+        <SectionTitle>Suporte</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href={`https://wa.me/55${SUPPORT_WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 text-sm font-semibold text-navy-900"
+          >
+            <MessageCircle className="h-4 w-4" /> Falar no WhatsApp
+          </a>
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="flex items-center justify-center gap-2 rounded-xl border border-navy-900/15 bg-white py-3 text-sm font-semibold text-navy-900"
+          >
+            <Mail className="h-4 w-4" /> Enviar e-mail
+          </a>
+        </div>
+
+        {/* Sair */}
+        <SectionTitle>Sair</SectionTitle>
+        <form action={signOut}>
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white py-3 font-semibold text-red-700"
+          >
+            <LogOut className="h-4 w-4" /> Sair da conta
+          </button>
+        </form>
       </div>
     </>
   );

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Bell,
   Users,
   CalendarCheck,
   MapPin,
@@ -10,6 +9,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui";
 import { RouteRunList } from "@/components/RouteRunList";
+import { DriverHeaderActions } from "@/components/DriverHeaderActions";
 import type { RouteWithStops, TodayExec } from "@/lib/routes-today";
 import type { ActiveBoard, BoardStop } from "@/lib/drive-board";
 import type { DepartureSuggestion } from "@/lib/departure";
@@ -21,6 +21,7 @@ import type { DepartureSuggestion } from "@/lib/departure";
 export interface HomeContentProps {
   firstName: string;
   avatarUrl: string | null;
+  unread: number;
   vehicleLabel: string | null;
   greeting: string;
   alunos: number;
@@ -38,6 +39,7 @@ export interface HomeContentProps {
 export function HomeContent({
   firstName,
   avatarUrl,
+  unread,
   vehicleLabel,
   greeting,
   alunos,
@@ -53,8 +55,8 @@ export function HomeContent({
 }: HomeContentProps) {
   return (
     <>
-      {/* Cabeçalho: saudação + avatar (→ perfil, onde vive o sair) + sino. */}
-      <header className="flex items-center justify-between border-b border-navy-900/10 bg-white px-5 pb-5 pt-6">
+      {/* Cabeçalho fixo: saudação + avatar (→ Configurações) + sininho. */}
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-navy-900/10 bg-white px-5 pb-5 pt-6">
         <div>
           <h1 className="font-display text-xl font-semibold text-navy-900">
             {greeting}, {firstName}
@@ -73,29 +75,11 @@ export function HomeContent({
             <p className="text-sm text-navy-700/50">Sua operação de hoje</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/motorista/perfil"
-            aria-label="Seu perfil"
-            className="block h-11 w-11 overflow-hidden rounded-full"
-          >
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt={firstName}
-                className="h-11 w-11 rounded-full object-cover"
-              />
-            ) : (
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-navy-900/10 text-sm font-semibold text-navy-700/70">
-                {firstName[0]?.toUpperCase()}
-              </span>
-            )}
-          </Link>
-          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-navy-900/10 text-navy-700/60">
-            <Bell className="h-5 w-5" />
-          </span>
-        </div>
+        <DriverHeaderActions
+          firstName={firstName}
+          avatarUrl={avatarUrl}
+          unread={unread}
+        />
       </header>
 
       <div className="px-4 pb-6">

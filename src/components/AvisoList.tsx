@@ -18,7 +18,13 @@ function when(iso: string) {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-export function AvisoList({ initial }: { initial: Notif[] }) {
+export function AvisoList({
+  initial,
+  emptyText = "Nenhum aviso por aqui ainda.",
+}: {
+  initial: Notif[];
+  emptyText?: string;
+}) {
   // Congela o estado lido/não-lido desta visita: o "novo" continua destacado
   // mesmo depois que markAllNotificationsRead marca tudo como lido no servidor.
   const [items] = useState(initial);
@@ -30,7 +36,7 @@ export function AvisoList({ initial }: { initial: Notif[] }) {
   if (!items.length) {
     return (
       <div className="mt-4 rounded-2xl border border-dashed border-navy-900/10 bg-white p-4 text-center text-sm text-navy-700/60">
-        Nenhum aviso por aqui ainda.
+        {emptyText}
       </div>
     );
   }
