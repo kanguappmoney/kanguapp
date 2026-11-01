@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronsRight } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 // "Deslize para confirmar" (estilo apps de entrega) para a parada atual do Modo
 // Direção 2.0 (R4). Só troca o GESTO — a lógica de embarque/ausência é a mesma.
 // O gate de 100m NÃO bloqueia: `solid` só muda o visual/copy (perto = sólido;
 // longe/sem GPS/sem coord = tracejado "mesmo assim"). O arraste funciona sempre.
+// O thumb é a marca (canguru no amarelo #FFD000, mesmo asset do Logo) nos dois
+// estados — a diferença sólido × "mesmo assim" fica na trilha.
 export function DragConfirm({
   label,
   solid,
@@ -50,9 +52,6 @@ export function DragConfirm({
   const trackCls = solid
     ? "border-yellow-400 bg-yellow-400/20"
     : "border-2 border-dashed border-yellow-400 bg-white";
-  const thumbCls = solid
-    ? "bg-yellow-400 text-navy-900"
-    : "border-2 border-yellow-400 bg-white text-navy-900";
 
   return (
     <div
@@ -73,9 +72,13 @@ export function DragConfirm({
           transform: `translateX(${x}px)`,
           transition: dragging.current ? "none" : "transform .2s ease",
         }}
-        className={`absolute left-1 top-1 flex h-12 w-14 touch-none items-center justify-center rounded-xl ${thumbCls}`}
+        className={`absolute left-1 top-1 flex h-12 w-14 touch-none items-center justify-center rounded-xl bg-yellow-400 shadow-sm`}
       >
-        <ChevronsRight className="h-6 w-6" />
+        <Logo
+          variant="icon"
+          alt=""
+          className="pointer-events-none h-11 w-11 select-none"
+        />
       </div>
     </div>
   );
