@@ -262,15 +262,14 @@ falta é validação, não código:
 
 Resolvido nesta sessão e **retirado daqui**: R10 (volta sem "Ausente" para quem embarcou), R8
 (thumb do DragConfirm), R6 (cabeçalho fixo + Configurações), dívida do `today()` em UTC (app +
-banco, migration 033) e a validação do auto-recolher do bottom sheet (visto com geo simulada).
+banco, migration 033), a validação do auto-recolher do bottom sheet (visto com geo simulada) e o
+número real do WhatsApp de suporte.
 
 **Antes do piloto**
 - **Push / deploy:** as migrations **032 e 033 já estão aplicadas no banco**, mas os commits desta
   sessão ainda **não foram para o `main` remoto** — a Vercel segue servindo o código anterior
   (UI sem o gate do "Ausente"; app com "hoje" em UTC contra um banco já em São Paulo). Fazer o push
   logo para alinhar.
-- **Número real do WhatsApp de suporte** — hoje `SUPPORT_WHATSAPP_NUMBER = "TODO_TROCAR_NUMERO_REAL"`
-  em `src/app/(driver)/motorista/perfil/page.tsx`.
 - **Testes manuais do Abner** — fotos, financeiro, "Suspensões a revisar".
 - **Validação de LGPD** com profissional antes de qualquer dado real de criança (seção 7).
 - **Device real com GPS em movimento** — confirmar a câmera seguindo o rumo (bearing) e o
@@ -950,6 +949,11 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   app desalinharia app/banco das 21h à meia-noite (G2 desligada, pai sem jornada, execução
   duplicada). Migration 033: `sp_today()` + as 4 recriadas idênticas, só a data trocada. Testes de
   guarda em `sp_today()`: recorrencia 6/6, both 4/4, edit 4/4, g1 3/3; unit 17/17.
+
+- **WhatsApp de suporte — número real:** `SUPPORT_WHATSAPP_NUMBER = "5511953790054"` (fim do
+  placeholder TODO da R6). O número já vem com o código do país, então o link deixou de prefixar
+  `55` (era `wa.me/55${...}` → `wa.me/${...}`; senão viraria `555511…`). Validado: href
+  `https://wa.me/5511953790054` (nova aba) e o WhatsApp abre "Conversar com +55 11 95379-0054".
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
