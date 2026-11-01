@@ -767,6 +767,27 @@ trânsito, arte com a grafia certa ("Kangu", não "Cangu").
   da base) e dez (tudo cinza/vazio, "Sem despesas no mês"). Ajustes de layout achados na validação:
   base no rodapé quando tudo é zero, espaço p/ o rótulo da barra negativa, legenda do donut sem
   colisão em 375px. Console limpo; despesas de teste removidas.
+  **Financeiro em 4 abas de primeiro nível: PRONTO.** Sem aninhar: **Visão Geral**, **A receber**,
+  **Despesas**, **Mensalidades** (`?aba=`; cada aba carrega só o próprio dado). **Reconciliação das
+  abas:** o app não tinha componente de abas genérico — o único padrão de abas de *navegação* era o
+  controle segmentado das sub-abas do Financeiro (o "Ida/Volta/Ambos" das ausências é seletor de
+  formulário, não navegação). Extraído para `components/SegmentedTabs` (mesmo visual; largura
+  proporcional ao rótulo para "Mensalidades" não truncar em 375px). **Visão Geral** = o painel R11
+  como estava (seletor de mês + métricas + gráficos) + botão **"+ Nova despesa"** no topo, que abre o
+  **mesmo** formulário num bottom sheet (`NewExpenseSheet`), sem trocar de aba — o formulário virou
+  `ExpenseForm` (fonte única, usado também pela aba Despesas); fecha ao salvar, no X, no fundo ou
+  no Esc. **A receber** (`FinanceiroPanel`, mês corrente) e **Despesas** (`ExpensesPanel` + seletor
+  de mês) iguais a antes, só promovidas a abas. **Mensalidades** (nova, só consulta): alunos ativos
+  com mensalidade (ou "Sem mensalidade definida") e status de pagamento — reusa os rótulos que o app
+  já usava (ok = "Em dia", at_risk = "Vencida", blocked = "Suspenso"; extraídos para
+  `lib/pay-status`, a lista de Alunos usa o mesmo); filtros **escola** (nome cadastrado, cai no
+  endereço se vazio — valor bruto), **turno** e **rota** (via `route_stops`), combináveis (E), cada
+  um opcional, "Todos" por padrão, na URL; total da lista por mês; **"Editar" leva ao cadastro do
+  aluno existente** (`/motorista/alunos/[id]/editar`), nenhum formulário duplicado. Validado no
+  navegador: as 4 abas navegam e mostram só o próprio conteúdo; filtro escola+Manhã+rota → 1 aluna,
+  trocando p/ Tarde → 0 ("Nenhum aluno com esses filtros"), turno de volta a "Todos" → 1; "+ Nova
+  despesa" abre o sheet na Visão Geral, salva R$ 40, fecha e atualiza o painel (despesas R$ 40,
+  lucro −R$ 40), e a despesa aparece igual na aba Despesas (removida depois). Console limpo.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -1046,6 +1067,12 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   cálculos intocados: donut de despesas por categoria, barras recebido × despesas × lucro, barra
   horizontal no top 5 de escolas e aro/gauge nas 3 taxas (cinza vazio quando "sem dado suficiente").
   Paleta categórica validada (3 slots). Validado em out/nov/dez; console limpo.
+
+- **Financeiro em 4 abas:** Visão Geral (painel R11 + "+ Nova despesa" em bottom sheet com o mesmo
+  `ExpenseForm`), A receber e Despesas (iguais, promovidas a abas) e Mensalidades (nova, consulta:
+  ativos com mensalidade e status, filtros escola/turno/rota combináveis, "Editar" → cadastro do
+  aluno). Abas = o segmentado do Financeiro extraído para `SegmentedTabs` (único padrão existente).
+  Validado navegação, filtro combinado e o botão rápido; console limpo.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
