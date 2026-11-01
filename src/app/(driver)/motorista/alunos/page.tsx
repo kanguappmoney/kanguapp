@@ -5,19 +5,8 @@ import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
 import { DriverActions } from "@/components/DriverHeaderActions";
 import { ProfileGateNotice } from "@/components/ProfileGateNotice";
 import { getProfileGate } from "@/lib/profile-gate";
+import { PAY_CHIP, SHIFT_LABEL } from "@/lib/pay-status";
 import { saoPauloToday } from "@/lib/day";
-
-const PAY_CHIP: Record<string, { label: string; cls: string }> = {
-  ok: { label: "Em dia", cls: "bg-green-100 text-green-800" },
-  at_risk: { label: "Vencida", cls: "bg-amber-100 text-amber-800" },
-  blocked: { label: "Suspenso", cls: "bg-red-100 text-red-800" },
-};
-
-const SHIFT_LABEL: Record<string, string> = {
-  morning: "Manhã",
-  afternoon: "Tarde",
-  integral: "Integral",
-};
 
 export default async function AlunosPage() {
   const supabase = await createClient();

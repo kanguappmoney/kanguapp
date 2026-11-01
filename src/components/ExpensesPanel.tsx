@@ -6,7 +6,7 @@ import { addExpense, deleteExpense, type ExpenseState } from "@/lib/actions/expe
 import { centsToBRL } from "@/lib/money";
 import { CATEGORY_COLORS, Donut } from "@/components/charts";
 
-// R11 — sub-aba "Despesas" do Financeiro: lançar, listar e somar por categoria
+// R11 — aba "Despesas" do Financeiro: lançar, listar e somar por categoria
 // as despesas do mês selecionado. Categoria só as 3 fixas.
 
 export interface Expense {
@@ -39,14 +39,7 @@ export function ExpensesPanel({
   defaultDate: string; // data sugerida no formulário (dentro do mês selecionado)
   monthLabel: string;
 }) {
-  const [state, action, pending] = useActionState(addExpense, initial);
   const [deleting, startTransition] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
-
-  // Lançou com sucesso → limpa o formulário para o próximo.
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
 
   const totalCents = expenses.reduce((a, e) => a + e.amount_cents, 0);
   const byCategory = (Object.keys(CATEGORY) as Expense["category"][]).map((c) => ({
@@ -97,69 +90,8 @@ export function ExpensesPanel({
         </ul>
       </div>
 
-      {/* Lançar despesa */}
-      <form
-        ref={formRef}
-        action={action}
-        className="space-y-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
-      >
-        <p className="font-semibold text-navy-900">Nova despesa</p>
-        <label className="block text-sm">
-          <span className="mb-1 block text-navy-700/70">Categoria</span>
-          <select
-            name="category"
-            required
-            defaultValue="combustivel"
-            className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-2.5"
-          >
-            {(Object.keys(CATEGORY) as Expense["category"][]).map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY[c].label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm">
-            <span className="mb-1 block text-navy-700/70">Valor (R$)</span>
-            <input
-              name="amount"
-              inputMode="decimal"
-              required
-              placeholder="0,00"
-              className="w-full rounded-xl border border-navy-900/15 px-3 py-2.5"
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block text-navy-700/70">Data</span>
-            <input
-              name="expense_date"
-              type="date"
-              required
-              defaultValue={defaultDate}
-              className="w-full rounded-xl border border-navy-900/15 px-3 py-2.5"
-            />
-          </label>
-        </div>
-        <label className="block text-sm">
-          <span className="mb-1 block text-navy-700/70">Observação (opcional)</span>
-          <input
-            name="note"
-            placeholder="Ex.: troca de óleo"
-            className="w-full rounded-xl border border-navy-900/15 px-3 py-2.5"
-          />
-        </label>
-        {state.error && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
-        )}
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
-        >
-          {pending ? "Salvando…" : "Adicionar despesa"}
-        </button>
-      </form>
+      {/* Lançar despesa (mesmo formulário do "+ Nova despesa" da Visão Geral) */}
+      <ExpenseForm defaultDate={defaultDate} />
 
       {/* Lista do mês */}
       <div>
@@ -206,5 +138,93 @@ export function ExpensesPanel({
         )}
       </div>
     </div>
+  );
+}
+
+// Formulário de despesa — fonte única: a sub-aba Despesas e o "+ Nova despesa"
+// (sheet) da Visão Geral usam este mesmo componente. `onSaved` (opcional) é
+// chamado após salvar com sucesso (o sheet fecha); o formulário sempre limpa.
+export function ExpenseForm({
+  defaultDate,
+  onSaved,
+}: {
+  defaultDate: string;
+  onSaved?: () => void;
+}) {
+  const [state, action, pending] = useActionState(addExpense, initial);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (state.ok) {
+      formRef.current?.reset();
+      onSaved?.();
+    }
+    // onSaved muda a cada render do pai; só o resultado da action importa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  return (
+    <form
+      ref={formRef}
+      action={action}
+      className="space-y-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
+    >
+      <p className="font-semibold text-navy-900">Nova despesa</p>
+      <label className="block text-sm">
+        <span className="mb-1 block text-navy-700/70">Categoria</span>
+        <select
+          name="category"
+          required
+          defaultValue="combustivel"
+          className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-2.5"
+        >
+          {(Object.keys(CATEGORY) as Expense["category"][]).map((c) => (
+            <option key={c} value={c}>
+              {CATEGORY[c].label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block text-sm">
+          <span className="mb-1 block text-navy-700/70">Valor (R$)</span>
+          <input
+            name="amount"
+            inputMode="decimal"
+            required
+            placeholder="0,00"
+            className="w-full rounded-xl border border-navy-900/15 px-3 py-2.5"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-navy-700/70">Data</span>
+          <input
+            name="expense_date"
+            type="date"
+            required
+            defaultValue={defaultDate}
+            className="w-full rounded-xl border border-navy-900/15 px-3 py-2.5"
+          />
+        </label>
+      </div>
+      <label className="block text-sm">
+        <span className="mb-1 block text-navy-700/70">Observação (opcional)</span>
+        <input
+          name="note"
+          placeholder="Ex.: troca de óleo"
+          className="w-full rounded-xl border border-navy-900/15 px-3 py-2.5"
+        />
+      </label>
+      {state.error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+      )}
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
+      >
+        {pending ? "Salvando…" : "Adicionar despesa"}
+      </button>
+    </form>
   );
 }
