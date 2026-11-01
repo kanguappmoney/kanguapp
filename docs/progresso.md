@@ -603,6 +603,18 @@ falta é validação, não código:
   Embarcou/Ausente; após embarcar na ida, a volta mostra só "Desembarcou" + o aviso; "Desembarcou"
   marca (1/1); banco confirma `embarked` na ida e `disembarked` na volta, sem `student_absent`.
   Execuções de teste removidas ao final.
+  **DragConfirm — thumb com a marca (R8): PRONTO.** O thumb do "deslize para confirmar" trocou as
+  setas duplas (`ChevronsRight`) pelo **canguru no amarelo `#FFD000`** — reaproveita o asset oficial
+  `/brand/kangu-icon.png` via `Logo variant="icon"` (nenhum asset novo). Puramente visual: threshold
+  85%, spring-back e as variantes **sólida** (perto/com dado) × **tracejada** ("mesmo assim",
+  longe/sem dado) intocados — a diferença entre as duas fica na **trilha**; o thumb é o mesmo nos
+  dois estados. Reconciliação: a barra da Linha do tempo do pai usa o **emoji** 🦘 (não um asset),
+  então o único canguru-asset do app é o ícone da marca. Validado no navegador com geolocalização
+  simulada na página (sem persistir posição): perto (~20 m) = trilha sólida "deslize para
+  confirmar"; longe (~2070 m) = trilha tracejada "deslize mesmo assim"; arraste parcial volta,
+  arraste completo revela Embarcou/Ausente. **De brinde, o auto-recolher do bottom sheet por
+  distância (pendente de device desde `99bf686`) foi visto funcionando**: ao afastar a van o sheet
+  recolheu sozinho para a faixa "Próxima". Execução de teste removida.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -837,6 +849,11 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   "Embarcou na ida hoje — precisa desembarcar". Aplicada pelo SQL Editor. Teste
   `g1_volta_sem_ausente.sql` 3/3. Validado no navegador (ida → embarcou → volta só com
   Desembarcou + aviso); execuções de teste removidas.
+
+- **DragConfirm — thumb com a marca (R8):** setas duplas → canguru no amarelo `#FFD000` (asset
+  oficial `/brand/kangu-icon.png` via `Logo`, nada novo). Só visual: threshold 85%, spring-back e
+  trilha sólida × tracejada intocados. Validado com geo simulada (perto/longe, arraste parcial e
+  completo); de brinde, o auto-recolher do sheet por distância foi visto funcionando.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
