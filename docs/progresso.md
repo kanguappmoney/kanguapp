@@ -1074,6 +1074,10 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   aluno). Abas = o segmentado do Financeiro extraído para `SegmentedTabs` (único padrão existente).
   Validado navegação, filtro combinado e o botão rápido; console limpo.
 
+- **Ranking top 5 escolas pelo NOME:** decisão do Abner revisada — agrupa por `students.school`
+  (bruto), caindo no `school_address` só se o nome estiver vazio (mesma regra do filtro da aba
+  Mensalidades). tsc limpo; **validação no navegador pendente** (sessão encerrada por limite de uso).
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

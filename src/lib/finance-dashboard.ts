@@ -75,7 +75,7 @@ export interface FinanceDashboard {
     active: number;
     newInMonth: number;
     attendanceRate: number | null; // 1 − ausências / oportunidades
-    topSchools: { address: string; count: number }[];
+    topSchools: { name: string; count: number }[];
   };
   operation: {
     lateRate: number | null; // ida iniciada depois do pickup_target_time
@@ -116,7 +116,7 @@ export async function getFinanceDashboard(
       .lt("expense_date", next),
     supabase
       .from("students")
-      .select("id, status, created_at, school_address")
+      .select("id, status, created_at, school, school_address")
       .eq("driver_id", driverId),
     supabase
       .from("routes")
@@ -166,15 +166,17 @@ export async function getFinanceDashboard(
   const active = allStudents.filter((s) => s.status === "active");
   const newInMonth = allStudents.filter((s) => inMonth(s.created_at)).length;
 
-  // Ranking por school_address BRUTO (sem normalizar — decisão travada).
+  // Ranking pelo NOME da escola (students.school), valor bruto, sem
+  // normalizar; sem nome, cai no endereço — mesma regra do filtro de escola da
+  // aba Mensalidades. (Decisão do Abner: nome, não endereço.)
   const bySchool = new Map<string, number>();
   for (const s of active) {
-    const key = s.school_address ?? "Sem endereço da escola";
+    const key = s.school ?? s.school_address ?? "Sem escola";
     bySchool.set(key, (bySchool.get(key) ?? 0) + 1);
   }
   const topSchools = [...bySchool.entries()]
-    .map(([address, count]) => ({ address, count }))
-    .sort((a, b) => b.count - a.count || a.address.localeCompare(b.address))
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
     .slice(0, 5);
 
   const attendanceRate = attendance({

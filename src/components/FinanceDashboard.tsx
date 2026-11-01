@@ -111,7 +111,7 @@ export function FinanceDashboard({ data }: { data: Data }) {
         <p className="text-xs font-medium text-navy-700/60">Top 5 escolas (alunos ativos)</p>
         {s.topSchools.length ? (
           <div className="mt-3">
-            <RankBars items={s.topSchools.map((t) => ({ label: t.address, count: t.count }))} />
+            <RankBars items={s.topSchools.map((t) => ({ label: t.name, count: t.count }))} />
           </div>
         ) : (
           <p className="mt-2 text-sm text-navy-700/50">{NO_DATA}</p>
