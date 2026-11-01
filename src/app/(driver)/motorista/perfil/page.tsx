@@ -22,9 +22,9 @@ import { DriverActions } from "@/components/DriverHeaderActions";
 import { getDriverHeader } from "@/lib/driver-header";
 import { signOut } from "@/lib/actions/auth";
 
-// TODO: trocar pelo número real do suporte (DDD + número, só dígitos) antes do
-// piloto. O link vira https://wa.me/55<número>.
-const SUPPORT_WHATSAPP_NUMBER = "TODO_TROCAR_NUMERO_REAL";
+// WhatsApp do suporte: número completo com código do país (55) + DDD, só dígitos.
+// O link vira https://wa.me/<número>.
+const SUPPORT_WHATSAPP_NUMBER = "5511953790054";
 const SUPPORT_EMAIL = "house@domhub.co";
 
 // Configurações do motorista (era "Perfil" no menu — mesmo conteúdo no topo:
@@ -193,7 +193,7 @@ export default async function PerfilMotoristaPage() {
         <SectionTitle>Suporte</SectionTitle>
         <div className="grid grid-cols-2 gap-3">
           <a
-            href={`https://wa.me/55${SUPPORT_WHATSAPP_NUMBER}`}
+            href={`https://wa.me/${SUPPORT_WHATSAPP_NUMBER}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 text-sm font-semibold text-navy-900"
