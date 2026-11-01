@@ -258,6 +258,41 @@ falta é validação, não código:
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
   WhatsApp real (N8N).
 
+### Pendências em aberto (atualizado 2026-11-01)
+
+Resolvido nesta sessão e **retirado daqui**: R10 (volta sem "Ausente" para quem embarcou), R8
+(thumb do DragConfirm), R6 (cabeçalho fixo + Configurações), dívida do `today()` em UTC (app +
+banco, migration 033) e a validação do auto-recolher do bottom sheet (visto com geo simulada).
+
+**Antes do piloto**
+- **Push / deploy:** as migrations **032 e 033 já estão aplicadas no banco**, mas os commits desta
+  sessão ainda **não foram para o `main` remoto** — a Vercel segue servindo o código anterior
+  (UI sem o gate do "Ausente"; app com "hoje" em UTC contra um banco já em São Paulo). Fazer o push
+  logo para alinhar.
+- **Número real do WhatsApp de suporte** — hoje `SUPPORT_WHATSAPP_NUMBER = "TODO_TROCAR_NUMERO_REAL"`
+  em `src/app/(driver)/motorista/perfil/page.tsx`.
+- **Testes manuais do Abner** — fotos, financeiro, "Suspensões a revisar".
+- **Validação de LGPD** com profissional antes de qualquer dado real de criança (seção 7).
+- **Device real com GPS em movimento** — confirmar a câmera seguindo o rumo (bearing) e o
+  auto-recolher do sheet por distância fora da simulação.
+
+**Lacunas conhecidas (sem bloqueio)**
+- **Sininho do motorista vazio por desenho** — nada gera `notifications` para o motorista ainda
+  (o único gerador, `register_occurrence`, escreve para os pais). O badge com contagem > 0 nunca
+  foi visto na tela. Definir quais eventos notificam o motorista quando houver demanda.
+- **Emoji na UI** contradiz a seção 1 ("ícones lucide, nunca emoji"): 🦘 na barra da Linha do tempo
+  do pai, 🗺️/📍 no toggle do G6, ➕ em "Nova rota"/"Adicionar aluno". Trocar por lucide/asset.
+- **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
+  documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
+  seção 10). Confirmar o que é.
+- **Rota sugerida "inteligente"** — a ordem sugerida está COMPLETA; o próximo passo é o **ETA ao
+  vivo durante a rota** (seção 10), ainda não feito.
+- **Histórico `supabase_migrations`** termina na 018; 019–033 foram aplicadas pelo SQL Editor.
+  Reconciliar o histórico antes de usar `supabase db push`.
+
+**Fase 2 (decidido, fora do piloto):** webhook Asaas, WhatsApp real (N8N), "hora de sair" com
+trânsito, arte com a grafia certa ("Kangu", não "Cangu").
+
 - **Rotas 2.0** — **COMPLETA** (recorrência R1→R3 + rota sugerida: coordenadas →
   número/complemento → viés de região → sugestão de ordem; ver detalhe adiante e no log).
   **Criação de rota encorpada: pronta. Execução da
