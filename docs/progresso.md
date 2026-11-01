@@ -695,6 +695,24 @@ trânsito, arte com a grafia certa ("Kangu", não "Cangu").
   `recorrencia` 6/6, `rotas_both_execution` 4/4, `rotas_edit` 4/4, `g1_volta_sem_ausente` 3/3;
   unit `node --test` 17/17; fronteiras de fuso conferidas (23h30 SP = mesmo dia; virada de mês só à
   meia-noite local). Telas (home, Financeiro, Alunos) sem erro.
+  **Portão de perfil completo (prefixo + placa + modelo + cor): PRONTO.** Novo campo **"Prefixo"**
+  do veículo (migration 034: `vehicles.prefix text`, nullable — motoristas antigos não têm) no
+  formulário de perfil, junto de placa/modelo/cor. Os 4 viraram condição: enquanto algum estiver
+  vazio, o motorista **não cadastra nem edita aluno, não gera/regenera link de captação e não
+  envia convite** — aviso "Complete seu perfil" (com o que falta) + botão p/ Configurações → Editar
+  perfil. **Mecanismo escolhido: checagem no servidor (server actions) + aviso na tela — NÃO
+  RLS/trigger.** Razões: (a) é exigência de cadastro, não guarda de segurança (G1–G6); (b) `students`
+  recebe UPDATE de fluxos que não podem travar (mensalidade/`setStudentFee`, foto, arquivar,
+  `pay_status` do financeiro, `approve_capture` SECURITY DEFINER) — uma RLS/trigger ali bloquearia
+  tudo junto. Fonte única `lib/profile-gate` (`getProfileGate`, com `cache`) usada pelas 5 actions
+  (`saveNewStudent`, `updateStudent`, `createInvite`, `createCaptureLink`, `regenerateCaptureLink`)
+  **e** pelas telas (lista de Alunos, novo aluno via `layout.tsx` de servidor, editar aluno, convite no
+  detalhe, captação sem formulário nem "Regenerar"). **Aprovar cadastro vindo de captação segue
+  liberado** (o link já passou pelo portão; travar deixaria o pai preso na fila). CNH e marketplace
+  fora (decisão de escopo). Validado no navegador: perfil sem prefixo → as 4 telas bloqueiam com
+  "falta: Prefixo"; prefixo preenchido pelo formulário → as 4 liberam; **bypass**: com o formulário
+  de link já aberto, prefixo zerado no banco e o envio é **recusado pelo servidor** (nenhum link
+  criado). Prefixo de teste revertido ao final (o motorista de teste segue sem prefixo = bloqueado).
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -954,6 +972,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   placeholder TODO da R6). O número já vem com o código do país, então o link deixou de prefixar
   `55` (era `wa.me/55${...}` → `wa.me/${...}`; senão viraria `555511…`). Validado: href
   `https://wa.me/5511953790054` (nova aba) e o WhatsApp abre "Conversar com +55 11 95379-0054".
+
+- **Portão de perfil completo:** campo "Prefixo" (migration 034, `vehicles.prefix`). Sem prefixo +
+  placa + modelo + cor, bloqueia cadastrar/editar aluno, gerar/regenerar link de captação e enviar
+  convite, com aviso → Configurações. Mecanismo: checagem no servidor (`lib/profile-gate` nas 5
+  actions) + aviso na tela — não RLS/trigger (exigência de cadastro, não guarda; `students` tem
+  UPDATEs de outros fluxos). Aprovação de captação segue livre. Validado: bloqueio, liberação e
+  recusa no servidor com o formulário aberto.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
