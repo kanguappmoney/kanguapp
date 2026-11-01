@@ -639,6 +639,28 @@ falta é validação, não código:
   Início, Rotas, Alunos, Financeiro, Configurações e Notificações; sticky ao rolar; links de
   suporte com os hrefs certos; sino → lista vazia; console e servidor sem erros. O badge com
   contagem > 0 não foi visto (não há notificação de motorista no banco).
+  **"Hoje" no fuso de São Paulo de ponta a ponta (app + banco): PRONTO.** Fecha a dívida anotada
+  na R2/R3 (as ~8 cópias de `today()` em UTC). **App:** as 7 cópias de
+  `toISOString().slice(0,10)` (home, Alunos, Revisão, `drive-board`, `actions/routes` — inclusive
+  o `startExecution`, que cria a execução do dia —, `actions/absences`, `actions/invoices` e a
+  lista de ausências do pai) + o `AbsenceForm` (cliente; "hoje/amanhã" em UTC) passam a usar
+  `saoPauloToday` (`lib/day`); o mês das faturas ("Gerar faturas do mês", vencimento dia 10) e o
+  "A receber neste mês" do Financeiro derivam o `YYYY-MM` do mesmo helper (antes `getMonth()` em
+  UTC no servidor — às 21h do último dia já era o mês seguinte). **Banco (migration 033):** o
+  achado que mudou o escopo — 4 funções usavam `current_date` (UTC): `apply_route_review`
+  (Revisão G1/G2, **também cria a execução**), `get_active_journey` (jornada do pai G5/G6),
+  `get_suspension_review` e o trigger da G2 `enforce_route_stops_frozen_while_running`. Trocar só o
+  app desalinharia app e banco das 21h à meia-noite (G2 sem achar a perna rodando = edição liberada
+  no meio da execução; pai sem jornada; Revisão × início direto criando execuções com datas
+  diferentes). Decisão (AskUserQuestion): app + migration. A 033 cria `sp_today()` (`(now() at
+  time zone 'America/Sao_Paulo')::date`) e recria as 4 funções com o corpo **idêntico** ao vigente
+  (025/027), só `current_date` → `public.sp_today()` (diff verificado; `create or replace`
+  preserva grants e o trigger da 026). Aplicada pelo SQL Editor; catálogo confirma as 4 com
+  `sp_today()` e sem `current_date`. Testes de guarda ajustados para `sp_today()` (os 4 pedidos +
+  `embarque_100m` e `modo_mapa_guardas`, que também montam execução de hoje) e rodados:
+  `recorrencia` 6/6, `rotas_both_execution` 4/4, `rotas_edit` 4/4, `g1_volta_sem_ausente` 3/3;
+  unit `node --test` 17/17; fronteiras de fuso conferidas (23h30 SP = mesmo dia; virada de mês só à
+  meia-noite local). Telas (home, Financeiro, Alunos) sem erro.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -886,6 +908,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   (`SUPPORT_WHATSAPP_NUMBER = "TODO_TROCAR_NUMERO_REAL"` — trocar antes do piloto). Sininho
   reaproveita `notifications` (por `user_id`) + `AvisoList`, sem migration; nova
   `/motorista/notificacoes` (vazia — nada gera notificação p/ o motorista ainda). Validado em 6 telas.
+
+- **"Hoje" em São Paulo (app + banco):** 7 cópias de `today()` UTC + `AbsenceForm` + mês das
+  faturas → `saoPauloToday`. Achado: 4 funções do banco (`apply_route_review`,
+  `get_active_journey`, `get_suspension_review`, trigger G2) usavam `current_date` UTC — trocar só o
+  app desalinharia app/banco das 21h à meia-noite (G2 desligada, pai sem jornada, execução
+  duplicada). Migration 033: `sp_today()` + as 4 recriadas idênticas, só a data trocada. Testes de
+  guarda em `sp_today()`: recorrencia 6/6, both 4/4, edit 4/4, g1 3/3; unit 17/17.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
