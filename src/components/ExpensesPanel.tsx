@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useTransition } from "react";
 import { Fuel, Wrench, Package, Trash2 } from "lucide-react";
 import { addExpense, deleteExpense, type ExpenseState } from "@/lib/actions/expenses";
 import { centsToBRL } from "@/lib/money";
+import { CATEGORY_COLORS, Donut } from "@/components/charts";
 
 // R11 — sub-aba "Despesas" do Financeiro: lançar, listar e somar por categoria
 // as despesas do mês selecionado. Categoria só as 3 fixas.
@@ -59,18 +60,41 @@ export function ExpensesPanel({
       <div className="rounded-2xl bg-navy-900 p-5 text-white">
         <p className="text-sm text-white/60">Despesas em {monthLabel}</p>
         <p className="mt-1 text-3xl font-bold">{centsToBRL(totalCents)}</p>
-        <div className="mt-4 grid grid-cols-3 gap-2">
+      </div>
+
+      {/* Por categoria: donut + legenda (nome e valor sempre visíveis) */}
+      <div className="flex items-center gap-4 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
+        <Donut
+          size={104}
+          label={byCategory
+            .map(({ category, cents }) => `${CATEGORY[category].label} ${centsToBRL(cents)}`)
+            .join(", ")}
+          slices={byCategory.map(({ category, cents }) => ({
+            key: category,
+            label: CATEGORY[category].label,
+            value: cents,
+            color: CATEGORY_COLORS[category],
+            display: centsToBRL(cents),
+          }))}
+        />
+        <ul className="min-w-0 flex-1 space-y-2">
           {byCategory.map(({ category, cents }) => {
-            const { label, icon: Icon } = CATEGORY[category];
+            const { label } = CATEGORY[category];
             return (
-              <div key={category} className="rounded-xl bg-white/10 p-2">
-                <Icon className="h-4 w-4 text-yellow-400" />
-                <p className="mt-1 text-[11px] text-white/60">{label}</p>
-                <p className="text-sm font-semibold">{centsToBRL(cents)}</p>
-              </div>
+              <li key={category} className="flex items-center gap-2 text-sm">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: CATEGORY_COLORS[category] }}
+                />
+                <span className="min-w-0 flex-1 truncate text-navy-700/80">{label}</span>
+                <span className="shrink-0 font-semibold text-navy-900">{centsToBRL(cents)}</span>
+              </li>
             );
           })}
-        </div>
+          {totalCents === 0 && (
+            <li className="text-xs text-navy-700/50">Sem despesas no mês.</li>
+          )}
+        </ul>
       </div>
 
       {/* Lançar despesa */}

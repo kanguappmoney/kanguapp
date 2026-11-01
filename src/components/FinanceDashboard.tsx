@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { centsToBRL } from "@/lib/money";
 import type { FinanceDashboard as Data } from "@/lib/finance-dashboard";
+import { Gauge, MoneyBars, RankBars } from "@/components/charts";
 
 // R11 — painel do topo do Financeiro: seletor de mês (anterior/atual/próximo) e
-// 3 grupos de cards, 1 número por card, sem gráfico. Apresentação pura.
+// 3 grupos de cards (1 número por card) + gráficos SVG do mês selecionado
+// (components/charts). Apresentação pura — os números vêm prontos.
 
 const NO_DATA = "sem dado suficiente";
 
@@ -67,7 +69,12 @@ export function FinanceDashboard({ data }: { data: Data }) {
           value={centsToBRL(f.overdueCents)}
           hint={`${f.overdueStudents} ${f.overdueStudents === 1 ? "aluno" : "alunos"} • vencidas e suspensas`}
         />
-        <Stat label="Inadimplência" value={pct(f.defaultRate)} hint="das faturas do mês" />
+        <Stat
+          label="Inadimplência"
+          value={pct(f.defaultRate)}
+          hint="das faturas do mês"
+          gauge={f.defaultRate}
+        />
         <Stat label="Despesas do mês" value={centsToBRL(f.expensesCents)} />
         <Stat
           label="Lucro líquido"
@@ -76,24 +83,36 @@ export function FinanceDashboard({ data }: { data: Data }) {
           tone={f.netCents < 0 ? "bad" : "default"}
         />
       </Group>
+      <div className="rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
+        <p className="text-xs font-medium text-navy-700/60">Resultado do mês</p>
+        <div className="mt-2">
+          <MoneyBars
+            label={`Recebido ${centsToBRL(f.receivedCents)}, despesas ${centsToBRL(f.expensesCents)}, lucro ${centsToBRL(f.netCents)}`}
+            bars={[
+              { key: "rec", label: "Recebido", cents: f.receivedCents, display: centsToBRL(f.receivedCents) },
+              { key: "desp", label: "Despesas", cents: f.expensesCents, display: centsToBRL(f.expensesCents) },
+              { key: "lucro", label: "Lucro", cents: f.netCents, display: centsToBRL(f.netCents) },
+            ]}
+          />
+        </div>
+      </div>
 
       <Group title="Alunos">
         <Stat label="Ativos" value={String(s.active)} />
         <Stat label="Novos no mês" value={String(s.newInMonth)} />
-        <Stat label="Frequência" value={pct(s.attendanceRate)} hint="presença nos dias agendados" />
+        <Stat
+          label="Frequência"
+          value={pct(s.attendanceRate)}
+          hint="presença nos dias agendados"
+          gauge={s.attendanceRate}
+        />
       </Group>
       <div className="rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
         <p className="text-xs font-medium text-navy-700/60">Top 5 escolas (alunos ativos)</p>
         {s.topSchools.length ? (
-          <ol className="mt-2 space-y-1.5">
-            {s.topSchools.map((t, i) => (
-              <li key={t.address} className="flex items-start gap-2 text-sm">
-                <span className="w-4 shrink-0 font-semibold text-navy-700/50">{i + 1}</span>
-                <span className="min-w-0 flex-1 text-navy-900">{t.address}</span>
-                <span className="shrink-0 font-semibold text-navy-900">{t.count}</span>
-              </li>
-            ))}
-          </ol>
+          <div className="mt-3">
+            <RankBars items={s.topSchools.map((t) => ({ label: t.address, count: t.count }))} />
+          </div>
         ) : (
           <p className="mt-2 text-sm text-navy-700/50">{NO_DATA}</p>
         )}
@@ -103,6 +122,7 @@ export function FinanceDashboard({ data }: { data: Data }) {
         <Stat
           label="Atraso de rota"
           value={pct(o.lateRate)}
+          gauge={o.lateRate}
           hint={
             o.eligible
               ? `${o.lateCount} de ${o.eligible} idas após o horário-alvo`
@@ -125,32 +145,46 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
+// `gauge` (taxas): aro ao lado do número; `null` = "sem dado suficiente" →
+// aro só com o trilho cinza. `undefined` = card sem aro.
 function Stat({
   label,
   value,
   hint,
   tone = "default",
+  gauge,
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: "default" | "bad";
+  gauge?: number | null;
 }) {
   const noData = value === NO_DATA;
+  const number = (
+    <p
+      className={`mt-1 font-bold ${
+        noData
+          ? "text-sm text-navy-700/40"
+          : tone === "bad"
+            ? "text-lg text-red-700"
+            : "text-lg text-navy-900"
+      }`}
+    >
+      {value}
+    </p>
+  );
   return (
     <div className="rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
       <p className="text-xs font-medium text-navy-700/60">{label}</p>
-      <p
-        className={`mt-1 font-bold ${
-          noData
-            ? "text-sm text-navy-700/40"
-            : tone === "bad"
-              ? "text-lg text-red-700"
-              : "text-lg text-navy-900"
-        }`}
-      >
-        {value}
-      </p>
+      {gauge === undefined ? (
+        number
+      ) : (
+        <div className="flex items-center gap-2">
+          <Gauge value={gauge} label={label} />
+          <div className="min-w-0">{number}</div>
+        </div>
+      )}
       {hint && <p className="mt-0.5 text-[11px] leading-tight text-navy-700/50">{hint}</p>}
     </div>
   );
