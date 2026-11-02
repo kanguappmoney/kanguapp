@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { TrackingModeToggle } from "@/components/TrackingModeToggle";
 import { centsToBRL } from "@/lib/money";
+import { OpenRequestsToggle } from "@/components/OpenRequestsToggle";
 import { DriverPhotoUploader } from "@/components/DriverPhotoUploader";
 import { DriverActions } from "@/components/DriverHeaderActions";
 import { getDriverHeader } from "@/lib/driver-header";
@@ -71,6 +72,13 @@ export default async function PerfilMotoristaPage() {
       .createSignedUrl(profile.photo_path, 3600);
     photoUrl = data?.signedUrl ?? null;
   }
+
+  const { count: openRequestLinks } = await supabase
+    .from("capture_links")
+    .select("id", { count: "exact", head: true })
+    .eq("kind", "generic")
+    .eq("status", "active");
+  const openRequests = (openRequestLinks ?? 0) > 0;
 
   const mode = (profile?.parent_tracking_mode ?? "map") as "map" | "timeline";
   const verified = profile?.verification === "verified";
@@ -188,6 +196,8 @@ export default async function PerfilMotoristaPage() {
             )}
           </div>
         </Card>
+
+        <OpenRequestsToggle initial={openRequests} />
 
         {/* Números */}
         <div className="mt-3 grid grid-cols-2 gap-3">

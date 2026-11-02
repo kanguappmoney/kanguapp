@@ -6,15 +6,16 @@ import { CaptureForm } from "@/components/CaptureForm";
 
 interface Preview {
   status: "active" | "revoked";
-  shift: "morning" | "afternoon" | "integral";
-  school: string;
+  kind: "scoped" | "generic";
+  shift: "morning" | "afternoon" | "integral" | null;
+  school: string | null;
   school_address: string | null;
   entry_time: string | null;
   exit_time: string | null;
   driver_name: string;
 }
 
-const SHIFT_LABEL: Record<Preview["shift"], string> = {
+const SHIFT_LABEL: Record<NonNullable<Preview["shift"]>, string> = {
   morning: "Manhã",
   afternoon: "Tarde",
   integral: "Integral",
@@ -65,37 +66,54 @@ export default async function CaptacaoPage({
         </div>
       ) : (
         <>
-          <div className="mb-5 space-y-2 rounded-2xl bg-white p-4 shadow-sm">
-            <p className="text-sm text-navy-700/70">
-              <span className="font-semibold text-navy-900">
-                {preview.driver_name}
-              </span>{" "}
-              está captando alunos do turno{" "}
-              <span className="font-semibold text-navy-900">
-                {SHIFT_LABEL[preview.shift]}
-              </span>
-              .
-            </p>
-            <div className="flex items-start gap-2 text-sm text-navy-800">
-              <School className="mt-0.5 h-4 w-4 shrink-0 text-navy-700/60" />
-              <span>
-                {preview.school}
-                {preview.school_address && (
-                  <span className="block text-navy-700/60">
-                    {preview.school_address}
-                  </span>
-                )}
-              </span>
+          {preview.kind === "generic" ? (
+            <div className="mb-5 rounded-2xl bg-white p-4 shadow-sm">
+              <p className="text-sm text-navy-700/70">
+                Peça uma vaga com{" "}
+                <span className="font-semibold text-navy-900">
+                  {preview.driver_name}
+                </span>
+                . Informe o turno e a escola da criança abaixo; o motorista confere
+                e aprova antes de ela entrar na rota.
+              </p>
             </div>
-            {times && (
-              <div className="flex items-center gap-2 text-sm text-navy-800">
-                <Clock className="h-4 w-4 shrink-0 text-navy-700/60" />
-                <span>{times}</span>
+          ) : (
+            <div className="mb-5 space-y-2 rounded-2xl bg-white p-4 shadow-sm">
+              <p className="text-sm text-navy-700/70">
+                <span className="font-semibold text-navy-900">
+                  {preview.driver_name}
+                </span>{" "}
+                está captando alunos do turno{" "}
+                <span className="font-semibold text-navy-900">
+                  {preview.shift ? SHIFT_LABEL[preview.shift] : ""}
+                </span>
+                .
+              </p>
+              <div className="flex items-start gap-2 text-sm text-navy-800">
+                <School className="mt-0.5 h-4 w-4 shrink-0 text-navy-700/60" />
+                <span>
+                  {preview.school}
+                  {preview.school_address && (
+                    <span className="block text-navy-700/60">
+                      {preview.school_address}
+                    </span>
+                  )}
+                </span>
               </div>
-            )}
-          </div>
+              {times && (
+                <div className="flex items-center gap-2 text-sm text-navy-800">
+                  <Clock className="h-4 w-4 shrink-0 text-navy-700/60" />
+                  <span>{times}</span>
+                </div>
+              )}
+            </div>
+          )}
 
-          <CaptureForm token={token} needsAccount={needsAccount} />
+          <CaptureForm
+            token={token}
+            needsAccount={needsAccount}
+            generic={preview.kind === "generic"}
+          />
         </>
       )}
     </main>

@@ -56,6 +56,51 @@ export async function createCaptureLink(formData: FormData): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// "Solicitar vaga" pela vitrine (Frente E.1): link GENÉRICO e opt-in. O toggle do
+// motorista É a existência de UM link genérico ativo: ligar cria um (token novo),
+// desligar revoga. Revogado nunca volta — religar gera outro token.
+// ---------------------------------------------------------------------------
+export type OpenRequestsState = { error: string | null };
+
+export async function setOpenRequests(on: boolean): Promise<OpenRequestsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sessão expirada." };
+
+  if (on) {
+    const gate = await getProfileGate();
+    if (!gate.complete)
+      return { error: `Complete seu perfil antes (falta: ${gate.missing.join(", ")}).` };
+
+    const { data: active } = await supabase
+      .from("capture_links")
+      .select("id")
+      .eq("kind", "generic")
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+    if (!active) {
+      const { error } = await supabase
+        .from("capture_links")
+        .insert({ driver_id: user.id, kind: "generic", token: newToken() });
+      if (error) return { error: "Não foi possível ativar. Tente novamente." };
+    }
+  } else {
+    await supabase
+      .from("capture_links")
+      .update({ status: "revoked" })
+      .eq("driver_id", user.id)
+      .eq("kind", "generic")
+      .eq("status", "active");
+  }
+
+  revalidatePath("/motorista/perfil");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------------------
 // Lado do PAI: envia o cadastro do próprio filho a partir de um link válido.
 // Se o pai ainda não tem conta, cria uma (guardian) ATRÁS do token — não é
 // cadastro público — e registra o aceite de Termos (LGPD). A submissão cai na
@@ -129,6 +174,11 @@ export async function submitCapture(
     p_responsible_whatsapp: emptyToNull(formData.get("responsible_whatsapp")),
     p_pickup_lat: numOrNull(formData.get("pickup_lat")),
     p_pickup_lng: numOrNull(formData.get("pickup_lng")),
+    // Só o link genérico usa escola/turno do pai; no travado o banco os descarta.
+    p_school: emptyToNull(formData.get("school")),
+    p_shift: SHIFTS.includes(String(formData.get("shift")) as Shift)
+      ? String(formData.get("shift"))
+      : null,
   });
   if (rpcError) return { error: rpcError.message };
 

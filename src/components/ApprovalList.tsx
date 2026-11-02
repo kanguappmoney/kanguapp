@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, X, MapPin, Phone, Cake } from "lucide-react";
+import { Check, X, MapPin, Phone, Cake, School } from "lucide-react";
 import { approveSubmission, rejectSubmission } from "@/lib/actions/capture";
 
 export interface Submission {
@@ -14,7 +14,12 @@ export interface Submission {
   dropoff_address: string | null;
   responsible_phone: string | null;
   responsible_whatsapp: string | null;
+  // Só nos pedidos vindos do link genérico (vitrine): o que o pai informou.
+  child_school: string | null;
+  child_shift: "morning" | "afternoon" | "integral" | null;
 }
+
+const SHIFT_LABEL = { morning: "Manhã", afternoon: "Tarde", integral: "Integral" } as const;
 
 export function ApprovalList({ submissions }: { submissions: Submission[] }) {
   if (submissions.length === 0) {
@@ -44,6 +49,13 @@ function ApprovalCard({ sub }: { sub: Submission }) {
       <p className="font-semibold text-navy-900">{sub.child_full_name}</p>
 
       <div className="space-y-1.5 text-sm text-navy-700/80">
+        {sub.child_school && (
+          <Row icon={<School className="h-4 w-4 text-navy-700/50" />}>
+            {sub.child_school}
+            {sub.child_shift && ` · ${SHIFT_LABEL[sub.child_shift]}`}
+            <span className="ml-1 text-xs text-navy-700/50">(informado pelo pai)</span>
+          </Row>
+        )}
         {sub.child_birth_date && (
           <Row icon={<Cake className="h-4 w-4 text-navy-700/50" />}>
             {formatDate(sub.child_birth_date)}

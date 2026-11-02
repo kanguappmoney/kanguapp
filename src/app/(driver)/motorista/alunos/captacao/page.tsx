@@ -16,6 +16,7 @@ export default async function CaptacaoPage() {
     .from("capture_links")
     .select("id, shift, school, school_address, entry_time, exit_time, token")
     .eq("status", "active")
+    .eq("kind", "scoped") // o link genérico da vitrine tem toggle próprio (Configurações)
     .order("created_at", { ascending: false });
   const gate = await getProfileGate();
 

@@ -11,7 +11,7 @@ export default async function AprovacoesPage() {
   const { data: subs } = await supabase
     .from("capture_submissions")
     .select(
-      "id, child_full_name, child_birth_date, pickup_address, pickup_lat, dropoff_same, dropoff_address, responsible_phone, responsible_whatsapp",
+      "id, child_full_name, child_birth_date, pickup_address, pickup_lat, dropoff_same, dropoff_address, responsible_phone, responsible_whatsapp, child_school, child_shift",
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true });

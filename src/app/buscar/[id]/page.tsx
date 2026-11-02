@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Car, MessageCircle, MapPin, School, Users, Wallet } from "lucide-react";
+import { ArrowLeft, Car, MessageCircle, MapPin, School, UserPlus, Users, Wallet } from "lucide-react";
 import { Throttled } from "@/components/Throttled";
 import { centsToBRL } from "@/lib/money";
 import { limitMarketplace } from "@/lib/rate-limit";
@@ -43,7 +43,7 @@ export default async function PerfilPublicoPage({
       : "Sem vagas no momento";
 
   return (
-    <main className="mx-auto min-h-dvh max-w-lg pb-28">
+    <main className="mx-auto min-h-dvh max-w-lg pb-40">
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photo} alt={`Van de ${d.driver_name}`} className="h-56 w-full object-cover" />
@@ -93,17 +93,33 @@ export default async function PerfilPublicoPage({
 
       <div className="fixed inset-x-0 bottom-0 border-t border-navy-900/10 bg-white/95 p-4 backdrop-blur">
         <div className="mx-auto max-w-lg">
-          {d.phone && (
-            <a
-              href={whatsappUrl(d.phone, d.driver_name)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
-            >
-              <MessageCircle className="h-5 w-5" aria-hidden />
-              Chamar no WhatsApp
-            </a>
-          )}
+          <div className="flex flex-col gap-2">
+            {/* Só existe se o motorista ligou "receber pedidos pela vitrine". */}
+            {d.request_token && (
+              <Link
+                href={`/captacao/${d.request_token}`}
+                className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
+              >
+                <UserPlus className="h-5 w-5" aria-hidden />
+                Solicitar vaga
+              </Link>
+            )}
+            {d.phone && (
+              <a
+                href={whatsappUrl(d.phone, d.driver_name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center justify-center gap-2 rounded-xl py-3 font-semibold text-navy-900 ${
+                  d.request_token
+                    ? "border border-navy-900/15 bg-white"
+                    : "bg-yellow-400"
+                }`}
+              >
+                <MessageCircle className="h-5 w-5" aria-hidden />
+                Chamar no WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </main>

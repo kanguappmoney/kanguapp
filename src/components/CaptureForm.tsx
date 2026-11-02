@@ -11,9 +11,12 @@ const initial: SubmitState = { error: null };
 export function CaptureForm({
   token,
   needsAccount,
+  generic = false,
 }: {
   token: string;
   needsAccount: boolean;
+  // Link genérico (vitrine): turno e escola NÃO vêm travados — o pai preenche.
+  generic?: boolean;
 }) {
   const action = submitCapture.bind(null, token);
   const [state, formAction, pending] = useActionState(action, initial);
@@ -43,6 +46,31 @@ export function CaptureForm({
           required={false}
         />
       </section>
+
+      {generic && (
+        <section className="space-y-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
+            Escola e turno
+          </h2>
+          <Field label="Escola" name="school" placeholder="Nome da escola" autoComplete="off" />
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-navy-800">Turno</span>
+            <select
+              name="shift"
+              required
+              defaultValue=""
+              className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
+            >
+              <option value="" disabled>
+                Selecione
+              </option>
+              <option value="morning">Manhã</option>
+              <option value="afternoon">Tarde</option>
+              <option value="integral">Integral</option>
+            </select>
+          </label>
+        </section>
+      )}
 
       <section className="space-y-4">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">

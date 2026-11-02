@@ -22,6 +22,7 @@ export interface Driver {
   price_min_cents: number;
   price_max_cents: number;
   phone: string | null; // só no modo perfil
+  request_token: string | null; // link genérico ativo (opt-in); só no modo perfil
   service_cities: string;
   service_neighborhoods: string;
   service_schools: string;
