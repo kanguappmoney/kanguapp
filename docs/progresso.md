@@ -458,7 +458,7 @@ financeiro + despesas** (migration 035).
   certo; HTML anônimo do formulário traz escola, turno, nome da criança, conta e aceite de Termos; pedido na
   fila aparece com "(informado pelo pai)" e o motorista aprova pela tela → aluno `active` com a escola/turno do
   pai e responsável vinculado (conferido no banco); desligar → botão some e o link antigo mostra "revogado".
-  tsc limpo, console sem erros. **NÃO feito pela interface:** o ENVIO do pai pelo formulário (exigiria criar conta
+  tsc limpo, console sem erros. **(Resolvido no teste manual abaixo.) Antes, NÃO feito pela interface:** o ENVIO do pai pelo formulário (exigiria criar conta
   de responsável em produção pela UI) — o envio está provado no banco (teste 7/7, chamando `submit_capture` como o
   responsável) e, na validação visual, o pedido foi inserido por SQL numa conta sintética; o clique real do pai
   fica nos testes manuais do Abner. Dados de teste removidos (aluno, submissão, responsável sintético, links
@@ -467,6 +467,25 @@ financeiro + despesas** (migration 035).
   confere na aprovação, mas não casa com `service_schools` (Endereço 2.0, seção 10); (b) o token genérico fica
   visível a qualquer um que abra o perfil — se vazar para spam, desligar/religar gira o token; (c) sem limite de
   pedidos por IP nesse formulário (o cadastro de pai já exige conta).
+  **✅ Frente E.1 — caminho COMPLETO provado pela interface (não só backend).** Teste manual ponta a ponta
+  (2026-11-02), sem atalho de SQL no fluxo do pai: com o toggle ligado pelo clique no perfil de teste, o
+  motorista aparece em `/buscar`; o perfil mostra "Solicitar vaga"; o clique abre `/captacao/<token>` genérico;
+  **o pai criou a conta de responsável sintética pelo formulário real** (nome, e-mail, senha, aceite dos Termos),
+  digitou escola e turno livres, endereço pelo autocomplete (geocodificado) e enviou — esse passo foi feito
+  por **Abner**, numa janela anônima (a criação de conta e a senha não são ações que o Claude executa).
+  Resultado conferido no banco: submissão `pending` criada pelo `submit_capture` real, com `child_school`/
+  `child_shift` do pai; responsável com papel `guardian`, Termos aceitos e **e-mail sem exigir confirmação**
+  (o Supabase do projeto está com confirmação desligada — o fluxo conclui no mesmo envio). A fila do motorista
+  mostrou "Escola E2E Teste · Manhã (informado pelo pai)", data de nascimento, endereço "localizado" e telefone;
+  **aprovada pela tela**, a submissão virou `approved` e o aluno nasceu `active` com a escola e o turno do pai,
+  nascimento, coordenada, responsável (nome/e-mail da conta) e vínculo em `guardian_student`. tsc limpo, console
+  sem erros. **Limpeza e resíduo = 0** (conferido por contagem): conta do pai em `auth.users`/`auth.identities`,
+  `public.users`, `guardians`, vínculos, submissões, aluno, notificações, links genéricos do motorista de teste,
+  foto, campos do perfil e prefixo `TESTE-1` — o motorista de teste voltou a ter os 2 alunos originais, 0 visíveis
+  na vitrine e sem prefixo. **Achado fora do escopo (não é do fixture):** existem 3 links genéricos de OUTRO
+  motorista ("Kangu App", criados 14:34–14:35 UTC: revogado, revogado, **ativo**) — alguém ligou/desligou/ligou o
+  toggle nessa conta; o último segue ativo, ou seja, o perfil dele (se estiver completo e listado) mostra
+  "Solicitar vaga". Não toquei; se foi teste, é só desligar o toggle nessa conta.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1336,6 +1355,12 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   usa o que o pai informou). `/buscar/[id]` mostra "Solicitar vaga" só com o genérico ativo; senão, só o
   WhatsApp. Migration 039; testes de guarda 7/7 (captacao_generica) e 7/7 (marketplace_view). Validado no
   navegador; envio real do pai pela UI fica para o teste manual. Banco limpo.
+
+- **Frente E.1 — teste manual ponta a ponta:** o pai (conta sintética criada pelo formulário real, numa janela
+  anônima, por Abner) enviou escola e turno livres pelo link genérico; a fila do motorista mostrou "(informado
+  pelo pai)"; aprovado pela tela → aluno ativo correto. Conta, aluno, vínculos e dados de teste removidos
+  (resíduo 0). Confirmação de e-mail está desligada no projeto. Achado: 3 links genéricos de outro motorista
+  ("Kangu App"), um ativo.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
