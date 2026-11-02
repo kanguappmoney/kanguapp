@@ -288,10 +288,10 @@ financeiro + despesas** (migration 035).
   deploy de produção concluído. Cabeçalho agora `x-vercel-id: gru1::gru1::…` (antes `gru1::iad1::…`).
   **Baseline SEM login** (`/convite/<token-inexistente>`, 10 rodadas, `curl`): `iad1` mediana ~714 ms
   (489–1465) → `gru1` mediana ~160 ms (108–350), ~4,5× menor. **Falta:** medir COM login as 3 telas
-  (alunos, home, Modo Direção) — o "antes" logado em `iad1` não foi tirado (decisão: sem login no antes),
-  então a comparação logada é só em `gru1` vs. os 750–1700 ms do dev (não comparáveis). Confirmar com o
-  Abner antes de pedir login em produção. Esqueletos (`1a03cbc`) agora em produção: medir o ganho de
-  prefetch quando houver login.
+  (alunos, home, Modo Direção) — **decisão do Abner (2026-11-02): medição logada dispensada.** A
+  baseline sem login (714 → ~160 ms) é confirmação suficiente do ganho da região; o "antes" logado em
+  `iad1` nunca foi tirado, então não haveria comparação limpa. **Frente FECHADA.** A validação visual
+  das 3 telas (e do esqueleto com prefetch em produção) fica para os testes manuais já pendentes do Abner.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
