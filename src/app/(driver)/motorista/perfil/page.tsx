@@ -17,6 +17,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { TrackingModeToggle } from "@/components/TrackingModeToggle";
+import { centsToBRL } from "@/lib/money";
 import { DriverPhotoUploader } from "@/components/DriverPhotoUploader";
 import { DriverActions } from "@/components/DriverHeaderActions";
 import { getDriverHeader } from "@/lib/driver-header";
@@ -36,7 +37,9 @@ export default async function PerfilMotoristaPage() {
 
   const { data: profile } = await supabase
     .from("driver_profiles")
-    .select("parent_tracking_mode, verification, address, photo_path, subscription_status")
+    .select(
+      "parent_tracking_mode, verification, address, photo_path, subscription_status, marketplace_listed, van_photo_path, service_cities, price_min_cents, price_max_cents",
+    )
     .eq("user_id", user!.id)
     .single();
 
@@ -145,6 +148,46 @@ export default async function PerfilMotoristaPage() {
             Nenhum veículo cadastrado. Toque em “Editar perfil” para adicionar.
           </Card>
         )}
+
+        {/* Marketplace — resumo; edição em Editar perfil */}
+        <SectionTitle>Marketplace</SectionTitle>
+        <Card className="overflow-hidden p-0">
+          {profile?.van_photo_path && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={
+                supabase.storage
+                  .from("van-photos")
+                  .getPublicUrl(profile.van_photo_path).data.publicUrl
+              }
+              alt="Foto da van"
+              className="h-36 w-full object-cover"
+            />
+          )}
+          <div className="p-4 text-sm">
+            <p
+              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                profile?.marketplace_listed
+                  ? "bg-green-100 text-green-800"
+                  : "bg-navy-900/5 text-navy-700/70"
+              }`}
+            >
+              {profile?.marketplace_listed ? "Aparecendo" : "Não aparece"}
+            </p>
+            {(profile?.price_min_cents || profile?.price_max_cents) && (
+              <p className="mt-2 text-navy-700/70">
+                {[profile?.price_min_cents, profile?.price_max_cents]
+                  .map((c) => (c ? centsToBRL(c) : null))
+                  .filter(Boolean)
+                  .join(" a ")}{" "}
+                / mês
+              </p>
+            )}
+            {profile?.service_cities && (
+              <p className="mt-1 text-navy-700/70">{profile.service_cities}</p>
+            )}
+          </div>
+        </Card>
 
         {/* Números */}
         <div className="mt-3 grid grid-cols-2 gap-3">

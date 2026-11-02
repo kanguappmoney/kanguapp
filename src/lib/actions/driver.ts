@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { brlToCents } from "@/lib/money";
 
 export type DriverFormState = { error: string | null };
 
@@ -61,9 +62,54 @@ export async function updateDriverProfile(
   const subscription_status =
     subRaw === "active" || subRaw === "paused" ? subRaw : "trial";
 
+  // Marketplace (Frente C). Tudo opcional; texto livre sem normalizar (decisão da R11).
+  const text = (k: string) => {
+    const v = String(formData.get(k) ?? "").trim();
+    return v === "" ? null : v;
+  };
+  const intOrNull = (k: string) => {
+    const v = String(formData.get(k) ?? "").trim();
+    return v === "" ? null : Number(v);
+  };
+  const age_min = intOrNull("age_min");
+  const age_max = intOrNull("age_max");
+  for (const a of [age_min, age_max])
+    if (a !== null && (!Number.isInteger(a) || a < 0 || a > 30))
+      return { error: "Faixa etária inválida (0 a 30 anos)." };
+  if (age_min !== null && age_max !== null && age_min > age_max)
+    return { error: "Idade mínima maior que a máxima." };
+
+  const priceField = (k: string) => {
+    const v = String(formData.get(k) ?? "").trim();
+    return v === "" ? { cents: null, bad: false } : { cents: brlToCents(v), bad: brlToCents(v) === null };
+  };
+  const pMin = priceField("price_min");
+  const pMax = priceField("price_max");
+  if (pMin.bad || pMax.bad) return { error: "Faixa de preço inválida." };
+  if (pMin.cents !== null && pMax.cents !== null && pMin.cents > pMax.cents)
+    return { error: "Preço mínimo maior que o máximo." };
+
+  const SHIFTS = ["morning", "afternoon", "integral"];
+  const service_shifts = formData
+    .getAll("service_shifts")
+    .map(String)
+    .filter((s, i, arr) => SHIFTS.includes(s) && arr.indexOf(s) === i);
+
   const { error: dErr } = await supabase
     .from("driver_profiles")
-    .update({ address, subscription_status })
+    .update({
+      address,
+      subscription_status,
+      service_cities: text("service_cities"),
+      service_neighborhoods: text("service_neighborhoods"),
+      service_schools: text("service_schools"),
+      age_min,
+      age_max,
+      service_shifts,
+      price_min_cents: pMin.cents,
+      price_max_cents: pMax.cents,
+      marketplace_listed: formData.get("marketplace_listed") === "on",
+    })
     .eq("user_id", user.id);
   if (dErr) return { error: dErr.message };
 
@@ -98,6 +144,23 @@ export async function setDriverPhoto(photoPath: string) {
     .update({ photo_path: photoPath })
     .eq("user_id", user.id);
   revalidatePath("/motorista/perfil");
+}
+
+// Grava o caminho da foto da van (bucket PÚBLICO van-photos; RLS dono-only na escrita).
+export async function setVanPhoto(photoPath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  // O caminho precisa estar na pasta do próprio motorista (nunca apontar p/ foto alheia).
+  if (!photoPath.startsWith(`${user.id}/`)) return;
+  await supabase
+    .from("driver_profiles")
+    .update({ van_photo_path: photoPath })
+    .eq("user_id", user.id);
+  revalidatePath("/motorista/perfil");
+  revalidatePath("/motorista/perfil/editar");
 }
 
 // G6 — motorista escolhe como os pais dele acompanham a rota.

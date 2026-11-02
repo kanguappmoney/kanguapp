@@ -318,6 +318,35 @@ financeiro + despesas** (migration 035).
   tela inicial sai amarelo sem cantos pretos e o app abre em tela cheia (standalone); (c) abrir
   `/baixar` por um navegador dentro de app (Instagram/WhatsApp) e ver o aviso "abra no Safari".
   Fora de escopo: cache/offline (SW segue mínimo), link para `/baixar` dentro do app/na tela de login.
+  **Marketplace — Frente C (perfil público do motorista): PRONTA** (frente C de um bloco maior; a
+  busca pública / leitura anônima é a frente seguinte e NÃO foi iniciada). **Migration 036** (aplicada
+  pelo SQL Editor; catálogo confirma 10 colunas, bucket, policy e check): `driver_profiles` ganhou
+  `service_cities`, `service_neighborhoods`, `service_schools` (texto livre, **sem normalizar** — mesma
+  decisão da R11), `age_min`/`age_max` (0–30), `service_shifts student_shift[]` (manhã/tarde/integral),
+  `price_min_cents`/`price_max_cents` (faixa PÚBLICA de referência, **independente** de
+  `students.monthly_fee_cents` — o valor real por aluno), `marketplace_listed` (nasce `false`) e
+  `van_photo_path`; check `driver_profiles_marketplace_ranges` (mín ≤ máx, preço > 0). Tudo nullable/
+  default — motoristas antigos seguem válidos. **Nenhuma policy nova em `driver_profiles`:** a leitura
+  segue self/vinculado, então o **endereço residencial NÃO fica público** por esta frente (a regra da
+  seção 10 vale para a frente da busca: usar projeção/visão separada, nunca `select *`). **Bucket
+  `van-photos` PÚBLICO** (distinto do privado `driver-photos`, que segue `public=false`): só JPG/PNG/WebP,
+  até 5 MB; escrita dono-only por RLS (pasta = `auth.uid()`); sem policy de SELECT p/ anônimo (a URL
+  pública serve o arquivo, mas ninguém lista o bucket). Upload (`VanPhotoUploader`) usa **caminho novo a
+  cada envio** (`<id>/van-<timestamp>`) porque a URL pública é cacheada pelo CDN, e apaga a foto anterior;
+  `setVanPhoto` só aceita caminho dentro da pasta do próprio motorista. UI: seção "Marketplace" em
+  Editar perfil (foto da van, cidades/bairros/escolas, idade mín/máx, chips de turno, faixa de preço em
+  R$, toggle) e card-resumo "Marketplace" em Configurações (foto, Aparecendo/Não aparece, faixa, cidades).
+  **Validado no navegador (dev, mobile):** os campos salvam e re-hidratam (inclusive turnos e preço
+  `250,00`/`400,00`); toggle liga/desliga e persiste (texto de apoio acompanha o estado); idade mín > máx
+  é recusada pelo servidor com mensagem; a foto da van sobe, aparece no preview e depois no card (URL
+  pública), a troca remove a anterior (URL antiga → 400) e a nova responde 200 `image/jpeg` **sem
+  login**; `driver-photos` segue negando acesso público. tsc limpo, console sem erros. Dados de teste
+  removidos (foto apagada pelo caminho exato; campos do perfil zerados; prefixo `TESTE-1` revertido —
+  a conta de teste segue **sem prefixo**, como estava). **Decisões em aberto p/ as próximas frentes:**
+  o toggle "aparecer" **não exige** nada hoje (perfil vazio pode ligar) — decidir o que é obrigatório p/
+  listar (ex.: cidade + faixa + foto) antes de a busca existir; a foto da van é pública de fato — o
+  aviso na tela pede para evitar placa e pessoas, mas não há moderação. Sem CNH (decisão de escopo
+  mantida).
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1161,6 +1190,12 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   (Android: `beforeinstallprompt` + fallback manual; iOS: passo a passo do Safari; desktop: "abra no
   celular"). Validado no navegador, tsc e testes (5/5). Instalação real em Android/iPhone pendente do
   Abner (ver Pendências em aberto).
+
+- **Marketplace — Frente C (perfil público):** migration 036 (cidades/bairros/escolas em texto livre,
+  faixa etária, turnos, faixa de preço pública em centavos separada do valor real por aluno, toggle
+  "aparecer no marketplace", foto da van) + bucket PÚBLICO `van-photos` (escrita dono-only; o
+  `driver-photos` privado intocado). Seção "Marketplace" em Editar perfil e card-resumo em
+  Configurações. Validado no navegador; banco limpo ao final. Próxima: Frente D (não iniciada).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 

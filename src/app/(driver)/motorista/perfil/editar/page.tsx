@@ -10,7 +10,9 @@ export default async function EditarPerfilPage() {
 
   const { data: profile } = await supabase
     .from("driver_profiles")
-    .select("address, subscription_status")
+    .select(
+      "address, subscription_status, service_cities, service_neighborhoods, service_schools, age_min, age_max, service_shifts, price_min_cents, price_max_cents, marketplace_listed, van_photo_path",
+    )
     .eq("user_id", user!.id)
     .single();
   const { data: userRow } = await supabase
@@ -24,6 +26,11 @@ export default async function EditarPerfilPage() {
     .eq("driver_id", user!.id)
     .limit(1)
     .maybeSingle();
+
+  const vanUrl = profile?.van_photo_path
+    ? supabase.storage.from("van-photos").getPublicUrl(profile.van_photo_path).data
+        .publicUrl
+    : null;
 
   return (
     <>
@@ -47,6 +54,18 @@ export default async function EditarPerfilPage() {
             color: vehicle?.color ?? null,
             capacity: vehicle?.capacity ?? null,
             subscription_status: profile?.subscription_status ?? "trial",
+            service_cities: profile?.service_cities ?? null,
+            service_neighborhoods: profile?.service_neighborhoods ?? null,
+            service_schools: profile?.service_schools ?? null,
+            age_min: profile?.age_min ?? null,
+            age_max: profile?.age_max ?? null,
+            service_shifts: (profile?.service_shifts as string[] | null) ?? [],
+            price_min_cents: profile?.price_min_cents ?? null,
+            price_max_cents: profile?.price_max_cents ?? null,
+            marketplace_listed: profile?.marketplace_listed ?? false,
+            van_photo_path: profile?.van_photo_path ?? null,
+            van_photo_url: vanUrl,
+            driver_id: user!.id,
           }}
         />
       </div>
