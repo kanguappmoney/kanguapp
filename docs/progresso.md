@@ -283,21 +283,15 @@ financeiro + despesas** (migration 035).
 - **Sininho do motorista vazio por desenho** — nada gera `notifications` para o motorista ainda
   (o único gerador, `register_occurrence`, escreve para os pais). O badge com contagem > 0 nunca
   foi visto na tela. Definir quais eventos notificam o motorista quando houver demanda.
-- **⏸ ONDE PAROU (2026-11-02) — região da Vercel + push.** Estado exato:
-  - **Feito:** commit `1a03cbc` (esqueletos `loading.tsx` + "Iniciando…") — **sem push**. Também sem
-    push: `09a5e25` + `1234a75` (toque: `:active`/`touch-action`/emojis). O remoto está em `4f1ecd9`.
-  - **Região ainda em `iad1`:** confirmado pelo cabeçalho `x-vercel-id: gru1::iad1::…` — borda em São
-    Paulo, mas a função roda em Washington, longe do Supabase `sa-east-1`. Não há `vercel.json`.
-  - **Baseline SEM login (produção, `iad1`):** `/convite/<token-inexistente>` (middleware + 1 RPC
-    ao Supabase), 10 rodadas: mediana **~714 ms** (489–1465 ms).
-  - **Faltam, nesta ordem:** (1) com login em produção (`house@domhub.com`), medir as 3 telas
-    (alunos, home, Modo Direção) ainda em `iad1` — o Modo Direção precisa de uma ida aberta (criar e
-    apagar pelo id depois); (2) trocar a região para **`gru1`** (`vercel.json` com
-    `"regions": ["gru1"]` e/ou Settings → Functions) e fazer o deploy; (3) medir de novo as mesmas 3
-    telas + a baseline sem login e **comparar** com o antes (não com os 750–1700 ms do dev, que não
-    são comparáveis); (4) **push de tudo** (`09a5e25`, `1234a75`, `1a03cbc` + a região) e registrar a
-    melhora real aqui.
-  - Banco limpo: execuções de teste do dia apagadas (0 na rota de teste).
+- **Região da Vercel → `gru1` (2026-11-02): FEITO e no ar.** `vercel.json` com `"regions": ["gru1"]`
+  (commit `ad2a6b5`), push de tudo para o `main` (`09a5e25`, `1234a75`, `1a03cbc`, `9aa3a4e`, `ad2a6b5`) e
+  deploy de produção concluído. Cabeçalho agora `x-vercel-id: gru1::gru1::…` (antes `gru1::iad1::…`).
+  **Baseline SEM login** (`/convite/<token-inexistente>`, 10 rodadas, `curl`): `iad1` mediana ~714 ms
+  (489–1465) → `gru1` mediana ~160 ms (108–350), ~4,5× menor. **Falta:** medir COM login as 3 telas
+  (alunos, home, Modo Direção) — o "antes" logado em `iad1` não foi tirado (decisão: sem login no antes),
+  então a comparação logada é só em `gru1` vs. os 750–1700 ms do dev (não comparáveis). Confirmar com o
+  Abner antes de pedir login em produção. Esqueletos (`1a03cbc`) agora em produção: medir o ganho de
+  prefetch quando houver login.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
