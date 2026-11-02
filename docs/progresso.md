@@ -287,7 +287,7 @@ financeiro + despesas** (migration 035).
   (commit `ad2a6b5`), push de tudo para o `main` (`09a5e25`, `1234a75`, `1a03cbc`, `9aa3a4e`, `ad2a6b5`) e
   deploy de produção concluído. Cabeçalho agora `x-vercel-id: gru1::gru1::…` (antes `gru1::iad1::…`).
   **Baseline SEM login** (`/convite/<token-inexistente>`, 10 rodadas, `curl`): `iad1` mediana ~714 ms
-  (489–1465) → `gru1` mediana ~160 ms (108–350), ~4,5× menor. **Falta:** medir COM login as 3 telas
+  (489–1465) → `gru1` mediana ~160 ms (108–350), ~4,5× menor. Medição COM login das 3 telas
   (alunos, home, Modo Direção) — **decisão do Abner (2026-11-02): medição logada dispensada.** A
   baseline sem login (714 → ~160 ms) é confirmação suficiente do ganho da região; o "antes" logado em
   `iad1` nunca foi tirado, então não haveria comparação limpa. **Frente FECHADA.** A validação visual
