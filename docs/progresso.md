@@ -283,8 +283,10 @@ financeiro + despesas** (migration 035).
 - **Sininho do motorista vazio por desenho** — nada gera `notifications` para o motorista ainda
   (o único gerador, `register_occurrence`, escreve para os pais). O badge com contagem > 0 nunca
   foi visto na tela. Definir quais eventos notificam o motorista quando houver demanda.
-- **Emoji na UI** contradiz a seção 1 ("ícones lucide, nunca emoji"): 🦘 na barra da Linha do tempo
-  do pai, 🗺️/📍 no toggle do G6, ➕ em "Nova rota"/"Adicionar aluno". Trocar por lucide/asset.
+- **Feedback durante a navegação** — o pressionado agora é instantâneo, mas depois de soltar o dedo a
+  tela segue parada até o servidor responder (750–1700 ms medidos no dev). Próximo passo sugerido:
+  `loading.tsx` (esqueleto) nas telas do motorista e/ou fixar a região da função da Vercel em
+  `gru1` (São Paulo), perto do Supabase `sa-east-1` — a medir em produção.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -788,6 +790,29 @@ trânsito, arte com a grafia certa ("Kangu", não "Cangu").
   trocando p/ Tarde → 0 ("Nenhum aluno com esses filtros"), turno de volta a "Todos" → 1; "+ Nova
   despesa" abre o sheet na Visão Geral, salva R$ 40, fecha e atualiza o painel (despesas R$ 40,
   lucro −R$ 40), e a despesa aparece igual na aba Despesas (removida depois). Console limpo.
+  **Toque: diagnóstico + feedback de pressionado + fim dos emojis: PRONTO.** **Investigado antes de
+  corrigir** (Android emulado, telas já compiladas, instrumentando `pointerdown` → `click` → resposta
+  RSC → 1ª mutação do DOM): `pointerdown`→`click` = **1–2 ms** (sem delay de toque); toque → resposta
+  do servidor = **750–1700 ms**; resposta → 1ª mudança na tela = **12–30 ms**; **nenhuma** mudança
+  visual antes da resposta. **Causa: falta de feedback, não atraso de toque** — cada tela do motorista
+  é renderizada no servidor (várias consultas ao Supabase), não há `loading.tsx` (o Next segura a
+  tela antiga até a nova chegar) e **nenhum** botão/card tinha estado `:active`. `touch-action:
+  manipulation` estava ausente no app inteiro, mas **não era a causa**: o viewport já é
+  `width=device-width, user-scalable=no`, que desliga o delay de 300 ms nos navegadores atuais (a
+  emulação também só envia clique de mouse). Hipótese **não medida** (exige login em produção): a
+  função da Vercel no padrão `iad1` (EUA) consultando o Supabase em `sa-east-1` alongaria essa espera.
+  **Correções:** (1) `touch-action: manipulation` + realce nativo do WebKit desligado em todo
+  clicável (`a`, `button`, `[role=button]`, `summary`, `label`, `select`, inputs de botão) em
+  `globals.css` (`@layer base`); (2) estado de **pressionado instantâneo só em CSS** (`:active` →
+  `opacity: .6`, sem transição, sem mudar layout), fora o arrastável (`.touch-none`: thumb do
+  DragConfirm e alça do sheet seguem `touch-action: none`) e o desabilitado; (3) **emojis
+  removidos** (regra da seção 1): 🗺️/📍 → `Map`/`MapPin` no toggle do G6, ➕ → `Plus` (Nova rota,
+  Adicionar aluno), 👤 → `User` (responsáveis), ✉️ → `Mail` (Convidar responsável), 🎉 → removido
+  ("Rota concluída."), 🦘 → **ícone da marca** na barra da Linha do tempo do pai (o lucide-react não
+  tem canguru — conferido no `.d.ts`). O ✓ (U+2713) é caractere de texto, não emoji — mantido.
+  Validado no navegador mobile emulado: lista de alunos, home (12/12 clicáveis com `manipulation`) e
+  Modo Direção (11/11; thumb e alça com `none`; arraste segue funcionando); ícones novos visíveis;
+  regra `:active` carregada (o pressionar em si não dá para segurar pela automação). Console limpo.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -1077,6 +1102,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
 - **Ranking top 5 escolas pelo NOME:** decisão do Abner revisada — agrupa por `students.school`
   (bruto), caindo no `school_address` só se o nome estiver vazio (mesma regra do filtro da aba
   Mensalidades). tsc limpo; **validação no navegador pendente** (sessão encerrada por limite de uso).
+
+- **Toque: diagnóstico + pressionado + emojis:** medido antes de corrigir — toque→click 1–2 ms;
+  toque→resposta do servidor 750–1700 ms, sem nenhuma mudança visual no meio; causa = falta de
+  feedback (sem `:active`, sem `loading.tsx`), não o delay de 300 ms (viewport já o desliga).
+  `touch-action: manipulation` + `:active` (opacidade, só CSS) globais, fora o arrastável; 7 emojis
+  trocados por lucide (o 🦘 pelo ícone da marca — lucide não tem canguru). Validado em lista de alunos,
+  home e Modo Direção (mobile emulado); console limpo.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
