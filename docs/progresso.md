@@ -283,10 +283,21 @@ financeiro + despesas** (migration 035).
 - **Sininho do motorista vazio por desenho** — nada gera `notifications` para o motorista ainda
   (o único gerador, `register_occurrence`, escreve para os pais). O badge com contagem > 0 nunca
   foi visto na tela. Definir quais eventos notificam o motorista quando houver demanda.
-- **Feedback durante a navegação** — o pressionado agora é instantâneo, mas depois de soltar o dedo a
-  tela segue parada até o servidor responder (750–1700 ms medidos no dev). Próximo passo sugerido:
-  `loading.tsx` (esqueleto) nas telas do motorista e/ou fixar a região da função da Vercel em
-  `gru1` (São Paulo), perto do Supabase `sa-east-1` — a medir em produção.
+- **⏸ ONDE PAROU (2026-11-02) — região da Vercel + push.** Estado exato:
+  - **Feito:** commit `1a03cbc` (esqueletos `loading.tsx` + "Iniciando…") — **sem push**. Também sem
+    push: `09a5e25` + `1234a75` (toque: `:active`/`touch-action`/emojis). O remoto está em `4f1ecd9`.
+  - **Região ainda em `iad1`:** confirmado pelo cabeçalho `x-vercel-id: gru1::iad1::…` — borda em São
+    Paulo, mas a função roda em Washington, longe do Supabase `sa-east-1`. Não há `vercel.json`.
+  - **Baseline SEM login (produção, `iad1`):** `/convite/<token-inexistente>` (middleware + 1 RPC
+    ao Supabase), 10 rodadas: mediana **~714 ms** (489–1465 ms).
+  - **Faltam, nesta ordem:** (1) com login em produção (`house@domhub.com`), medir as 3 telas
+    (alunos, home, Modo Direção) ainda em `iad1` — o Modo Direção precisa de uma ida aberta (criar e
+    apagar pelo id depois); (2) trocar a região para **`gru1`** (`vercel.json` com
+    `"regions": ["gru1"]` e/ou Settings → Functions) e fazer o deploy; (3) medir de novo as mesmas 3
+    telas + a baseline sem login e **comparar** com o antes (não com os 750–1700 ms do dev, que não
+    são comparáveis); (4) **push de tudo** (`09a5e25`, `1234a75`, `1a03cbc` + a região) e registrar a
+    melhora real aqui.
+  - Banco limpo: execuções de teste do dia apagadas (0 na rota de teste).
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -813,6 +824,16 @@ trânsito, arte com a grafia certa ("Kangu", não "Cangu").
   Validado no navegador mobile emulado: lista de alunos, home (12/12 clicáveis com `manipulation`) e
   Modo Direção (11/11; thumb e alça com `none`; arraste segue funcionando); ícones novos visíveis;
   regra `:active` carregada (o pressionar em si não dá para segurar pela automação). Console limpo.
+  **Esqueletos de carregamento + "Iniciando…": PRONTO (commit `1a03cbc`, SEM PUSH).** `loading.tsx`
+  em home, Rotas, Alunos, Financeiro e Modo Direção (+ Configurações e Notificações), no visual do app
+  (cabeçalho branco, cards, `animate-pulse`; o do Modo Direção imita a tela imersiva). A home foi para
+  o grupo de rota `(home)` (URL segue `/motorista`): sem isso o esqueleto da home valia para todas as
+  subtelas (Configurações mostrava contadores e mapa). "Iniciar ida/volta" é server action que grava
+  antes de redirecionar — o `loading.tsx` só entra depois do redirect (2,9 s parados medidos), então o
+  botão ganhou `PendingSubmit` (`useFormStatus`): "Iniciando…" + desabilitado no instante do toque.
+  Medido no localhost (dev não faz prefetch): esqueleto aparece em ~230–330 ms e some quando a tela
+  real chega, nas telas testadas (Alunos, Rotas, home, Configurações, Modo Direção). tsc e console
+  limpos. Em produção o prefetch deve trazer o esqueleto para perto de 0 ms — **ainda não medido**.
 
 **Fora do Modo Mapa v1 do PAI** (fase 2, decisão de escopo): Directions/traçado de ruas,
 Navigation SDK, "hora de sair" com trânsito, histórico de trajeto, marcadores de
@@ -1109,6 +1130,11 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   `touch-action: manipulation` + `:active` (opacidade, só CSS) globais, fora o arrastável; 7 emojis
   trocados por lucide (o 🦘 pelo ícone da marca — lucide não tem canguru). Validado em lista de alunos,
   home e Modo Direção (mobile emulado); console limpo.
+
+- **Esqueletos de carregamento + início da troca de região (parcial):** `loading.tsx` nas telas do
+  motorista (home em grupo `(home)` para o esqueleto não vazar), "Iniciando…" no Iniciar ida/volta.
+  Commit `1a03cbc`, sem push. Região confirmada em `iad1` (`x-vercel-id: gru1::iad1`); baseline sem
+  login ~714 ms. **Pausado** antes do login em produção — ver "ONDE PAROU" nas Pendências em aberto.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
