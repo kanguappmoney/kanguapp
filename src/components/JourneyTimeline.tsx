@@ -1,3 +1,4 @@
+import { Logo } from "@/components/Logo";
 // Linha do tempo do responsável (modo G6 'timeline'). Sem mapa, sem GPS.
 // Alimentada só pelos agregados de get_active_journey (route_events confirmados).
 
@@ -18,7 +19,7 @@ export interface Journey {
 }
 
 function statusLabel(j: Journey, child: JourneyChild): string {
-  if (j.ended) return "Rota concluída. 🎉";
+  if (j.ended) return "Rota concluída.";
   if (child.state === "absent")
     return `${firstName(child.name)} está marcado(a) como ausente hoje.`;
   if (child.state === "boarded")
@@ -65,12 +66,13 @@ export function JourneyTimeline({ journey }: { journey: Journey }) {
             style={{ width: `${stepPct}%` }}
           />
         </div>
+        {/* Canguru da marca (lucide não tem canguru; é o mesmo asset do Logo). */}
         <div
-          className="absolute -top-3.5 -translate-x-1/2 text-xl transition-all duration-500"
+          className="absolute -top-3 -translate-x-1/2 transition-all duration-500"
           style={{ left: `${stepPct}%` }}
           aria-hidden
         >
-          🦘
+          <Logo variant="icon" alt="" className="h-7 w-7" />
         </div>
       </div>
       <p className="text-xs text-navy-700/50">

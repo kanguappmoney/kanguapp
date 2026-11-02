@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { AppHeader, SectionTitle } from "@/components/ui";
 import { DriverActions } from "@/components/DriverHeaderActions";
 import { RouteRunList } from "@/components/RouteRunList";
@@ -18,9 +19,9 @@ export default async function RotasPage() {
         <div className="mt-4">
           <Link
             href="/motorista/rotas/nova"
-            className="block w-full rounded-xl bg-yellow-400 py-3 text-center font-semibold text-navy-900"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
           >
-            ➕ Nova rota
+            <Plus className="h-4 w-4" /> Nova rota
           </Link>
         </div>
 

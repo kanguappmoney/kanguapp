@@ -38,3 +38,35 @@ h3,
   font-family: var(--font-display);
   font-weight: 600;
 }
+
+/* Toque (mobile). Diagnóstico: o atraso percebido não vinha do toque (o click
+   dispara em ~1–2 ms; o viewport width=device-width já desliga o delay de
+   300 ms) e sim da FALTA DE FEEDBACK enquanto o servidor responde — nada mudava
+   na tela até a próxima página chegar. Por isso:
+   - touch-action: manipulation em tudo que é clicável (prevenção do delay de
+     300 ms/duplo toque em navegadores que ainda o aplicam);
+   - estado de pressionado instantâneo, só CSS (:active), sem re-render e sem
+     mexer em layout (opacidade, não tamanho). Fica de fora o que é arrastável
+     (.touch-none: thumb do DragConfirm, alça do bottom sheet) e o desabilitado.
+   O realce cinza nativo do WebKit sai — o :active o substitui. */
+@layer base {
+  a,
+  button,
+  [role="button"],
+  summary,
+  label,
+  select,
+  input[type="submit"],
+  input[type="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a:active:not(.touch-none),
+  button:not(:disabled):not(.touch-none):active,
+  [role="button"]:not([aria-disabled="true"]):not(.touch-none):active,
+  summary:active {
+    opacity: 0.6;
+    transition: none;
+  }
+}

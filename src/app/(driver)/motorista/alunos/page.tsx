@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Link2 as LinkIcon, ClipboardCheck } from "lucide-react";
+import { Link2 as LinkIcon, ClipboardCheck, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
 import { DriverActions } from "@/components/DriverHeaderActions";
@@ -54,9 +54,9 @@ export default async function AlunosPage() {
         <div className="mt-4 space-y-2">
           <Link
             href="/motorista/alunos/novo"
-            className="block w-full rounded-xl bg-yellow-400 py-3 text-center font-semibold text-navy-900"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
           >
-            ➕ Adicionar aluno
+            <Plus className="h-4 w-4" /> Adicionar aluno
           </Link>
           <Link
             href="/motorista/alunos/captacao"

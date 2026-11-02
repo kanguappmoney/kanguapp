@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
+import { Mail } from "lucide-react";
 import { createInvite, revokeInvite } from "@/lib/actions/students";
 
 interface Invite {
@@ -36,9 +37,15 @@ export function InvitePanel({
       <button
         onClick={() => startTransition(() => createInvite(studentId))}
         disabled={pending}
-        className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
       >
-        {pending ? "Gerando…" : "✉️ Convidar responsável"}
+        {pending ? (
+          "Gerando…"
+        ) : (
+          <>
+            <Mail className="h-4 w-4" /> Convidar responsável
+          </>
+        )}
       </button>
     );
   }

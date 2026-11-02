@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, User } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, SectionTitle } from "@/components/ui";
@@ -136,8 +136,8 @@ export default async function DetalheAlunoPage({
         {guardians?.length ? (
           <Card className="space-y-1">
             {guardians.map((g) => (
-              <p key={g.id} className="text-sm text-navy-900">
-                👤 {g.full_name}
+              <p key={g.id} className="flex items-center gap-2 text-sm text-navy-900">
+                <User className="h-4 w-4 text-navy-700/50" /> {g.full_name}
               </p>
             ))}
           </Card>

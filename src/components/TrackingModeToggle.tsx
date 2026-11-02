@@ -1,22 +1,23 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Map as MapIcon, MapPin, type LucideIcon } from "lucide-react";
 import { setParentTrackingMode } from "@/lib/actions/driver";
 
 type Mode = "map" | "timeline";
 
-const OPTIONS: { value: Mode; title: string; desc: string; icon: string }[] = [
+const OPTIONS: { value: Mode; title: string; desc: string; icon: LucideIcon }[] = [
   {
     value: "map",
     title: "Mapa ao vivo",
     desc: "O pai vê a van no mapa durante a rota ativa.",
-    icon: "🗺️",
+    icon: MapIcon,
   },
   {
     value: "timeline",
     title: "Linha do tempo",
     desc: "Só o progresso por paradas, sem GPS. Mais privado e leve.",
-    icon: "📍",
+    icon: MapPin,
   },
 ];
 
@@ -45,7 +46,7 @@ export function TrackingModeToggle({ initial }: { initial: Mode }) {
                 : "border-navy-900/10 bg-white"
             }`}
           >
-            <span className="text-xl">{opt.icon}</span>
+            <opt.icon className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" />
             <span className="flex-1">
               <span className="block font-semibold text-navy-900">
                 {opt.title}
