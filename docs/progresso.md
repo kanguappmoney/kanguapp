@@ -347,6 +347,35 @@ financeiro + despesas** (migration 035).
   listar (ex.: cidade + faixa + foto) antes de a busca existir; a foto da van é pública de fato — o
   aviso na tela pede para evitar placa e pessoas, mas não há moderação. Sem CNH (decisão de escopo
   mantida).
+  **Marketplace — Frente D (vitrine pública anônima): PRONTA** (a tela de busca e o contato são a
+  frente seguinte; nada de UI aqui). **Migration 037** (SQL Editor; catálogo confirma a função
+  `SECURITY DEFINER`, `search_path` fixo, `execute` só p/ `anon`/`authenticated`): função
+  `public.marketplace_listing()` — a ÚNICA porta de leitura pública dos motoristas, com **whitelist
+  explícito de 13 colunas**: `driver_name`, `van_photo_path`, `van_model`, `spots_available` (capacidade
+  do veículo primário − alunos `active`, calculado, piso 0; só a CONTAGEM entra, nenhum dado de aluno),
+  `price_min_cents`/`price_max_cents`, `phone` (WhatsApp), `service_cities`/`service_neighborhoods`/
+  `service_schools`, `age_min`/`age_max`, `service_shifts`. **Sem `select *`** em lugar nenhum e **sem
+  policy nova** nas tabelas-base (anon segue sem ler `driver_profiles`/`users`/`vehicles`/`students`).
+  **Nunca sai:** endereço residencial, e-mail, CNH (`document_number`), prefixo, placa, cor, id como
+  coluna. Só aparece quem tem **tudo**: toggle ligado + prefixo/placa/modelo/cor (Frente A) + cidades,
+  bairros, escolas, idade mín/máx, ≥1 turno, preço mín/máx e foto da van (Frente C); "preenchido" =
+  não vazio após `btrim`. **Decisão minha, fora da lista pedida:** também exige **telefone** e nome —
+  é o único canal de contato exposto, listar sem ele é beco sem saída (tirar é uma linha na função).
+  **Teste de guarda `docs/tests/marketplace_view.sql` — 5/5 no banco** (chamando a função COMO `anon`):
+  (1) completo + toggle aparece, vagas = 12 (3 ativos + 1 arquivado de 15); (2) toggle desligado não
+  aparece, religar volta; (3) **19 requisitos faltando, um a um** (cidades/bairros/escolas nulos e só
+  espaços, idade mín e máx, nenhum turno, preço mín e máx, foto nula e vazia, prefixo/placa/modelo/cor/
+  sem veículo, telefone) — nenhum aparece, e restaurar cada um traz de volta (prova que foi AQUELE campo);
+  (4) a lista de colunas da função é EXATAMENTE o whitelist e a linha de um motorista completo não
+  carrega endereço, e-mail, CNH, prefixo, placa, cor, id nem nome de aluno (valores-isca no fixture);
+  (5) anon não lê as tabelas-base por fora da função e a função é `SECURITY DEFINER` com `search_path`
+  fixo. Fixture sintético (`...0e0001`) com rollback; banco conferido sem resíduo. **Anotação:** o
+  uuid do motorista aparece DENTRO de `van_photo_path` (a policy do bucket exige a pasta =
+  `auth.uid()`), por desenho — uuid não é segredo, a barreira é a RLS. **Em aberto p/ a frente da
+  busca:** (a) filtros (cidade/escola/turno) devem rodar sobre ESTA função, nunca nas tabelas; (b) a
+  função devolve a lista inteira — paginar/limitar antes de haver muitos motoristas; (c) assinatura
+  `paused` não tira o motorista da vitrine (não foi pedido) — decidir; (d) o contato leva o telefone
+  em claro p/ qualquer anônimo (é o pedido), considerar limitar raspagem em massa (rate limit na rota).
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1196,6 +1225,12 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   "aparecer no marketplace", foto da van) + bucket PÚBLICO `van-photos` (escrita dono-only; o
   `driver-photos` privado intocado). Seção "Marketplace" em Editar perfil e card-resumo em
   Configurações. Validado no navegador; banco limpo ao final. Próxima: Frente D (não iniciada).
+
+- **Marketplace — Frente D (vitrine pública):** migration 037, função `marketplace_listing()`
+  (`SECURITY DEFINER`, whitelist de 13 colunas, sem `select *`, sem policy nova nas tabelas-base) que só
+  lista motorista com toggle ligado + perfil completo + todos os campos da Frente C + telefone. Teste de
+  guarda `docs/tests/marketplace_view.sql` 5/5 como `anon` (aparece/não aparece, 19 requisitos um a um,
+  colunas = whitelist exato sem dado restrito, tabelas-base fechadas). Sem UI. Próxima: Frente E (não iniciada).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
