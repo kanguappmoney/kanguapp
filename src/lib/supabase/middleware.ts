@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   "/termos",
   "/privacidade",
   "/baixar",
+  "/buscar",
 ];
 
 function isPublic(pathname: string) {

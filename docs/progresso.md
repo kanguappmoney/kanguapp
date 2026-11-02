@@ -376,6 +376,58 @@ financeiro + despesas** (migration 035).
   função devolve a lista inteira — paginar/limitar antes de haver muitos motoristas; (c) assinatura
   `paused` não tira o motorista da vitrine (não foi pedido) — decidir; (d) o contato leva o telefone
   em claro p/ qualquer anônimo (é o pedido), considerar limitar raspagem em massa (rate limit na rota).
+  **Marketplace — Frente E (busca pública + perfil público): PRONTA, EXCETO "Solicitar vaga" (parado de
+  propósito — ver o gap abaixo).** **Banco (migration 038, commit `6db8c2a`):** `marketplace_listing(...)`
+  agora filtra e pagina DENTRO da função — `p_city`, `p_neighborhood`, `p_school`, `p_child_age`, `p_shift`,
+  `p_limit` (1–50, padrão 12), `p_offset`, `p_public_id` — e devolve `total_count` (janela, p/ a paginação).
+  Visibilidade nova: `subscription_status in ('active','trial')` (o enum só tem active/trial/paused, não existe
+  'canceled'). A regra de visibilidade ficou em UM lugar (`marketplace_visible()`, interna, **fechada** a
+  anon/authenticated); listagem e opções chamam ela. `public_id` = uuid **opaco** (coluna nova, sem relação
+  com o id do usuário) é o que vai na URL do perfil. **Telefone só no modo perfil** (`p_public_id`), nulo na
+  listagem. Novo `marketplace_filter_options()`: as listas dos filtros vêm SÓ de motoristas visíveis.
+  **Reconciliação das "listas estruturadas":** o dado é texto livre (decisão da R11), então a lista é
+  DERIVADA — cada campo é cortado em vírgula/ponto-e-vírgula/quebra de linha, sem diferença de maiúsculas
+  (acento conta: "Mauá" ≠ "Maua"; quem digitar diferente vira opção separada). Estruturar de verdade
+  (cidade/escola normalizadas) é o "Endereço 2.0" da seção 10. **Teste de guarda `marketplace_view.sql` 7/7**
+  (agora **20** requisitos um a um, somando "assinatura pausada"; `trial` e `active` aparecem; 18 combinações
+  de filtro; paginação/limit/offset/total e saneamento de limit 0 e offset negativo; telefone só no perfil;
+  opções só de visíveis; funções internas fechadas a anon). Achado do teste: o check 3 restaura campos com
+  valores simplificados — o teste repõe o fixture antes dos filtros. **Telas (sem login, `/buscar` em
+  `PUBLIC_PATHS`):** `/buscar` (filtros cidade/bairro/escola/idade/turno por GET, resultados paginados de 10,
+  cards com foto da van, nome, modelo, vagas e faixa de preço; mensagem p/ página inexistente e sem
+  resultado) e `/buscar/[id]` (foto, vagas, mensalidade-referência, idade, turnos, cidades/bairros/escolas e
+  botão "Chamar no WhatsApp" `wa.me/55…` com texto pronto; `robots: noindex`; id inválido ou motorista oculto
+  → 404). Link "Buscar motoristas" na tela de login. **Rate limit por IP** (`lib/rate-limit`, em memória, janela
+  deslizante): **busca 30/min, perfil 15/min** (o telefone só sai no perfil); excedeu → página "Muitas buscas
+  em pouco tempo" com os segundos de espera (status HTTP segue 200). Cards com `prefetch={false}` (prefetch
+  gastaria o limite do perfil). **Limites do rate limit — dito sem enfeitar:** o contador vive na instância
+  da função (na Vercel cada instância conta por si e zera no cold start) e a chave anon do Supabase permite
+  chamar a função direto, fora das telas; por isso o banco também entrega o telefone um por vez. Teto firme =
+  contador compartilhado (Redis/tabela) ou chamar o banco só pelo servidor com a service key. **Validado:**
+  como anônimo via curl (sem redirect; 12 motoristas, 10 + 2 por página, página 3 com aviso; HTML da lista sem
+  telefone; perfil com `wa.me`); no navegador (mobile) — filtro combinado Mauá + Integral + idade 15 devolve
+  exatamente 3 (08, 10, 12) e preserva os campos, paginação mantém o filtro, card → perfil, link do WhatsApp com
+  `target=_blank rel=noopener`; rate limit: 30 ok e a 31ª bloqueada na busca, 15 ok e a 16ª no perfil, outro IP
+  não afetado; 404 p/ id inválido e inexistente. tsc limpo, console sem erros. Dados de teste (13 motoristas
+  sintéticos — 1 pausado, que ficou de fora, e a foto de fixture) criados e removidos por id exato; banco
+  conferido sem resíduo (0 usuários, 0 perfis, 0 veículos, 0 visíveis).
+  **⛔ "Solicitar vaga" — GAP, parado antes de inventar fluxo.** Reconciliação com a captação atual
+  (`capture_links`, migrations 020–022): o link é `(driver_id, shift, school, token, status)` — **um** turno e
+  **uma** escola (texto livre) por link, `token` é segredo por design ("segredo do link /captacao/<token>"), RLS
+  dono-only, e o pai só o conhece porque o motorista o **mandou** (seção 10: "ao fechar, o motorista manda o link
+  de captação"). Dá para casar tecnicamente (escola + turno escolhidos na busca = link ativo do motorista com a
+  mesma escola e turno, comparando texto sem caixa), **mas:** (1) a escola da vitrine (`service_schools`) e a do
+  link (`capture_links.school`) são dois textos livres digitados à parte — só casam por igualdade exata, então
+  muitos motoristas não teriam match; (2) rotear exige uma função nova que **entrega o token a anônimos** — vira
+  público um segredo hoje privado: qualquer um com o `public_id` mandaria cadastro de criança para a fila de
+  qualquer motorista (a fila exige aprovação, mas vira spam/enumeração e muda o desenho da seção 10, que põe o
+  contato fora do app); (3) sem match não existe destino. **Decisão necessária (Abner):** (a) manter o contato
+  fora do app (WhatsApp) e NÃO ter "Solicitar vaga" — é o que está construído; (b) link de captação
+  **público opt-in** por motorista (flag "aceitar pedidos pela vitrine", um link dedicado, não o do grupo) —
+  fluxo novo; (c) "pedido de contato" próprio (tabela + aviso ao motorista, sem token). Nada disso foi
+  construído. **Em aberto:** link para `/buscar` além do login (ex.: `/baixar`, landing); `noindex` no perfil
+  enquanto a busca não for aberta de propósito; opções dos filtros hoje listam tudo (sem busca por texto) —
+  ok para poucos motoristas.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1231,6 +1283,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   lista motorista com toggle ligado + perfil completo + todos os campos da Frente C + telefone. Teste de
   guarda `docs/tests/marketplace_view.sql` 5/5 como `anon` (aparece/não aparece, 19 requisitos um a um,
   colunas = whitelist exato sem dado restrito, tabelas-base fechadas). Sem UI. Próxima: Frente E (não iniciada).
+
+- **Marketplace — Frente E (busca + perfil público):** `marketplace_listing` ganhou filtros (cidade, bairro,
+  escola, idade, turno), paginação e `public_id` dentro do banco, assinatura active/trial como requisito e
+  telefone só no perfil (migration 038; teste de guarda 7/7 com 20 requisitos). Telas públicas `/buscar` e
+  `/buscar/[id]` com WhatsApp direto e rate limit por IP (busca 30/min, perfil 15/min; em memória, limites
+  documentados). "Solicitar vaga" NÃO construído: o link de captação é um segredo por (turno + escola) e rotear
+  exigiria publicar o token — gap descrito acima, aguardando decisão. Validado no navegador; banco limpo.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 

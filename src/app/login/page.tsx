@@ -49,6 +49,12 @@ export default function LoginPage() {
       <p className="mt-2 text-center text-xs text-navy-700/50">
         Responsáveis entram pelo link de convite do motorista.
       </p>
+      <p className="mt-4 text-center text-sm text-navy-700/70">
+        Procura um motorista para o seu filho?{" "}
+        <Link href="/buscar" className="font-semibold text-navy-900 underline">
+          Buscar motoristas
+        </Link>
+      </p>
     </main>
   );
 }
