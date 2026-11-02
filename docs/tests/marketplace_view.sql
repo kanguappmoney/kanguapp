@@ -252,7 +252,7 @@ declare
   cols     text[];
   expected text[] := array[
     'age_max','age_min','driver_name','phone','price_max_cents','price_min_cents',
-    'public_id','service_cities','service_neighborhoods','service_schools','service_shifts',
+    'public_id','request_token','service_cities','service_neighborhoods','service_schools','service_shifts',
     'spots_available','total_count','van_model','van_photo_path'];
   -- Só as colunas de SAÍDA (modo 't'); os parâmetros de filtro (p_*) são entrada.
   r jsonb; txt text; bad text;
