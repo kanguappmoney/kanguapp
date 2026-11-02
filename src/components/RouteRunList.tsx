@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Pencil, CalendarClock, Clock } from "lucide-react";
 import { Card, Placeholder } from "@/components/ui";
 import { startOrReview } from "@/lib/actions/routes";
+import { PendingSubmit } from "@/components/PendingSubmit";
 import {
   execKey,
   type RouteWithStops,
@@ -182,9 +183,12 @@ function LegControl({
 
   return (
     <form action={startOrReview.bind(null, routeId, leg)}>
-      <button className="w-full rounded-xl bg-yellow-400 py-2.5 text-sm font-semibold text-navy-900">
+      <PendingSubmit
+        pendingLabel="Iniciando…"
+        className="w-full rounded-xl bg-yellow-400 py-2.5 text-sm font-semibold text-navy-900"
+      >
         {legLabel ? `Iniciar ${label}` : "Iniciar rota"}
-      </button>
+      </PendingSubmit>
     </form>
   );
 }
