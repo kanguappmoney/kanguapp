@@ -411,7 +411,7 @@ financeiro + despesas** (migration 035).
   não afetado; 404 p/ id inválido e inexistente. tsc limpo, console sem erros. Dados de teste (13 motoristas
   sintéticos — 1 pausado, que ficou de fora, e a foto de fixture) criados e removidos por id exato; banco
   conferido sem resíduo (0 usuários, 0 perfis, 0 veículos, 0 visíveis).
-  **⛔ "Solicitar vaga" — GAP, parado antes de inventar fluxo.** Reconciliação com a captação atual
+  **⛔ "Solicitar vaga" — GAP (RESOLVIDO na Frente E.1 abaixo, opção (b)).** Reconciliação com a captação atual
   (`capture_links`, migrations 020–022): o link é `(driver_id, shift, school, token, status)` — **um** turno e
   **uma** escola (texto livre) por link, `token` é segredo por design ("segredo do link /captacao/<token>"), RLS
   dono-only, e o pai só o conhece porque o motorista o **mandou** (seção 10: "ao fechar, o motorista manda o link
@@ -428,6 +428,45 @@ financeiro + despesas** (migration 035).
   construído. **Em aberto:** link para `/buscar` além do login (ex.: `/baixar`, landing); `noindex` no perfil
   enquanto a busca não for aberta de propósito; opções dos filtros hoje listam tudo (sem busca por texto) —
   ok para poucos motoristas.
+  **Marketplace — Frente E.1 ("Solicitar vaga" por link público opt-in): PRONTA — fecha o gap acima pela
+  opção (b).** **Migration 039 (SQL Editor; commit `52048c9`):** `capture_links.kind` (`scoped` = o de sempre,
+  turno+escola travados · `generic` = sem turno/escola, o pai preenche), com check de forma (travado exige
+  turno+escola; genérico exige nulos) e **índice único parcial: no máximo UM genérico ATIVO por motorista**.
+  Reaproveita token, revogação e a fila `capture_submissions` — **sem tabela nova**; `capture_submissions` ganhou
+  `child_school`/`child_shift` (o que o pai escolheu no genérico). **Não existe expiração** em `capture_links`
+  (só `active`/`revoked`), então o genérico segue igual — nada inventado. `submit_capture` ganhou `p_school`/
+  `p_shift`: **obrigatórios no genérico, DESCARTADOS no travado** (o pai nunca troca a escola/turno do link);
+  mesma validação de papel/link ativo e mesmo consentimento LGPD no formulário. `approve_capture` usa o contexto
+  do link e, no genérico, o que o pai informou (`coalesce`) — o resto idêntico à 022. `get_capture_link_preview`
+  devolve `kind`. **O toggle = existir um genérico ativo:** ligar cria um (token novo), desligar revoga; **revogado
+  nunca ressuscita** — religar gera outro token (um vazado não volta). Default desligado. Ligar exige o portão de
+  perfil completo (mesmo da Frente A). **Vitrine:** `marketplace_listing` ganhou `request_token` — token do
+  genérico ATIVO, **só no modo perfil**; nulo na listagem, nulo sem genérico, e **nunca o de um link travado**.
+  É a única via em que um token chega a um anônimo, e é opt-in explícito do motorista. **App:** card
+  "Receber pedidos pela vitrine" em Configurações (`OpenRequestsToggle`; o erro do portão devolve o switch);
+  `/buscar/[id]` mostra "Solicitar vaga" (→ `/captacao/<token>`) só se houver genérico ativo, com o WhatsApp
+  logo abaixo; sem ele, só o WhatsApp (sem quebrar a tela); `/captacao/<token>` genérico mostra "Peça uma vaga
+  com <motorista>" e libera **Escola** (texto) e **Turno** (obrigatórios) em vez do card travado; a fila
+  "Cadastros a aprovar" mostra "Escola · Turno (informado pelo pai)"; `/motorista/alunos/captacao` lista só os
+  travados (o genérico tem toggle próprio). **Testes de guarda:** `docs/tests/captacao_generica.sql` **7/7**
+  (forma de cada tipo; um genérico ativo por motorista; genérico exige escola E turno e grava na fila `pending`;
+  travado descarta escola/turno do pai; genérico revogado recusa; aprovação do genérico usa escola/turno do pai e
+  a do travado segue usando os do link; `request_token` só no perfil/genérico ativo/some ao revogar) e
+  `marketplace_view.sql` **7/7** de novo (contrato de colunas agora com `request_token`; a função foi recriada).
+  **Validado no navegador:** toggle sem prefixo → recusa com "falta: Prefixo" e o switch volta; desligado → perfil
+  público só com WhatsApp; ligado pelo clique → perfil mostra "Solicitar vaga" + WhatsApp e o clique leva ao link
+  certo; HTML anônimo do formulário traz escola, turno, nome da criança, conta e aceite de Termos; pedido na
+  fila aparece com "(informado pelo pai)" e o motorista aprova pela tela → aluno `active` com a escola/turno do
+  pai e responsável vinculado (conferido no banco); desligar → botão some e o link antigo mostra "revogado".
+  tsc limpo, console sem erros. **NÃO feito pela interface:** o ENVIO do pai pelo formulário (exigiria criar conta
+  de responsável em produção pela UI) — o envio está provado no banco (teste 7/7, chamando `submit_capture` como o
+  responsável) e, na validação visual, o pedido foi inserido por SQL numa conta sintética; o clique real do pai
+  fica nos testes manuais do Abner. Dados de teste removidos (aluno, submissão, responsável sintético, links
+  genéricos, foto, campos do perfil e prefixo `TESTE-1` — a conta de teste segue sem prefixo e com os 2 alunos
+  originais). **Em aberto:** (a) quem chega pelo link genérico escolhe a escola em TEXTO livre — o motorista
+  confere na aprovação, mas não casa com `service_schools` (Endereço 2.0, seção 10); (b) o token genérico fica
+  visível a qualquer um que abra o perfil — se vazar para spam, desligar/religar gira o token; (c) sem limite de
+  pedidos por IP nesse formulário (o cadastro de pai já exige conta).
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1290,6 +1329,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   `/buscar/[id]` com WhatsApp direto e rate limit por IP (busca 30/min, perfil 15/min; em memória, limites
   documentados). "Solicitar vaga" NÃO construído: o link de captação é um segredo por (turno + escola) e rotear
   exigiria publicar o token — gap descrito acima, aguardando decisão. Validado no navegador; banco limpo.
+
+- **Marketplace — Frente E.1 ("Solicitar vaga"):** link de captação GENÉRICO e opt-in (`capture_links.kind`,
+  um ativo por motorista, toggle em Configurações = criar/revogar, token novo ao religar). O pai preenche escola
+  e turno no formulário público; mesma fila `pending`, mesmo consentimento, mesma aprovação (`approve_capture`
+  usa o que o pai informou). `/buscar/[id]` mostra "Solicitar vaga" só com o genérico ativo; senão, só o
+  WhatsApp. Migration 039; testes de guarda 7/7 (captacao_generica) e 7/7 (marketplace_view). Validado no
+  navegador; envio real do pai pela UI fica para o teste manual. Banco limpo.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
