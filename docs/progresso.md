@@ -292,6 +292,32 @@ financeiro + despesas** (migration 035).
   baseline sem login (714 → ~160 ms) é confirmação suficiente do ganho da região; o "antes" logado em
   `iad1` nunca foi tirado, então não haveria comparação limpa. **Frente FECHADA.** A validação visual
   das 3 telas (e do esqueleto com prefetch em produção) fica para os testes manuais já pendentes do Abner.
+  **Instalação do PWA + página pública `/baixar`: PRONTO (validado no navegador; instalação real
+  PENDENTE de device).** **Auditoria antes de mexer:** já existiam `manifest.webmanifest`, `sw.js`
+  mínimo (fetch vazio, suficiente p/ instalabilidade), `RegisterSW`, ícones 192/512/apple-touch 180 e
+  as meta tags (`manifest`, `apple-touch-icon`, `appleWebApp`, `theme-color`, viewport). **Faltava:**
+  (1) ícone **maskable de verdade** — o "maskable" era o mesmo 512 `any` com cantos transparentes
+  (o Android recorta e preenche com preto/branco); (2) **apple-touch-icon opaco** (o de 180 tinha
+  cantos transparentes → o iOS pinta de preto); (3) manifest sem `id`/`scope`/`lang`; (4) `/baixar`
+  não era pública; (5) a página. **Feito:** ícones maskable 192/512 (tela cheia amarela, canguru na
+  zona segura de 76%) e apple-touch 152/167/180 sem transparência, gerados do ícone oficial; manifest
+  com `id`, `scope`, `lang`, `categories` e `background_color` amarelo (splash do Android); `/baixar`
+  em `PUBLIC_PATHS`; `lib/platform` (detecção por UA, iPadOS "Macintosh + toque" = iOS; testes em
+  `tests/platform.test.ts`, 5/5) e `components/InstallGuide`: **Android** → botão "Instalar o Kangu"
+  via `beforeinstallprompt` (evento guardado, `prompt()` no toque) com passo a passo manual como
+  fallback; **iOS** → Safari → Compartilhar → Adicionar à Tela de Início (ícones lucide `Compass`/
+  `Share`/`SquarePlus`) + aviso se não for Safari; **desktop** → "abra no celular"; "já instalado"
+  se `display-mode: standalone`. `?so=ios|android|desktop` força a visão (só apresentação).
+  **Validado:** manifest carrega e todos os 4 ícones respondem 200 com o tamanho declarado; SW
+  `activated`; meta tags corretas (uma `mobile-web-app-capable` — a duplicata que eu tinha criado foi
+  removida); `/baixar` abre sem cookie (200, sem redirect); UA Android → Android, desktop → desktop,
+  iOS via `?so=ios` + UA de iPhone/iPad em teste unitário; `beforeinstallprompt` sintético mostra o
+  botão e chama `prompt()` uma vez; tsc limpo, console sem erros. **PENDENTE do Abner (device real):**
+  (a) Android/Chrome — o prompt nativo aparecer e o app instalar com o ícone maskable bem recortado
+  e splash amarela; (b) iPhone/Safari — o passo a passo bate com os menus do iOS atual, o ícone na
+  tela inicial sai amarelo sem cantos pretos e o app abre em tela cheia (standalone); (c) abrir
+  `/baixar` por um navegador dentro de app (Instagram/WhatsApp) e ver o aviso "abra no Safari".
+  Fora de escopo: cache/offline (SW segue mínimo), link para `/baixar` dentro do app/na tela de login.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1129,6 +1155,12 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   motorista (home em grupo `(home)` para o esqueleto não vazar), "Iniciando…" no Iniciar ida/volta.
   Commit `1a03cbc`, sem push. Região confirmada em `iad1` (`x-vercel-id: gru1::iad1`); baseline sem
   login ~714 ms. **Pausado** antes do login em produção — ver "ONDE PAROU" nas Pendências em aberto.
+
+- **Instalação do PWA + `/baixar`:** auditoria achou maskable falso e apple-touch com transparência;
+  ícones refeitos, manifest com `id`/`scope`/`lang`, página pública `/baixar` com detecção de sistema
+  (Android: `beforeinstallprompt` + fallback manual; iOS: passo a passo do Safari; desktop: "abra no
+  celular"). Validado no navegador, tsc e testes (5/5). Instalação real em Android/iPhone pendente do
+  Abner (ver Pendências em aberto).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
