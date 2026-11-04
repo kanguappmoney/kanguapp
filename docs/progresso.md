@@ -244,6 +244,16 @@ antes da 15 corrigir — funciona, mas é bom saber.
   da criança). Se for exibir, tratar como dado do pai/criança — não repassar o texto
   cru, ou pedir consentimento/curadoria. Mesma cautela vale para o `reason` de
   ausência e o texto de ocorrência, se algum dia virar visível além do genérico.
+- **IP no log de buscas do marketplace (`marketplace_search_log.ip`) — cobrir na revisão jurídica geral,
+  antes do piloto (NÃO é frente de código própria).** O IP é dado pessoal. Hoje: guardado por **30 dias** e
+  zerado automaticamente depois (a busca, sem IP, permanece), visível só ao admin, usado só para enxergar abuso
+  (raspagem do telefone dos motoristas) — sem bloqueio automático. Pontos a fechar com o profissional:
+  (1) **base legal** para reter o IP por 30 dias (candidata: legítimo interesse de segurança/prevenção a abuso,
+  com teste de proporcionalidade — ou outra que o jurídico indicar) e se 30 dias é o prazo adequado;
+  (2) **necessidade de aviso na política de privacidade** (`/privacidade` hoje é rascunho) dizendo que o IP é
+  registrado nas buscas públicas, para quê e por quanto tempo; (3) se a busca pública sem login precisa de aviso
+  na própria tela (`/buscar`) além da política. Se a conclusão for retenção menor ou nenhuma, é só trocar o
+  prazo (30 dias na migration 043) ou parar de enviar o IP (`logSearch` em `lib/marketplace`) — sem refazer o resto.
 
 ---
 
@@ -253,7 +263,7 @@ Com o Modo Mapa concluído, **todos os blocos de produto estão construídos**. 
 falta é validação, não código:
 
 - **Testes manuais do Abner** — fotos, financeiro, "Suspensões a revisar".
-- **Validação de LGPD** — modelagem controlador/operador revista com profissional
+- **Validação de LGPD** (inclui: base legal para reter IP por 30 dias no log de buscas + aviso na política de privacidade — seção 7) — modelagem controlador/operador revista com profissional
   **antes de rodar com dado real de criança** (ver seção 7).
 - **Piloto** — 1-3 motoristas conhecidos, Pix manual. Depois: webhook Asaas,
   WhatsApp real (N8N).
@@ -275,7 +285,7 @@ financeiro + despesas** (migration 035).
   aluno, gerar link e enviar convite ficam bloqueados até preencher em Configurações → Editar perfil.
   Todo motorista que já tinha cadastro cai no mesmo aviso.
 - **Testes manuais do Abner** — fotos, financeiro, "Suspensões a revisar".
-- **Validação de LGPD** com profissional antes de qualquer dado real de criança (seção 7).
+- **Validação de LGPD** com profissional antes de qualquer dado real de criança (seção 7) — inclui o ponto do **IP retido por 30 dias no log de buscas** (base legal + aviso na política de privacidade).
 - **Device real com GPS em movimento** — confirmar a câmera seguindo o rumo (bearing) e o
   auto-recolher do sheet por distância fora da simulação.
 
@@ -581,7 +591,8 @@ financeiro + despesas** (migration 035).
   host válido (lixo, 'unknown' e CIDR viram NULL), **retenção automática de 30 dias** (a cada busca registrada os
   IPs > 30 dias são zerados — a linha dos filtros fica, o IP some), tabela fechada a anon/authenticated (só
   `admin_search_ips` entrega o IP; `admin_list_search_log` não o devolve). Pendente de decisão jurídica: base
-  legal/aviso na política de privacidade para o IP (seção 7). **Achado de implementação:** `IF ... <> CASE ... THEN`
+  legal/aviso na política de privacidade para o IP — **registrado como ponto específico da validação de LGPD
+  (seção 7), junto da revisão jurídica geral antes do piloto; não é frente de código própria**. **Achado de implementação:** `IF ... <> CASE ... THEN`
   em PL/pgSQL quebra (o `THEN` do CASE é lido como o do IF → "syntax error at end of input") — o CASE vai entre
   parênteses; ficou comentado na migration. O `admin_guard.sql` foi atualizado (coluna `ip`) e **re-executado: 6/6**.
   **Validado no navegador** (conta de teste promovida temporariamente e removida depois) com dado real +
