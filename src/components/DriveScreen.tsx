@@ -15,10 +15,17 @@ import { DriveMapLoader } from "@/components/DriveMapLoader";
 import { usePositionBroadcast } from "@/components/usePositionBroadcast";
 import { useDriverPosition } from "@/components/useDriverPosition";
 import {
+  sheetAutoTarget,
   stopDistanceMeters,
   withinBoardingRange,
   type GeoPoint,
 } from "@/lib/geo";
+
+// "850 m" / "3,2 km" — só para a faixa recolhida do painel.
+function formatDistance(m: number): string {
+  if (m < 1000) return `${Math.round(m / 10) * 10} m`;
+  return `${(m / 1000).toFixed(1).replace(".", ",")} km`;
+}
 
 type StopState = "pending" | "boarded" | "absent";
 
@@ -72,7 +79,9 @@ export function DriveScreen({
   // motorista no mapa. Não persiste coord — só a distância no metadata do embarque.
   const driverPos = useDriverPosition(inProgress);
 
-  const heroVerb = kind === "pickup" ? "Cheguei no embarque" : "Cheguei no desembarque";
+  // Texto do arraste: SEMPRE "Embarcar <nome>" / "Desembarcar <nome>". Perto × longe
+  // aparece só no ESTILO da trilha (sólido × tracejado), nunca no texto.
+  const dragVerb = kind === "pickup" ? "Embarcar" : "Desembarcar";
   const doneCount = stops.filter((s) => s.state !== "pending").length;
   const allHandled = doneCount === stops.length;
   const current = stops.find((s) => s.state === "pending") ?? null;
@@ -101,16 +110,18 @@ export function DriveScreen({
   }, [current?.studentId]);
 
   // Bottom sheet recolhe/expande por distância (padrão; manual sempre disponível).
-  // Longe da parada (mensurável E fora do 100m) → recolhe, dando tela ao mapa;
-  // perto (≤100m) OU sem dado (sem GPS/coord) → expande. Nunca esconde a ação por
-  // falta de dado — mesmo espírito do gate de 100m.
+  // Longe (>130m) → recolhe, dando tela ao mapa ("navegando até lá"); perto (≤100m)
+  // OU sem dado (sem GPS/coord) → expande — nunca esconde a ação por falta de dado.
+  // Entre 100 e 130m é faixa morta (histerese): o GPS oscilando em torno dos 100m não
+  // faz o painel piscar. Ver sheetAutoTarget (lib/geo, com testes).
   const [collapsed, setCollapsed] = useState(false);
-  const autoCollapsed = currentDist != null && !currentInRange;
+  const autoTarget = sheetAutoTarget(currentDist);
   // Aplica o padrão só quando o alvo AUTOMÁTICO muda (cruza o threshold). Entre
   // transições, o arraste manual manda — o auto não briga com a mão.
   useEffect(() => {
-    setCollapsed(autoCollapsed);
-  }, [autoCollapsed]);
+    if (autoTarget === "hold") return;
+    setCollapsed(autoTarget === "collapse");
+  }, [autoTarget]);
 
   // Arraste manual do sheet (pra cima expande, pra baixo recolhe; toque alterna).
   const dragStartY = useRef<number | null>(null);
@@ -207,6 +218,12 @@ export function DriveScreen({
                 <span className="min-w-0 flex-1 truncate text-sm font-bold text-navy-900">
                   {current ? current.name : "Todas as paradas resolvidas"}
                 </span>
+                {/* Distância até a parada: "navegando até lá", não "aguardando ação". */}
+                {current && currentDist != null && (
+                  <span className="shrink-0 text-sm font-semibold text-navy-700/70" data-testid="faixa-distancia">
+                    {formatDistance(currentDist)}
+                  </span>
+                )}
                 <ChevronUp className="h-4 w-4 shrink-0 text-navy-700/40" />
               </div>
             )}
@@ -282,11 +299,7 @@ export function DriveScreen({
                     </>
                   ) : (
                     <DragConfirm
-                      label={
-                        currentInRange
-                          ? `${heroVerb} — deslize para confirmar`
-                          : `${heroVerb} — deslize mesmo assim`
-                      }
+                      label={`${dragVerb} ${current.name}`}
                       solid={currentInRange}
                       onConfirm={() => setRevealed(true)}
                     />

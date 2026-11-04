@@ -9,6 +9,8 @@ import {
   stopDistanceMeters,
   withinBoardingRange,
   BOARDING_PROXIMITY_M,
+  SHEET_COLLAPSE_ABOVE_M,
+  sheetAutoTarget,
   MIN_INTERVAL_MS,
   MIN_DISTANCE_M,
   type GeoPoint,
@@ -106,4 +108,38 @@ test("100m: sem confirmação de proximidade (null) => normal não libera", () =
 
 test("100m: threshold é 100", () => {
   assert.equal(BOARDING_PROXIMITY_M, 100);
+});
+
+// --- Painel do Modo Direção (R9): recolher/expandir com histerese -------------
+test("sheetAutoTarget: sem dado (GPS/coordenada) expande — nunca esconde a ação", () => {
+  assert.equal(sheetAutoTarget(null), "expand");
+});
+
+test("sheetAutoTarget: ≤100m expande (borda inclusa); >130m recolhe", () => {
+  assert.equal(sheetAutoTarget(0), "expand");
+  assert.equal(sheetAutoTarget(BOARDING_PROXIMITY_M), "expand");
+  assert.equal(sheetAutoTarget(SHEET_COLLAPSE_ABOVE_M), "hold"); // 130 ainda é faixa morta
+  assert.equal(sheetAutoTarget(SHEET_COLLAPSE_ABOVE_M + 1), "collapse");
+  assert.equal(sheetAutoTarget(3000), "collapse");
+});
+
+test("sheetAutoTarget: entre 100 e 130m é faixa morta (hold) — GPS oscilando não pisca", () => {
+  for (const d of [100.5, 105, 110, 120, 129.9]) assert.equal(sheetAutoTarget(d), "hold");
+  // O gate do arraste e o expandir do painel usam a MESMA borda de 100m.
+  assert.equal(sheetAutoTarget(BOARDING_PROXIMITY_M) === "expand", withinBoardingRange(BOARDING_PROXIMITY_M));
+});
+
+test("sheetAutoTarget: simulação de GPS oscilando em torno dos 100m não troca de estado", () => {
+  // Reproduz o defeito achado no navegador: 99 → 105 → 98 → 103 → 99 → 104.
+  let collapsed = true; // chegou de longe, recolhido
+  const flips: number[] = [];
+  for (const d of [150, 101, 99, 105, 98, 103, 99, 104, 120]) {
+    const t = sheetAutoTarget(d);
+    if (t === "hold") continue;
+    const next = t === "collapse";
+    if (next !== collapsed) flips.push(d);
+    collapsed = next;
+  }
+  assert.deepEqual(flips, [99]); // expande UMA vez (ao cruzar 100m) e fica
+  assert.equal(collapsed, false);
 });

@@ -5,8 +5,9 @@ import { Logo } from "@/components/Logo";
 
 // "Deslize para confirmar" (estilo apps de entrega) para a parada atual do Modo
 // Direção 2.0 (R4). Só troca o GESTO — a lógica de embarque/ausência é a mesma.
-// O gate de 100m NÃO bloqueia: `solid` só muda o visual/copy (perto = sólido;
-// longe/sem GPS/sem coord = tracejado "mesmo assim"). O arraste funciona sempre.
+// O gate de 100m NÃO bloqueia: `solid` só muda o VISUAL da trilha (perto = sólido;
+// longe/sem GPS/sem coord = tracejado). O texto é sempre o mesmo ("Embarcar <nome>");
+// o arraste funciona a qualquer distância.
 // O thumb é a marca (canguru no amarelo #FFD000, mesmo asset do Logo) nos dois
 // estados — a diferença sólido × "mesmo assim" fica na trilha.
 export function DragConfirm({
@@ -58,8 +59,8 @@ export function DragConfirm({
       ref={trackRef}
       className={`relative h-14 select-none overflow-hidden rounded-2xl border ${trackCls}`}
     >
-      <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-14 text-center text-sm font-semibold text-navy-800">
-        {label}
+      <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-16 text-center text-sm font-semibold leading-tight text-navy-800">
+        <span className="line-clamp-2">{label}</span>
       </span>
       <div
         role="button"

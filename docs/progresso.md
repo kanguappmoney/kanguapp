@@ -532,6 +532,28 @@ financeiro + despesas** (migration 035).
   linhas) — tamanho limitado por coluna, sem rate limit no banco; (c) a fila admin mostra nome de criança de todos
   os motoristas (a plataforma é operadora do dado — rever na validação de LGPD, seção 7); (d) sem exportação nem
   busca por texto nas listas.
+  **Modo Direção — texto do arraste fixo + R9 testado de verdade com GPS em movimento + histerese: PRONTO.**
+  **(1) Texto:** o arraste agora diz SEMPRE `Embarcar <nome>` / `Desembarcar <nome>` (a frase condicional
+  "Cheguei no embarque/desembarque — deslize para confirmar/mesmo assim" saiu); perto × longe vive só no estilo
+  da trilha (sólida × tracejada), no `DragConfirm`; o nome cabe em até 2 linhas. **(2) R9 testado em movimento**
+  (não só parado): GPS simulado na página (mock de `navigator.geolocation` movido por distância à parada, rota
+  real do motorista de teste em `in_progress`, leitura do estado do painel a cada passo). Resultado do código
+  ANTERIOR: recolhido de 3 km até 101 m, **expande em 99 m**, recolhe ao se afastar — o R9 estava ativo — **mas
+  com o GPS oscilando em torno dos 100 m (99→105→98→103→99→104) o painel PISCAVA a cada leitura**: defeito real,
+  invisível parado. **Correção:** função pura `sheetAutoTarget` em `lib/geo` com **histerese** — expande em
+  ≤100 m (mesma borda do gate do arraste), só recolhe acima de 130 m, e entre 100 e 130 m é faixa morta que
+  mantém o estado atual (inclusive o da mão); sem dado (sem GPS/coordenada) segue expandindo. Retestado: expande
+  UMA vez ao cruzar 100 m, fica expandido por toda a oscilação (98–129 m) e recolhe só aos 131 m. **Alça manual:**
+  toque real a 400 m abre e o painel FICA aberto com o GPS andando sem cruzar o limiar (390→330 m); arraste real p/
+  baixo a 60 m recolhe e fica recolhido (50→90 m); cruzar >130 m (longe) ou ≤100 m (perto) reaplica o automático.
+  **(3) Recolhido = "navegando até lá":** o visual já era mapa em quase tela cheia (só a faixa de ~55 px embaixo +
+  barra de topo); como a faixa só dizia "PRÓXIMA <nome>" e podia parecer "aguardando ação", ela ganhou a
+  **distância até a parada** (`3,0 km`, `850 m`), que acompanha o GPS. Mapa mostra a van, o pino da parada e a
+  rota. Testes unitários `sheetAutoTarget` (borda 100/130, faixa morta, simulação do oscilar) → `node --test` 26/26.
+  tsc limpo; sem erro de console do Modo Direção (os 403 no console são do meu `fetch('/admin')` anterior).
+  Execução de teste removida pelo id exato (rota volta às 4 execuções originais, 0 em andamento). **Limite:** o
+  GPS foi simulado na página; o comportamento com um GPS físico em movimento (e o bearing) segue dependendo do
+  teste em device real.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1415,6 +1437,11 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   (só filtros + hora, insert-only). Migration 040; teste `admin_guard.sql` 6/6. Validado como anônimo, como
   usuário real não-admin (inclusive pela API REST) e como admin temporário com dado real; banco limpo.
   Admin real: `house@domhub.co` semeado (conta criada no painel pelo Abner). Fecha o bloco marketplace (A–F).
+
+- **Modo Direção — texto do arraste + R9 em movimento:** arraste sempre "Embarcar/Desembarcar <nome>" (perto ×
+  longe só no estilo); R9 testado com GPS simulado em movimento — ativo, mas o painel piscava com GPS oscilando em
+  torno dos 100 m; corrigido com histerese (`sheetAutoTarget`: expande ≤100 m, recolhe >130 m, faixa morta
+  entre). Faixa recolhida mostra a distância até a parada. Testes 26/26; execução de teste removida.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 

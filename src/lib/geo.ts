@@ -71,3 +71,22 @@ export function withinBoardingRange(
 ): boolean {
   return distanceM !== null && distanceM <= thresholdM;
 }
+
+// --- Bottom sheet do Modo Direção: recolher/expandir por distância (R9) ------
+// Só UI, nunca trava a ação. Com histerese: expande quando a van chega a ≤100m
+// (BOARDING_PROXIMITY_M — o mesmo gate do arraste) e só recolhe de novo acima de
+// SHEET_COLLAPSE_ABOVE_M. Sem a faixa morta, o GPS oscilando em torno dos 100m
+// (±5–20m é normal) fazia o painel piscar a cada leitura.
+export const SHEET_COLLAPSE_ABOVE_M = 130;
+
+export type SheetAutoTarget = "collapse" | "expand" | "hold";
+
+// distanceM null (sem GPS/sem coordenada) => expande: nunca esconde a ação por
+// falta de dado. "hold" = faixa morta (100m < d ≤ 130m): mantém o estado atual,
+// inclusive o que a mão do motorista pôs.
+export function sheetAutoTarget(distanceM: number | null): SheetAutoTarget {
+  if (distanceM === null) return "expand";
+  if (withinBoardingRange(distanceM)) return "expand";
+  if (distanceM > SHEET_COLLAPSE_ABOVE_M) return "collapse";
+  return "hold";
+}
