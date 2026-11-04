@@ -104,3 +104,26 @@ export function pageParam(v: string | string[] | undefined): number {
   const n = Number(Array.isArray(v) ? v[0] : v);
   return Number.isInteger(n) && n >= 1 && n <= 10_000 ? n : 1;
 }
+
+// --- Visão Geral (admin_overview: um jsonb só com agregados) -----------------
+export interface AdminOverview {
+  period_days: 7 | 30;
+  drivers_total: number;
+  drivers_by_status: { trial: number; active: number; paused: number };
+  profile_complete: number;
+  listed_visible: number;
+  guardians_total: number;
+  guardians_active: number;
+  students_active: number;
+  series: { label: string; drivers: number; guardians: number; students: number }[];
+  funnel: { searches: number; requests: number; approved: number; rejected: number; pending: number };
+  top_cities: { label: string; count: number }[];
+  top_schools: { label: string; count: number }[];
+}
+
+export async function getOverview(days: 7 | 30): Promise<{ data: AdminOverview | null; error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_overview", { p_days: days });
+  if (error) return { data: null, error: error.message };
+  return { data: data as AdminOverview, error: null };
+}

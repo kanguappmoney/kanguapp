@@ -101,3 +101,43 @@ export function ErrorNote({ message }: { message: string }) {
     </p>
   );
 }
+
+// Card de número da Visão Geral: valor grande + legenda + detalhe opcional.
+export function StatCard({
+  label,
+  value,
+  detail,
+  testId,
+}: {
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+  testId?: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm" data-testid={testId}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-navy-700/60">{label}</p>
+      <p className="mt-1 font-display text-3xl text-navy-900">{value}</p>
+      {detail && <p className="mt-1 text-xs text-navy-700/60">{detail}</p>}
+    </div>
+  );
+}
+
+// Caixa de gráfico com título.
+export function Panel({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl bg-white p-4 shadow-sm">
+      <h3 className="font-semibold text-navy-900">{title}</h3>
+      {hint && <p className="mb-3 text-xs text-navy-700/60">{hint}</p>}
+      <div className={hint ? "" : "mt-3"}>{children}</div>
+    </section>
+  );
+}
