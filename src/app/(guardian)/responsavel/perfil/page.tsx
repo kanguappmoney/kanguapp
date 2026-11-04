@@ -9,7 +9,7 @@ export default async function PerfilResponsavelPage() {
       <AppHeader title="Perfil" showSignOut />
       <div className="px-4 pb-6">
         <SectionTitle>Você</SectionTitle>
-        <Card>
+        <Card tone="cream">
           <p className="font-semibold text-navy-900">{user?.fullName}</p>
           <p className="text-sm text-navy-700/60">{user?.email}</p>
         </Card>

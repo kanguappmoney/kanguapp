@@ -33,17 +33,25 @@ export function AppHeader({
   );
 }
 
+// Hierarquia de fundo (3 camadas): white = padrão · cream = destaque secundário (perfil, avisos
+// informativos) · navy = destaque primário (a informação/ação mais importante da tela; texto branco/amarelo).
+const TONE = {
+  white: "border border-navy-900/5 bg-white shadow-sm",
+  cream: "border border-yellow-400/40 bg-cream",
+  navy: "bg-navy-900 text-white",
+} as const;
+
 export function Card({
   children,
   className = "",
+  tone = "white",
 }: {
   children: React.ReactNode;
   className?: string;
+  tone?: keyof typeof TONE;
 }) {
   return (
-    <div
-      className={`rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm ${className}`}
-    >
+    <div className={`rounded-2xl p-4 ${TONE[tone]} ${className}`}>
       {children}
     </div>
   );

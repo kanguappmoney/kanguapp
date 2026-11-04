@@ -417,7 +417,7 @@ function Leg({
       </div>
 
       {note && (
-        <p className="mb-2 rounded-lg bg-yellow-400/15 px-2.5 py-1.5 text-xs text-navy-800">
+        <p className="mb-2 rounded-lg bg-cream px-2.5 py-1.5 text-xs text-navy-800">
           {note}
         </p>
       )}

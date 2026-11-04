@@ -86,7 +86,7 @@ export function RouteRunList({
             {/* Sugestão de horário de saída (só perna de ida não iniciada, quando
                 a home passa o mapa). Informativo — nunca bloqueia iniciar. */}
             {departureByRoute?.get(r.id) && (
-              <div className="flex items-center gap-2 rounded-xl bg-yellow-400/15 px-3 py-2 text-sm text-navy-800">
+              <div className="flex items-center gap-2 rounded-xl bg-cream px-3 py-2 text-sm text-navy-800">
                 <Clock className="h-4 w-4 shrink-0 text-navy-700/60" />
                 <span>
                   Saia até as{" "}

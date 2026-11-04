@@ -10,6 +10,9 @@
   --color-yellow-400: #ffd000; /* AMARELO CANGU oficial */
   --color-yellow-500: #e6bb00;
   --color-cloud: #f2f4f7; /* CINZA CLARO oficial */
+  /* Hierarquia de fundo (3 camadas): branco (padrão) · creme (destaque secundário) · azul-marinho (primário).
+     O creme NÃO é cor nova: é o amarelo da marca a ~14% sobre branco. */
+  --color-cream: color-mix(in srgb, #ffd000 14%, white);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: var(--font-poppins), var(--font-inter), ui-sans-serif, sans-serif;
 }
@@ -24,7 +27,7 @@ body {
 }
 
 body {
-  background: var(--color-cloud);
+  background: #fff; /* camada 1: branco é o fundo padrão de toda tela */
   color: var(--color-navy-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

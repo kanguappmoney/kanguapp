@@ -1553,6 +1553,23 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
     uma tela no /admin Moderação se aparecer lixo; (e) cadastros antigos com várias cidades não alimentam o pool
     (o dado antigo é uma lista plana, sem dizer qual bairro é de qual cidade).
 
+- **Hierarquia de fundo em 3 camadas (ajuste visual, prioridade temporária):** sem mudar a paleta (amarelo /
+  azul-marinho / branco). **Branco** = fundo padrão de toda tela (o `body` era o cinza-claro `#F2F4F7`; agora é
+  branco, cartões brancos seguem com borda); **creme** = destaque secundário (token `--color-cream`, que é o
+  amarelo da marca a 14% sobre branco — não é cor nova); **azul-marinho** sólido = destaque primário, texto branco
+  e amarelo. `Card` ganhou `tone="white|cream|navy"` (`components/ui.tsx`). Aplicado: responsável — Início
+  (`JourneyTimeline`, o bloco "a caminho da parada…", agora azul-marinho; "Fora do horário de rota" e "Cadastro em
+  análise" em creme), Pagamentos (novo cartão azul-marinho **"A pagar"** com total em aberto, nº de faturas e
+  próximo vencimento — soma só o que a consulta já trazia; avisos do Pix em creme), Perfil (cartão do usuário em
+  creme); motorista — Configurações (cartão do perfil em creme); avisos informativos em amarelo-transparente
+  (`ProfileGateNotice`, `RouteRunList`, `RouteBuilder`, novo aluno, destaque de `HomeContent`) padronizados no creme.
+  O motorista já tinha azul-marinho na próxima parada (Início) e no resumo do Financeiro. Avisos de atenção/erro
+  (âmbar/vermelho) ficaram como estão; o /admin não foi tocado (tem seu próprio fundo). Amarelo segue só em botão
+  primário, marca e trecho concluído. Só classes/tokens — nenhuma lógica nem dado. Validado em página temporária
+  (removida) com os componentes reais; telas do responsável não foram vistas logadas (sem sessão de responsável no
+  navegador). **Divergência:** o brief pede "login com hero amarelo sólido + card branco", mas o login real é branco
+  com o logo no topo — não alterei, aguardando decisão.
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

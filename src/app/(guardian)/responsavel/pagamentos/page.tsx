@@ -19,10 +19,31 @@ export default async function PagamentosResponsavelPage() {
     .select("id, status, amount_cents, due_date, billing_period, students(full_name)")
     .order("billing_period", { ascending: false });
 
+  // Destaque primário da tela: quanto há a pagar (só soma o que já veio da consulta).
+  const open = (invoices ?? []).filter((i) =>
+    ["pending", "overdue", "suspended"].includes(i.status),
+  );
+  const openTotal = open.reduce((n, i) => n + i.amount_cents, 0);
+  const nextDue = open.map((i) => i.due_date).sort()[0];
+
   return (
     <>
       <AppHeader title="Pagamentos" subtitle="Mensalidade por criança" />
       <div className="px-4 pb-6">
+        {open.length > 0 && (
+          <Card tone="navy" className="mt-4 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
+              A pagar
+            </p>
+            <p className="mt-1 font-display text-3xl font-semibold">
+              {centsToBRL(openTotal)}
+            </p>
+            <p className="mt-1 text-sm text-white/70">
+              {open.length} {open.length === 1 ? "fatura em aberto" : "faturas em aberto"} • próximo
+              vencimento {nextDue.slice(8, 10)}/{nextDue.slice(5, 7)}
+            </p>
+          </Card>
+        )}
         <SectionTitle>Faturas</SectionTitle>
         {!invoices?.length ? (
           <Placeholder>Nenhuma fatura por aqui ainda.</Placeholder>
@@ -53,7 +74,7 @@ export default async function PagamentosResponsavelPage() {
           </div>
         )}
 
-        <p className="mt-4 rounded-xl bg-yellow-400/15 px-3 py-2.5 text-sm text-navy-800">
+        <p className="mt-4 rounded-xl bg-cream px-3 py-2.5 text-sm text-navy-800">
           No piloto, o pagamento é por <b>Pix direto ao motorista</b>. Ele
           confirma o recebimento e a fatura fica “Paga”.
         </p>

@@ -314,7 +314,7 @@ function Counter({
 }) {
   const inner = (
     <Card
-      className={`h-full ${highlight ? "bg-yellow-400/15" : ""} ${
+      className={`h-full ${highlight ? "bg-cream" : ""} ${
         href ? "transition hover:border-navy-900/25" : ""
       }`}
     >

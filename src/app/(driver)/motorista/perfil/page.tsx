@@ -99,7 +99,7 @@ export default async function PerfilMotoristaPage() {
       />
       <div className="px-4 pb-6">
         {/* Cabeçalho do perfil — foto + nome + verificação + editar */}
-        <Card className="mt-4 flex items-center gap-4">
+        <Card tone="cream" className="mt-4 flex items-center gap-4">
           <DriverPhotoUploader driverId={user!.id} currentUrl={photoUrl} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-bold text-navy-900">

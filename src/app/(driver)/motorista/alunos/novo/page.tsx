@@ -238,7 +238,7 @@ export default function NovoAlunoPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl bg-yellow-400/15 px-3 py-2.5 text-sm text-navy-800">
+            <div className="flex items-center gap-2 rounded-xl bg-cream px-3 py-2.5 text-sm text-navy-800">
               <Info className="h-4 w-4 shrink-0 text-yellow-600" />
               O responsável receberá um convite após o cadastro.
             </div>

@@ -48,19 +48,19 @@ export function JourneyTimeline({ journey }: { journey: Journey }) {
   const stepPct = journey.ended ? 100 : pct;
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-navy-700/40">
+    <div className="rounded-2xl bg-navy-900 p-4 text-white">
+      <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
         {journey.route_name}
       </p>
 
       {/* Rótulo de estado vivo (prioridade alta) */}
-      <p className="mt-1 text-base font-semibold text-navy-900">
+      <p className="mt-1 text-lg font-semibold text-white">
         {primary ? statusLabel(journey, primary) : "Rota em andamento"}
       </p>
 
       {/* Barra por degraus + canguru estático no degrau atual */}
       <div className="relative mt-5 mb-2">
-        <div className="h-2 rounded-full bg-navy-900/10">
+        <div className="h-2 rounded-full bg-white/15">
           <div
             className="h-2 rounded-full bg-yellow-400 transition-all duration-500"
             style={{ width: `${stepPct}%` }}
@@ -75,7 +75,7 @@ export function JourneyTimeline({ journey }: { journey: Journey }) {
           <Logo variant="icon" alt="" className="h-7 w-7" />
         </div>
       </div>
-      <p className="text-xs text-navy-700/50">
+      <p className="text-xs text-white/60">
         {journey.confirmed_count} de {journey.total_stops} paradas confirmadas
       </p>
 
@@ -117,12 +117,12 @@ function Milestone({
             ? "bg-amber-100 text-amber-700"
             : done
               ? "bg-green-100 text-green-700"
-              : "bg-navy-900/5 text-navy-700/40"
+              : "bg-white/10 text-white/50"
         }`}
       >
         {warn ? "!" : done ? "✓" : "•"}
       </span>
-      <span className={done || warn ? "text-navy-900" : "text-navy-700/50"}>
+      <span className={done || warn ? "text-white" : "text-white/50"}>
         {label}
       </span>
     </li>

@@ -80,9 +80,9 @@ export default async function GuardianHome() {
       />
       <div className="px-4 pb-6">
         {(pendingSubs?.length ?? 0) > 0 && (
-          <Card className="mt-4 border-amber-200 bg-amber-50">
-            <p className="font-semibold text-amber-900">Cadastro em análise</p>
-            <p className="mt-1 text-sm text-amber-800/80">
+          <Card tone="cream" className="mt-4">
+            <p className="font-semibold text-navy-900">Cadastro em análise</p>
+            <p className="mt-1 text-sm text-navy-700/70">
               {pendingSubs!.length === 1
                 ? `${pendingSubs![0].child_full_name} está aguardando a aprovação do motorista.`
                 : `${pendingSubs!.length} cadastros aguardando a aprovação do motorista.`}
@@ -114,7 +114,7 @@ export default async function GuardianHome() {
           )
         ) : (
           // G4 — estado default fora da janela de rota: sem localização ao vivo.
-          <Card>
+          <Card tone="cream">
             <p className="font-semibold text-navy-900">Fora do horário de rota</p>
             <p className="text-sm text-navy-700/60">
               A localização só aparece durante o trajeto. Você verá a jornada aqui

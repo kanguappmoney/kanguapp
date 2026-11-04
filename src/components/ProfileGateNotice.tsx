@@ -11,7 +11,7 @@ export function ProfileGateNotice({
   action: string; // o que está bloqueado, ex.: "cadastrar alunos"
 }) {
   return (
-    <div className="rounded-2xl border border-yellow-400/60 bg-yellow-400/10 p-4">
+    <div className="rounded-2xl border border-yellow-400/60 bg-cream p-4">
       <div className="flex gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" />
         <div className="min-w-0">
