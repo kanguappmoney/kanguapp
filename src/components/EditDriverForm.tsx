@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { CoverageSelector } from "@/components/CoverageSelector";
 import { VanPhotoUploader } from "@/components/VanPhotoUploader";
 import { updateDriverProfile, type DriverFormState } from "@/lib/actions/driver";
@@ -65,7 +66,15 @@ export function EditDriverForm({ driver }: { driver: DriverDefaults }) {
       </label>
 
       <SectionHeading>Endereço</SectionHeading>
-      <Field label="Endereço residencial" name="address" defaultValue={driver.address ?? ""} placeholder="Rua, número, bairro, cidade" required />
+      <AddressAutocomplete
+        label="Endereço residencial"
+        name="address"
+        latName="address_lat"
+        lngName="address_lng"
+        placeholder="Rua, número, bairro, cidade"
+        initialValue={driver.address ?? ""}
+        withNumber
+      />
 
       <SectionHeading>Veículo</SectionHeading>
       <Field label="Prefixo" name="prefix" defaultValue={driver.prefix ?? ""} placeholder="Nº de identificação da van" required />

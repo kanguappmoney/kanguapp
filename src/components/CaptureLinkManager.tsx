@@ -7,6 +7,7 @@ import {
   revokeCaptureLink,
   regenerateCaptureLink,
 } from "@/lib/actions/capture";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { ProfileGateNotice } from "@/components/ProfileGateNotice";
 
 export interface CaptureLink {
@@ -72,10 +73,17 @@ export function CaptureLinkManager({
 
 function NewLinkForm() {
   const [pending, startTransition] = useTransition();
+  // O endereço da escola guarda estado interno (sugestões/coordenada): trocar a key o zera após criar o link.
+  const [addrKey, setAddrKey] = useState(0);
 
   return (
     <form
-      action={(fd) => startTransition(() => createCaptureLink(fd))}
+      action={(fd) =>
+        startTransition(async () => {
+          await createCaptureLink(fd);
+          setAddrKey((k) => k + 1);
+        })
+      }
       className="space-y-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
     >
       <p className="font-semibold text-navy-900">Novo link de captação</p>
@@ -104,16 +112,15 @@ function NewLinkForm() {
         />
       </label>
 
-      <label className="block text-sm">
-        <span className="mb-1 block text-navy-700/70">
-          Endereço da escola <span className="text-navy-700/40">(opcional)</span>
-        </span>
-        <input
-          name="school_address"
-          placeholder="Rua, número, bairro"
-          className="w-full rounded-xl border border-navy-900/15 px-3 py-2"
-        />
-      </label>
+      <AddressAutocomplete
+        key={addrKey}
+        label="Endereço da escola (opcional)"
+        name="school_address"
+        latName="school_lat"
+        lngName="school_lng"
+        placeholder="Rua, número, bairro"
+        required={false}
+      />
 
       <div className="flex gap-3">
         <label className="block flex-1 text-sm">
