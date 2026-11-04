@@ -486,8 +486,8 @@ financeiro + despesas** (migration 035).
   motorista ("Kangu App", criados 14:34–14:35 UTC: revogado, revogado, **ativo**) — alguém ligou/desligou/ligou o
   toggle nessa conta; o último segue ativo, ou seja, o perfil dele (se estiver completo e listado) mostra
   "Solicitar vaga". Não toquei; se foi teste, é só desligar o toggle nessa conta.
-  **Marketplace — Frente F (área /admin somente leitura + log de buscas): PRONTA no código e no banco; FALTA
-  SEMEAR O ADMIN REAL (ver "Pendência" abaixo).** **Allowlist por UUID, não por e-mail (decisão de
+  **Marketplace — Frente F (área /admin somente leitura + log de buscas): PRONTA no código e no banco; ADMIN REAL SEMEADO
+  (house@domhub.co).** **Allowlist por UUID, não por e-mail (decisão de
   segurança):** o projeto está com a **confirmação de e-mail DESLIGADA** (provado no teste E.1 — a conta do pai
   entrou confirmada no mesmo envio), então "e-mail = house@domhub.co" sozinho deixaria QUALQUER pessoa virar admin
   cadastrando esse e-mail antes do dono. A tabela `admin_users(user_id → auth.users)` é **fechada** (RLS sem
@@ -521,11 +521,13 @@ financeiro + despesas** (migration 035).
   link do motorista × vitrine) validaram o cruzamento, o filtro por status e a ausência de botões. tsc limpo; as 4
   telas não geraram erro novo no console (os 403/401 do console são das minhas sondagens de bloqueio). Dados de
   teste removidos (pedidos, link, responsável sintético, as 6 buscas e a promoção temporária) — **resíduo 0 e
-  `admin_users` vazio**. **⚠ PENDÊNCIA — semear o admin:** no banco existe só `house@domhub.com` (a conta de
-  teste/Abner); **`house@domhub.co` NÃO existe**. Escolha do Abner: (A) cadastrar `house@domhub.co` pelo app e
-  semear o uuid dela, ou (B) semear a `house@domhub.com`. Comando (SQL Editor): `insert into public.admin_users
-  (user_id) select id from auth.users where email = '<o escolhido>' on conflict do nothing;`. **Enquanto não
-  semear, ninguém acessa /admin** (estado seguro). **Limites/em aberto:** (a) o log registra também
+  `admin_users` vazio**. **✅ Admin real semeado (2026-11-04):** a conta `house@domhub.co` foi criada por Abner pelo painel do Supabase
+  (Authentication → Add user, confirmada; o Claude não cria conta nem digita senha) e semeada em `admin_users`
+  por SQL (`e1d8f7af-963b-42a0-a8cf-4ee31feddd9d`; é o ÚNICO admin). Como foi criada fora do cadastro, o trigger de
+  novo usuário a registrou como `guardian` (sem metadata) — irrelevante para `/admin`, que só confere a allowlist; ao
+  logar nela, a home `/` leva a `/responsavel`, então o acesso é direto por `/admin`. Conferido: `house@domhub.com`
+  e anônimo seguem em 403. **A senha dessa conta foi digitada no chat — trocar** (o login do admin ainda não foi
+  exercitado com a conta nova: validado só o mecanismo com uma conta temporária). **Limites/em aberto:** (a) o log registra também
   bots/curl e não deduplica; (b) `log_marketplace_search` é chamável por qualquer um com a chave anon (spam de
   linhas) — tamanho limitado por coluna, sem rate limit no banco; (c) a fila admin mostra nome de criança de todos
   os motoristas (a plataforma é operadora do dado — rever na validação de LGPD, seção 7); (d) sem exportação nem
@@ -1412,7 +1414,7 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   (motoristas, responsáveis, fila de captação cross-motorista sem botões, buscas) e `marketplace_search_log`
   (só filtros + hora, insert-only). Migration 040; teste `admin_guard.sql` 6/6. Validado como anônimo, como
   usuário real não-admin (inclusive pela API REST) e como admin temporário com dado real; banco limpo.
-  Pendente: semear o admin real (house@domhub.co não existe ainda). Fecha o bloco marketplace (A–F).
+  Admin real: `house@domhub.co` semeado (conta criada no painel pelo Abner). Fecha o bloco marketplace (A–F).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
