@@ -200,6 +200,11 @@ live_positions (upsert por rota, não histórico), absences, occurrences, invoic
 invoice_events (sustenta G3), notifications, student_invites. Consentimento LGPD em
 users.
 
+Tabelas de referência (cobertura guiada, migrations 044–046): `cities` (645 municípios de SP, IBGE),
+`schools` (30.746 escolas de SP, INEP Censo 2024, `city_id` → cities) — ambas leitura pública, escrita só
+por script com chave de serviço — e `neighborhoods` (pool de bairros por cidade, leitura authenticated,
+escrita só por `add_neighborhood`).
+
 Guardas no banco: trigger `enforce_invoice_transition` (G3), trigger
 `enforce_route_stops_frozen_while_running` em route_stops (G2 na edição de rota —
 congela as paradas enquanto uma perna roda), trigger `normalize_boarding_metadata`
@@ -1503,6 +1508,50 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   `AutoRefresh` e os gráficos do R11). Assinaturas (trial do mais antigo ao mais novo, tempo desde o cadastro).
   Moderação (fotos públicas das vans + IPs com mais buscas; o log passou a guardar o IP por 30 dias — decisão
   nova, impacto de LGPD registrado). Validado no navegador com dado real/sintético; banco limpo.
+
+- **Cobertura guiada (4 partes, 4 commits):** substitui a entrada livre da Frente C por seleção guiada. O
+  **armazenamento não mudou** — continua sendo 3 colunas `text` (nomes separados por vírgula; **não são arrays**
+  de verdade, apesar do nome informal "arrays de texto"), então a action, `marketplace_listing` (Frente D) e o
+  filtro de busca (Frente E) ficaram intocados.
+  - **1/4 — `cities` (migration 044):** 645 municípios de SP. **Fonte:** API de localidades do IBGE,
+    `https://servicodados.ibge.gov.br/api/v1/localidades/estados/SP/municipios` (id = código IBGE do município,
+    7 dígitos). Estado fixo `'SP'` (check). Importação: `scripts/import-cities.ts` (upsert por id, valida 645 /
+    ids únicos / todos SP; `--dry`). Leitura pública (anon + authenticated); sem escrita por API.
+  - **2/4 — `schools` (migration 045):** 30.746 escolas **em atividade** de SP. **Fonte:** INEP, Censo Escolar
+    da Educação Básica **2024** (microdados abertos, `microdados_ed_basica_2024.csv`, zip oficial
+    `microdados_censo_escolar_2024`; sha256 do zip e md5 do CSV conferem com o arquivo de hashes do INEP; o
+    Censo 2025 ainda não estava publicado — URL devolvia 404). Filtro: `SG_UF = 'SP'` e
+    `TP_SITUACAO_FUNCIONAMENTO = 1` (em atividade). CSV: 215.545 linhas no Brasil → 33.863 de SP → 3.117
+    inativas descartadas → **30.746** importadas. `CO_MUNICIPIO` (INEP) é o mesmo código do IBGE, então
+    `schools.city_id` liga a `cities.id` **sem casar por nome**. Colunas: `inep_code` (pk), `city_id`, `name`,
+    `dependency` (1 federal, 2 estadual, 3 municipal, 4 privada), `census_year`. Importação única fora do request:
+    `scripts/import-schools.ts --file <csv> [--dry]` (CSV em latin1, em streaming; idempotente — rerodar = 30.746).
+    O CSV/zip **não** estão no repo. Para atualizar no ano seguinte: baixar o novo censo e rodar o script de novo.
+  - **3/4 — seleção guiada no perfil (migration 046 + `CoverageSelector`):** SP fixo → cidades em multi-seleção
+    (busca sem acento, "adicionar outra cidade") → por cidade, escolas em checklist alfabético (com busca e
+    "selecionar todas") e bairros em checklist alfabético de um **pool compartilhado** (`neighborhoods`) que
+    cresce com "+ adicionar bairro" (RPC `add_neighborhood`: só motorista, normaliza separadores/espaços, 2–60
+    caracteres, deduplica sem diferença de maiúsculas **por cidade**, teto de 300 bairros criados por motorista;
+    escrita direta por API negada; leitura só authenticated). Semente do pool: bairros de motoristas com UMA cidade só
+    (hoje 1 linha: "Jardim Campo Verde", Mauá). Teste `docs/tests/cobertura_bairros.sql` **5/5**. Cadastro antigo
+    em texto livre **não se perde**: o que não casa com a base aparece como "do cadastro antigo" (removível) e
+    continua sendo salvo; enquanto a base carrega, o submit devolve o valor original. Validado no navegador
+    (cidade, busca com/sem acento, selecionar todas/limpar, adicionar bairro com normalização e dedup, carga de
+    cadastro antigo com casamento sem diferença de caixa); console sem erros; resíduo de teste removido (0).
+  - **4/4 — autocomplete de endereço:** auditoria — aluno (novo/editar) e CaptureForm já usavam
+    `AddressAutocomplete` (Mapbox Geocoding). Faltavam o **endereço residencial do motorista** (agora com
+    número/complemento) e o **endereço da escola no link de captação** (opcional; campo zera após criar o link).
+    Sem lib nova. Validado no perfil (sugestões reais, coordenada ao escolher); o formulário do link de captação
+    **não foi exercitado na tela** porque o motorista de teste está com perfil incompleto (portão) — usa o mesmo
+    componente já validado.
+  - **Achados / decisões abertas:** (a) **teto de 150 escolas por cidade** — a capital tem 7.304 escolas e salvar
+    todas poluiria o perfil público; "Selecionar todas" age sobre o que a busca mostra e se recusa acima do teto;
+    (b) nomes oficiais do INEP vêm **em MAIÚSCULAS, sem acento e no formato "NOME PROFESSORA"/"NOME COLEGIO"** (ex.:
+    "ADELAIDE ESCOBAR BUENO PROFESSORA") — vão assim para o perfil público e para o filtro; decidir se vale um
+    nome de exibição amigável; (c) nomes de escola repetidos na mesma cidade viram uma opção só (a coluna salva é
+    por nome); (d) o pool de bairros é aberto a qualquer motorista (freio só por volume) — sem moderação ainda; vale
+    uma tela no /admin Moderação se aparecer lixo; (e) cadastros antigos com várias cidades não alimentam o pool
+    (o dado antigo é uma lista plana, sem dizer qual bairro é de qual cidade).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
