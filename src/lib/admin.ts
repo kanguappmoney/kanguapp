@@ -141,3 +141,26 @@ export async function getOverview(days: 7 | 30): Promise<{ data: AdminOverview |
   if (error) return { data: null, error: error.message };
   return { data: data as AdminOverview, error: null };
 }
+
+// --- Moderação -----------------------------------------------------------------
+export interface AdminVanPhoto {
+  user_id: string;
+  full_name: string;
+  email: string | null;
+  van_photo_path: string;
+  photo_at: string;
+  marketplace_listed: boolean;
+  visible_on_marketplace: boolean;
+}
+
+export interface AdminSearchIp {
+  ip: string;
+  searches: number;
+  first_at: string;
+  last_at: string;
+  total_in_period: number;
+  total_with_ip: number;
+}
+
+export const listVanPhotos = () => call<AdminVanPhoto>("admin_list_van_photos");
+export const listSearchIps = (days: 7 | 30) => call<AdminSearchIp>("admin_search_ips", { p_days: days });

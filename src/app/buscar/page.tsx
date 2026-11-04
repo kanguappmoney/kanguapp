@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Car, Search } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Throttled } from "@/components/Throttled";
 import { centsToBRL } from "@/lib/money";
-import { limitMarketplace } from "@/lib/rate-limit";
+import { clientIp, limitMarketplace } from "@/lib/rate-limit";
 import {
   PAGE_SIZE,
   SHIFTS,
@@ -37,7 +37,10 @@ export default async function BuscarPage({ searchParams }: { searchParams: Searc
   const filters = parseFilters(sp);
   const page = parsePage(sp);
   // Uma linha por BUSCA nova: paginar (página > 1) não conta de novo. Só filtros + hora.
-  if (page === 1) await logSearch(filters);
+  if (page === 1) {
+    const ip = await clientIp();
+    await logSearch(filters, ip === "unknown" ? null : ip);
+  }
   const [options, { drivers, total, error }] = await Promise.all([
     getFilterOptions(),
     searchDrivers(filters, page),

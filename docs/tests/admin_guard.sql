@@ -292,8 +292,8 @@ begin
   -- só filtros + hora: colunas exatas da tabela (sem IP, sem usuário)
   select array_agg(column_name::text order by column_name) into cols
     from information_schema.columns where table_schema = 'public' and table_name = 'marketplace_search_log';
-  if cols is distinct from array['child_age','city','created_at','id','neighborhood','school','shift'] then
-    raise exception 'FALHOU (6): a tabela do log tem colunas além de filtros + hora: %', cols;
+  if cols is distinct from array['child_age','city','created_at','id','ip','neighborhood','school','shift'] then
+    raise exception 'FALHOU (6): a tabela do log tem colunas além de filtros + hora (+ ip, da 043): %', cols;
   end if;
 
   -- não-admin não lê; admin lê com colunas exatas

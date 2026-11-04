@@ -126,9 +126,11 @@ export function whatsappUrl(phone: string, driverName: string): string {
   return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
 }
 
-// Registra a busca (SÓ filtros + hora; sem IP nem quem buscou — o banco nem tem essa coluna).
+// Registra a busca: filtros + hora + IP (este por 30 dias, só p/ o admin ver abuso; sem usuário).
 // Melhor esforço: uma falha no log nunca derruba a busca.
-export async function logSearch(filters: Filters): Promise<void> {
+// `ip` (do cabeçalho da Vercel) só serve ao admin para ver abuso: o banco o guarda por 30 dias
+// e depois zera (retenção). null = não informado/inválido.
+export async function logSearch(filters: Filters, ip: string | null = null): Promise<void> {
   try {
     const supabase = await createClient();
     await supabase.rpc("log_marketplace_search", {
@@ -137,6 +139,7 @@ export async function logSearch(filters: Filters): Promise<void> {
       p_school: filters.school || null,
       p_child_age: filters.age,
       p_shift: filters.shift,
+      p_ip: ip,
     });
   } catch {
     /* ignora */
