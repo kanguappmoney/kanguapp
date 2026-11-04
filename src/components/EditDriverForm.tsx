@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { CoverageSelector } from "@/components/CoverageSelector";
 import { VanPhotoUploader } from "@/components/VanPhotoUploader";
 import { updateDriverProfile, type DriverFormState } from "@/lib/actions/driver";
 
@@ -94,9 +95,16 @@ export function EditDriverForm({ driver }: { driver: DriverDefaults }) {
           Foto pública. Evite mostrar a placa e pessoas.
         </span>
       </div>
-      <Field label="Cidades atendidas" name="service_cities" defaultValue={driver.service_cities ?? ""} placeholder="Ex.: Mauá, Santo André" />
-      <Field label="Bairros atendidos" name="service_neighborhoods" defaultValue={driver.service_neighborhoods ?? ""} placeholder="Ex.: Vila Assis, Centro" />
-      <Field label="Escolas atendidas" name="service_schools" defaultValue={driver.service_schools ?? ""} placeholder="Ex.: EMEF Fulano, Colégio Beltrano" />
+      <div>
+        <span className="mb-1 block text-sm font-medium text-navy-800">
+          Onde você atende
+        </span>
+        <CoverageSelector
+          initialCities={driver.service_cities}
+          initialNeighborhoods={driver.service_neighborhoods}
+          initialSchools={driver.service_schools}
+        />
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Idade mínima" name="age_min" type="number" min={0} max={30} defaultValue={driver.age_min ?? ""} placeholder="3" />
         <Field label="Idade máxima" name="age_max" type="number" min={0} max={30} defaultValue={driver.age_max ?? ""} placeholder="17" />
