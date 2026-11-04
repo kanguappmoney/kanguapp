@@ -554,6 +554,49 @@ financeiro + despesas** (migration 035).
   Execução de teste removida pelo id exato (rota volta às 4 execuções originais, 0 em andamento). **Limite:** o
   GPS foi simulado na página; o comportamento com um GPS físico em movimento (e o bearing) segue dependendo do
   teste em device real.
+  **Admin — Visão Geral + Assinaturas + Moderação (3 partes, cada uma com migration, teste de guarda e
+  commit): PRONTO.** Tudo segue o padrão da Frente F: funções `admin_*` `SECURITY DEFINER` com
+  `admin_assert()` (42501 'Acesso negado.', sem execute p/ anon), middleware 403 + layout; abas novas na barra
+  (**Visão geral** agora é a landing — `/admin` redireciona p/ `/admin/visao-geral` —, **Assinaturas**,
+  **Moderação**). **Parte 1 — Visão Geral (migration 041, `admin_overview(p_days)`, teste `admin_overview.sql`
+  6/6, método baseline-delta):** cards (motoristas total e por trial/ativa/pausada; perfil completo X de Y; na
+  vitrine X de Y — "aparece de verdade", pela regra única `marketplace_visible`; responsáveis ATIVOS = ≥1 aluno
+  ATIVO vinculado — quem só tem aluno arquivado ou nenhum não conta; alunos ativos); **novos motoristas/
+  responsáveis/alunos** nos últimos 30 dias em 6 baldes de 5 dias (fuso de São Paulo); funil do marketplace com
+  período 7/30 (buscas → pedidos enviados pelo link GENÉRICO — pedido de link travado não entra — → aprovados/
+  rejeitados/pendentes, com % de conversão); ranking de cidades e escolas mais buscadas (Top 5, sem diferença de
+  maiúsculas: "Mauá"="mauá"); donut de assinatura. **Reuso:** `charts.tsx` (`Donut`, `MoneyBars` p/ as barras —
+  o campo `cents` carrega a contagem —, `RankBars`) sem componente novo; **auto-atualização** com o `AutoRefresh`
+  existente (`router.refresh`, 45 s, sem websocket; mostra a hora da última leitura). **Parte 2 — Assinaturas
+  (migration 042, `admin_list_trials`, teste 4/4):** motoristas em TRIAL do mais antigo ao mais novo (ativa e
+  pausada ficam fora), com dias, perfil completo, alunos ativos e se aparece na vitrine; **o tempo conta desde o
+  CADASTRO** — o banco não guarda o histórico de mudança de `subscription_status`, então "há quanto tempo sem virar
+  ativo" é um proxy (um motorista que foi pausado e voltou a trial aparece com a idade do cadastro); registrar a
+  data da transição quando houver Asaas. **Parte 3 — Moderação (migration 043, `admin_list_van_photos` +
+  `admin_search_ips`, teste 6/6):** fotos públicas das vans com preview (data = a do UPLOAD lida de
+  `storage.objects`, com o `updated_at` do perfil de reserva) e Top 20 de IPs por volume de busca (7/30 dias, % das
+  buscas com IP, primeira/última); **só visibilidade — nenhum bloqueio nem ação**. **⚠ MUDANÇA DE DECISÃO COM
+  IMPACTO DE LGPD:** o log de buscas da Frente F era "só filtros + hora, sem IP"; para listar IPs ele **passou a
+  guardar o IP** (`marketplace_search_log.ip inet`, capturado do `x-forwarded-for`). Mitigações: só endereço de
+  host válido (lixo, 'unknown' e CIDR viram NULL), **retenção automática de 30 dias** (a cada busca registrada os
+  IPs > 30 dias são zerados — a linha dos filtros fica, o IP some), tabela fechada a anon/authenticated (só
+  `admin_search_ips` entrega o IP; `admin_list_search_log` não o devolve). Pendente de decisão jurídica: base
+  legal/aviso na política de privacidade para o IP (seção 7). **Achado de implementação:** `IF ... <> CASE ... THEN`
+  em PL/pgSQL quebra (o `THEN` do CASE é lido como o do IF → "syntax error at end of input") — o CASE vai entre
+  parênteses; ficou comentado na migration. O `admin_guard.sql` foi atualizado (coluna `ip`) e **re-executado: 6/6**.
+  **Validado no navegador** (conta de teste promovida temporariamente e removida depois) com dado real +
+  sintético: Visão Geral — 6 motoristas (5 reais), 2 de 6 com perfil completo, 0 de 6 na vitrine, 1 de 4
+  responsáveis ativos, 4 alunos ativos, 12 buscas → 3 pedidos (25%), 1/1/1 aprovado/rejeitado/pendente,
+  "mauá" 8 (grafias agrupadas), escola 6; **polling provado** (a mesma página, sem reload — marcador em memória
+  preservado —, subiu de 12 para 13 buscas, "Diadema" entrou no ranking e a "última leitura" andou 45 s);
+  Assinaturas — 6 em trial de 69 a 0 dias, em ordem; Moderação — 2 fotos públicas carregadas (800 px) e 5 IPs
+  ordenados 6/3/2/1/1. tsc limpo; as telas não geraram erro novo no console. **Dados de teste removidos
+  (resíduo 0):** pedidos e usuários sintéticos, 13 buscas com IP de teste (`198.51.100.0/24`), fotos no storage,
+  foto do perfil do Abner e a promoção temporária; `admin_users` = só `house@domhub.co`. **Em aberto:** (a) o
+  IP vem do cabeçalho `x-forwarded-for` — atrás de proxy/CDN ele é confiável só se a Vercel for a única entrada;
+  (b) IPs de rede compartilhada (escola, operadora) somam vários usuários; (c) o log continua recebendo bots
+  e `log_marketplace_search` é chamável com a chave anon (spam de linhas); (d) série em baldes de 5 dias, não
+  diária (a `MoneyBars` não comporta 30 barras); (e) sem exportação nem busca por texto nas listas.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1442,6 +1485,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   longe só no estilo); R9 testado com GPS simulado em movimento — ativo, mas o painel piscava com GPS oscilando em
   torno dos 100 m; corrigido com histerese (`sheetAutoTarget`: expande ≤100 m, recolhe >130 m, faixa morta
   entre). Faixa recolhida mostra a distância até a parada. Testes 26/26; execução de teste removida.
+
+- **Admin — Visão Geral, Assinaturas e Moderação:** 3 migrations (041–043) e 3 testes de guarda (6/6, 4/4,
+  6/6, mais o `admin_guard` re-executado 6/6). Visão Geral como landing (cards, novos cadastros em 30 dias,
+  funil buscas→pedidos→status, ranking de cidades/escolas, donut de assinatura; polling de 45 s reusando
+  `AutoRefresh` e os gráficos do R11). Assinaturas (trial do mais antigo ao mais novo, tempo desde o cadastro).
+  Moderação (fotos públicas das vans + IPs com mais buscas; o log passou a guardar o IP por 30 dias — decisão
+  nova, impacto de LGPD registrado). Validado no navegador com dado real/sintético; banco limpo.
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
