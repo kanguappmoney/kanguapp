@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin/responsaveis", label: "Responsáveis" },
   { href: "/admin/captacao", label: "Captação" },
   { href: "/admin/buscas", label: "Buscas" },
+  { href: "/admin/assinaturas", label: "Assinaturas" },
 ];
 
 export function AdminNav() {

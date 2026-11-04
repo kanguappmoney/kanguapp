@@ -67,6 +67,20 @@ async function call<T>(fn: string, args?: Record<string, unknown>): Promise<Resu
   return { rows: (data ?? []) as T[], error: null };
 }
 
+export interface AdminTrial {
+  user_id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  created_at: string;
+  days_as_trial: number;
+  profile_complete: boolean;
+  active_students: number;
+  visible_on_marketplace: boolean;
+}
+
+export const listTrials = () => call<AdminTrial>("admin_list_trials");
+
 export const listDrivers = () => call<AdminDriver>("admin_list_drivers");
 export const listGuardians = () => call<AdminGuardian>("admin_list_guardians");
 
