@@ -10,6 +10,7 @@ import {
   SHIFTS,
   SHIFT_LABEL,
   getFilterOptions,
+  logSearch,
   parseFilters,
   parsePage,
   searchDrivers,
@@ -35,6 +36,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Searc
 
   const filters = parseFilters(sp);
   const page = parsePage(sp);
+  // Uma linha por BUSCA nova: paginar (página > 1) não conta de novo. Só filtros + hora.
+  if (page === 1) await logSearch(filters);
   const [options, { drivers, total, error }] = await Promise.all([
     getFilterOptions(),
     searchDrivers(filters, page),

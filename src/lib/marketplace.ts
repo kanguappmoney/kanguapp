@@ -125,3 +125,20 @@ export function whatsappUrl(phone: string, driverName: string): string {
   const text = `Olá, ${driverName}! Vi seu perfil no Kangu e tenho interesse em uma vaga.`;
   return `https://wa.me/${full}?text=${encodeURIComponent(text)}`;
 }
+
+// Registra a busca (SÓ filtros + hora; sem IP nem quem buscou — o banco nem tem essa coluna).
+// Melhor esforço: uma falha no log nunca derruba a busca.
+export async function logSearch(filters: Filters): Promise<void> {
+  try {
+    const supabase = await createClient();
+    await supabase.rpc("log_marketplace_search", {
+      p_city: filters.city || null,
+      p_neighborhood: filters.neighborhood || null,
+      p_school: filters.school || null,
+      p_child_age: filters.age,
+      p_shift: filters.shift,
+    });
+  } catch {
+    /* ignora */
+  }
+}

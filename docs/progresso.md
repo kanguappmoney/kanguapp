@@ -486,6 +486,50 @@ financeiro + despesas** (migration 035).
   motorista ("Kangu App", criados 14:34–14:35 UTC: revogado, revogado, **ativo**) — alguém ligou/desligou/ligou o
   toggle nessa conta; o último segue ativo, ou seja, o perfil dele (se estiver completo e listado) mostra
   "Solicitar vaga". Não toquei; se foi teste, é só desligar o toggle nessa conta.
+  **Marketplace — Frente F (área /admin somente leitura + log de buscas): PRONTA no código e no banco; FALTA
+  SEMEAR O ADMIN REAL (ver "Pendência" abaixo).** **Allowlist por UUID, não por e-mail (decisão de
+  segurança):** o projeto está com a **confirmação de e-mail DESLIGADA** (provado no teste E.1 — a conta do pai
+  entrou confirmada no mesmo envio), então "e-mail = house@domhub.co" sozinho deixaria QUALQUER pessoa virar admin
+  cadastrando esse e-mail antes do dono. A tabela `admin_users(user_id → auth.users)` é **fechada** (RLS sem
+  policy + `revoke` de anon/authenticated: ninguém se promove nem espia por API) e a semente é manual no SQL Editor
+  com o uuid da conta real. Sem UI de convite de outro admin (decisão da frente). **Migration 040** (SQL
+  Editor; commit `5f898ed`): `is_admin()`, `admin_assert()` e **4 funções `admin_*`** (`SECURITY DEFINER`, colunas
+  explícitas, todas começam por `admin_assert()` → `42501 'Acesso negado.'` para quem não está na allowlist;
+  anon nem tem `execute`): `admin_list_drivers` (perfil completo = prefixo+placa+modelo+cor, o que falta,
+  assinatura, toggle do marketplace, se **aparece de verdade** na vitrine, alunos ativos, link de pedidos aberto),
+  `admin_list_guardians`, `admin_list_submissions` (fila de **todos** os motoristas, filtro de status, só nome
+  da criança + escola/turno + status — **sem endereço, nascimento nem telefone**; origem "Link do motorista" ×
+  "Vitrine") e `admin_list_search_log`. **Log de buscas:** tabela `marketplace_search_log` com SÓ
+  `city/neighborhood/school/child_age/shift` + hora (sem IP, sem usuário, sem cadastro) — insert-only: a única
+  escrita é `log_marketplace_search()` (anon pode chamar; normaliza: trim, 80 caracteres, idade fora de 0–30 →
+  nulo, branco → nulo); ninguém lê/atualiza/apaga por API, só o admin lê pela função. `/buscar` registra **uma linha
+  por busca nova** (página > 1 não conta; falha no log nunca derruba a busca). **App:** o **middleware** responde
+  **403** (rewrite p/ `/acesso-negado`) a anônimo e a qualquer usuário fora da allowlist em `/admin/*` — não
+  redireciona ao login; o **layout** de `/admin` não renderiza nada se `is_admin()` for falso (2ª camada); o
+  **banco** recusa (3ª camada, a de verdade). Telas: `/admin/motoristas`, `/admin/responsaveis`,
+  `/admin/captacao?status=` (paginada, **sem nenhum botão de ação** — aprovar/recusar segue sendo do motorista,
+  provado no teste: o admin chamando `approve_capture`/`reject_capture` é recusado e a submissão segue `pending`),
+  `/admin/buscas` (paginada). **Teste de guarda `docs/tests/admin_guard.sql` 6/6** (chamando como anon/
+  authenticated): anon negado em tudo; motorista e responsável não-admin recebem "Acesso negado."; ninguém
+  insere/lê/atualiza/apaga `admin_users` nem o log; admin lê as 3 listas com **colunas exatas** e sem dado
+  sensível; fila é só leitura; log normaliza, só filtros + hora, só admin lê. **Validado no app:** anônimo → 403
+  nas 5 rotas; **usuário real autenticado e não-admin** (`house@domhub.com`) → 403 nas 5 rotas e, chamando a
+  API REST direto com o token dele, `42501 Acesso negado.` nas 4 funções e 403 nas 2 tabelas (anon: 401);
+  promovido **temporariamente**, as 4 telas abriram com dado real — 5 motoristas reais (2 com perfil completo, 0 na
+  vitrine; o "Kangu App" aparece ligado-mas-oculto e com link de pedidos aberto), 2 responsáveis, 6 buscas no
+  log; a Captação não tinha pedido real, então 3 pedidos sintéticos (pendente/aprovado/rejeitado, 2 motoristas,
+  link do motorista × vitrine) validaram o cruzamento, o filtro por status e a ausência de botões. tsc limpo; as 4
+  telas não geraram erro novo no console (os 403/401 do console são das minhas sondagens de bloqueio). Dados de
+  teste removidos (pedidos, link, responsável sintético, as 6 buscas e a promoção temporária) — **resíduo 0 e
+  `admin_users` vazio**. **⚠ PENDÊNCIA — semear o admin:** no banco existe só `house@domhub.com` (a conta de
+  teste/Abner); **`house@domhub.co` NÃO existe**. Escolha do Abner: (A) cadastrar `house@domhub.co` pelo app e
+  semear o uuid dela, ou (B) semear a `house@domhub.com`. Comando (SQL Editor): `insert into public.admin_users
+  (user_id) select id from auth.users where email = '<o escolhido>' on conflict do nothing;`. **Enquanto não
+  semear, ninguém acessa /admin** (estado seguro). **Limites/em aberto:** (a) o log registra também
+  bots/curl e não deduplica; (b) `log_marketplace_search` é chamável por qualquer um com a chave anon (spam de
+  linhas) — tamanho limitado por coluna, sem rate limit no banco; (c) a fila admin mostra nome de criança de todos
+  os motoristas (a plataforma é operadora do dado — rever na validação de LGPD, seção 7); (d) sem exportação nem
+  busca por texto nas listas.
 - **"Placeholder de endereço"** — citado como pendência, mas sem item com esse nome neste
   documento; o mais próximo é o **Endereço 2.0** (busca de escola por nome, CEP estruturado —
   seção 10). Confirmar o que é.
@@ -1361,6 +1405,14 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   pelo pai)"; aprovado pela tela → aluno ativo correto. Conta, aluno, vínculos e dados de teste removidos
   (resíduo 0). Confirmação de e-mail está desligada no projeto. Achado: 3 links genéricos de outro motorista
   ("Kangu App"), um ativo.
+
+- **Marketplace — Frente F (/admin + log de buscas):** allowlist por uuid (`admin_users`, fechada; semente
+  manual — e-mail sozinho seria burlável com a confirmação desligada), 4 funções `admin_*` com
+  `admin_assert()` (42501), middleware 403 + layout + banco como 3 camadas, 4 telas somente leitura
+  (motoristas, responsáveis, fila de captação cross-motorista sem botões, buscas) e `marketplace_search_log`
+  (só filtros + hora, insert-only). Migration 040; teste `admin_guard.sql` 6/6. Validado como anônimo, como
+  usuário real não-admin (inclusive pela API REST) e como admin temporário com dado real; banco limpo.
+  Pendente: semear o admin real (house@domhub.co não existe ainda). Fecha o bloco marketplace (A–F).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
