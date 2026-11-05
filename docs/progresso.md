@@ -1,4 +1,4 @@
-# Kangu — Progresso e Escopo (fonte de verdade)
+**Login:** reescrito conforme o brief — hero amarelo sólido com a marca (o símbolo é amarelo, então vai num selo branco para não sumir no fundo) e card branco com o formulário embaixo; formulário e links intactos. Fecha as 3 camadas em todo o app.# Kangu — Progresso e Escopo (fonte de verdade)
 
 > Este documento é a **âncora de escopo** do projeto Kangu. Agora vive
 > **versionado dentro do repositório** (`docs/progresso.md`) e é a referência de
