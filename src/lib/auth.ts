@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type UserRole = "driver" | "guardian";
@@ -10,7 +11,11 @@ export interface AppUser {
 }
 
 // Lê o usuário logado + o papel (public.users). Retorna null se não autenticado.
-export async function getCurrentUser(): Promise<AppUser | null> {
+//
+// `cache()` do React: dentro de UMA mesma requisição (layout + página + cabeçalho chamam isto várias vezes) a
+// leitura roda uma vez só — menos idas à API de autenticação e menos consultas ao banco por tela. O cache vale só
+// para a requisição em curso, nunca entre usuários ou requisições.
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<AppUser | null> {
   const supabase = await createClient();
 
   const {
@@ -33,7 +38,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     role: profile.role as UserRole,
     fullName: profile.full_name,
   };
-}
+});
 
 // Caminho da home de cada papel.
 export function homePathForRole(role: UserRole): string {
