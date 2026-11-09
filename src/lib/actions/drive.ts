@@ -101,5 +101,9 @@ export async function endRoute(executionId: string) {
     .update({ status: "completed", ended_at: new Date().toISOString() })
     .eq("id", executionId);
 
+  // LGPD: a posição da van só existe durante a rota. O gatilho do banco (migration 055) já apaga ao sair de
+  // 'in_progress'; este delete explícito é a segunda camada, no próprio caminho do botão "Encerrar rota".
+  await supabase.from("live_positions").delete().eq("execution_id", executionId);
+
   redirect("/motorista");
 }
