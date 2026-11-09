@@ -1663,6 +1663,23 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   bairros/escolas nulos (`splitList(null)`) — chegou a ir ao ar com a fatia 2; corrigido. A busca de escola passou a
   esconder as que nenhum motorista atende (contagem 0).
 
+- **Editar perfil em 5 categorias + status REAL da vitrine (migration 052):** a tela de Configurações dizia "Aparecendo"
+  olhando só o toggle; agora usa `my_marketplace_status()` (SECURITY DEFINER, só motorista) que calcula `visible` pela
+  MESMA `marketplace_visible` (nunca diverge) e `missing` (toggle, assinatura, veículo, cidades, idades, turnos, preço,
+  foto, telefone, nome). Configurações: "Aparecendo" só se visível, senão "Não aparece" + "Falta: …" + link para
+  completar. Teste `docs/tests/my_marketplace_status.sql` **3/3** (anon/responsável recusados; completo → visível; cada
+  requisito faltando → invisível + código certo + igual à vitrine pública; restaurar limpa). **Editar perfil**
+  (`EditDriverForm`) reorganizado em cartões: **Meu perfil** (nome, telefone, e-mail, endereço) · **Veículo** ·
+  **Acompanhamento** (modo Mapa/Linha do tempo, antes só em Configurações; salva ao tocar, fora do "Salvar") ·
+  **Assinatura Kangu** · **Marketplace** (status real da vitrine no topo — azul-marinho quando aparece, creme com o que
+  falta quando não —, foto, onde atende, idades, turnos, preço, toggle). Cores seguem as 3 camadas (branco/creme/azul).
+  Achado: os botões do `TrackingModeToggle` não tinham `type="button"` e enviariam o formulário ao serem usados dentro
+  dele — corrigido. **Nota:** a spec "categorização do Editar perfil" que o Abner citou como pendente não estava no
+  progresso.md; implementei as 5 categorias que ele listou (e mantive o bloco de acompanhamento também em Configurações).
+  Conta de teste: toggle do marketplace **desligado** (Configurações: "Não aparece — Falta: ligar…"; /buscar volta ao vazio).
+  Sobraram, por decisão de não mexer sem pedido: a foto de teste no bucket público (fora da vitrine, sem link) e o
+  "Receber pedidos pela vitrine" ainda ligado (link de captação genérico ativo; só era descoberto pelo perfil público).
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

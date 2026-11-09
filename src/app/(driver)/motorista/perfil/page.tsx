@@ -17,6 +17,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { TrackingModeToggle } from "@/components/TrackingModeToggle";
+import { missingText, parseStatus } from "@/lib/marketplace-status";
 import { centsToBRL } from "@/lib/money";
 import { OpenRequestsToggle } from "@/components/OpenRequestsToggle";
 import { DriverPhotoUploader } from "@/components/DriverPhotoUploader";
@@ -89,6 +90,9 @@ export default async function PerfilMotoristaPage() {
   };
   const sub = SUB[profile?.subscription_status ?? "trial"] ?? SUB.trial;
   const { unread } = await getDriverHeader();
+  // Status REAL da vitrine (a mesma regra do banco): o toggle sozinho não garante que aparece.
+  const { data: statusRaw } = await supabase.rpc("my_marketplace_status");
+  const mkt = parseStatus(statusRaw);
 
   return (
     <>
@@ -175,13 +179,21 @@ export default async function PerfilMotoristaPage() {
           <div className="p-4 text-sm">
             <p
               className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                profile?.marketplace_listed
+                mkt?.visible
                   ? "bg-green-100 text-green-800"
                   : "bg-navy-900/5 text-navy-700/70"
               }`}
             >
-              {profile?.marketplace_listed ? "Aparecendo" : "Não aparece"}
+              {mkt?.visible ? "Aparecendo" : "Não aparece"}
             </p>
+            {mkt && !mkt.visible && mkt.missing.length > 0 && (
+              <p className="mt-2 rounded-lg bg-cream px-3 py-2 text-xs text-navy-800">
+                Falta: {missingText(mkt.missing)}.{" "}
+                <Link href="/motorista/perfil/editar" className="font-semibold underline">
+                  Completar
+                </Link>
+              </p>
+            )}
             {(profile?.price_min_cents || profile?.price_max_cents) && (
               <p className="mt-2 text-navy-700/70">
                 {[profile?.price_min_cents, profile?.price_max_cents]

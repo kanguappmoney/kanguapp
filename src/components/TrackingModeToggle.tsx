@@ -37,6 +37,7 @@ export function TrackingModeToggle({ initial }: { initial: Mode }) {
         const active = mode === opt.value;
         return (
           <button
+            type="button"
             key={opt.value}
             onClick={() => choose(opt.value)}
             disabled={pending}

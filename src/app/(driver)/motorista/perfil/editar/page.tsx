@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { EditDriverForm } from "@/components/EditDriverForm";
+import { parseStatus } from "@/lib/marketplace-status";
 
 export default async function EditarPerfilPage() {
   const user = await getCurrentUser();
@@ -11,7 +12,7 @@ export default async function EditarPerfilPage() {
   const { data: profile } = await supabase
     .from("driver_profiles")
     .select(
-      "address, subscription_status, service_cities, service_neighborhoods, service_schools, age_min, age_max, service_shifts, price_min_cents, price_max_cents, marketplace_listed, van_photo_path",
+      "address, parent_tracking_mode, subscription_status, service_cities, service_neighborhoods, service_schools, age_min, age_max, service_shifts, price_min_cents, price_max_cents, marketplace_listed, van_photo_path",
     )
     .eq("user_id", user!.id)
     .single();
@@ -46,6 +47,9 @@ export default async function EditarPerfilPage() {
       dnRows.flatMap((r) => (Array.isArray(r.neighborhoods) ? r.neighborhoods : r.neighborhoods ? [r.neighborhoods] : [])).map((n) => n.city_id),
     ),
   ];
+
+  // Status real da vitrine (mesma regra do banco).
+  const { data: statusRaw } = await supabase.rpc("my_marketplace_status");
 
   const vanUrl = profile?.van_photo_path
     ? supabase.storage.from("van-photos").getPublicUrl(profile.van_photo_path).data
@@ -90,6 +94,8 @@ export default async function EditarPerfilPage() {
             van_photo_path: profile?.van_photo_path ?? null,
             van_photo_url: vanUrl,
             driver_id: user!.id,
+            tracking_mode: ((profile?.parent_tracking_mode as string | null) === "timeline" ? "timeline" : "map") as "map" | "timeline",
+            marketplace_status: parseStatus(statusRaw),
           }}
         />
       </div>
