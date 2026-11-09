@@ -1546,7 +1546,7 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
     componente já validado.
   - **Achados / decisões abertas:** (a) **teto de 150 escolas por cidade** — a capital tem 7.304 escolas e salvar
     todas poluiria o perfil público; "Selecionar todas" age sobre o que a busca mostra e se recusa acima do teto;
-    (b) nomes oficiais do INEP vêm **em MAIÚSCULAS, sem acento e no formato "NOME PROFESSORA"/"NOME COLEGIO"** (ex.:
+    (b) [resolvido pela migration 047 — nome de exibição] nomes oficiais do INEP vêm **em MAIÚSCULAS, sem acento e no formato "NOME PROFESSORA"/"NOME COLEGIO"** (ex.:
     "ADELAIDE ESCOBAR BUENO PROFESSORA") — vão assim para o perfil público e para o filtro; decidir se vale um
     nome de exibição amigável; (c) nomes de escola repetidos na mesma cidade viram uma opção só (a coluna salva é
     por nome); (d) o pool de bairros é aberto a qualquer motorista (freio só por volume) — sem moderação ainda; vale
@@ -1569,6 +1569,23 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   (removida) com os componentes reais; telas do responsável não foram vistas logadas (sem sessão de responsável no
   navegador). **Divergência:** o brief pede "login com hero amarelo sólido + card branco", mas o login real é branco
   com o logo no topo — não alterei, aguardando decisão.
+
+- **Escolas — nome de exibição amigável (migration 047, achado (b) da Cobertura guiada):** `schools.display_name`
+  (nullable, sem `,;` nem quebra de linha) ao lado do `name` oficial do INEP, que **não muda** (continua sendo a
+  chave de reimportação e valendo na busca). Regra pura em `src/lib/school-name.ts` (`friendlyName`), aprovada
+  numa amostra de 30 escolas reais: iniciais maiúsculas (ligações "de/da/do/e" em minúsculo), siglas preservadas
+  (EMEF, EMEI, EMEB, CEI, EE, ETEC, APAE, SESI, romanos…), **título movido para o início** ("… PROFESSORA" →
+  "Professora …"; "Prof."/"Profa."/"Dr."/"Doutor"/"Padre"…), **tipo no fim movido para o início** ("… COLEGIO" →
+  "Colégio …", "… EMEF" → "EMEF …"; título entra logo depois do tipo), abreviações inequívocas expandidas (CR
+  Creche, ESC Escola, PART Particular, CONV Conveniada, INDIR Indireta, DIR Direta, REC INF Recreação Infantil,
+  "CR P CONV" = Creche Particular Conveniada), "E M E I" colapsa em EMEI, e acentos só de um dicionário curto
+  (José, João, São, Colégio, Educação…). Limites conhecidos: palavra fora do dicionário fica sem acento
+  ("Purificacao", "Brandao") — o dicionário cresce conforme aparecerem casos; prefixos desconhecidos ("CEL JTO EE…")
+  não são reordenados. Backfill: `scripts/backfill-school-display-names.ts` (`--dry`; idempotente) gravou **30.746
+  de 30.746** (0 inválidos, `name` intacto, rerodar = 0 a gravar); `scripts/import-schools.ts` passa a gravar
+  `display_name` nas reimportações. Seletor: lista/salva o nome amigável (ordem alfabética pelo exibido), a **busca
+  vale para o exibido e para o oficial**, e cadastros antigos que salvaram o nome oficial continuam casando (viram
+  o nome amigável ao salvar de novo). Testes unitários `tests/school-name.test.ts` (29/29 no total).
 
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
