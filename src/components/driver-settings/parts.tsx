@@ -19,14 +19,17 @@ export function SettingsHeader({ title, subtitle }: { title: string; subtitle?: 
 
 export function Field({
   label,
+  onDark = false,
   ...props
-}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { label: string; onDark?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-navy-800">{label}</span>
+      <span className={`mb-1 block text-sm font-medium ${onDark ? "text-white/80" : "text-navy-800"}`}>{label}</span>
       <input
         {...props}
-        className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
+        className={`w-full rounded-xl border bg-white px-3 py-3 text-navy-900 outline-none focus:ring-2 focus:ring-yellow-400/40 ${
+          onDark ? "border-white/20 focus:border-yellow-400" : "border-navy-900/15 focus:border-navy-700"
+        }`}
       />
     </label>
   );

@@ -24,7 +24,7 @@ export function OpenRequestsToggle({ initial }: { initial: boolean }) {
 
   return (
     <div className="mt-3">
-      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
+      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-yellow-400/40 bg-cream p-4">
         <span>
           <span className="block text-sm font-semibold text-navy-900">
             Receber pedidos pela vitrine

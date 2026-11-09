@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { INVOICE_STATUS } from "@/lib/pay-status";
 import { StatusPill, StepDot } from "@/components/patterns";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ListChecks, Zap } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Card, SectionTitle } from "@/components/ui";
+import { Section } from "@/components/ui";
 import { InvoiceActions } from "@/components/InvoiceActions";
 import { centsToBRL } from "@/lib/money";
 
@@ -63,35 +63,33 @@ export default async function InvoiceDetailPage({
         <h1 className="text-lg font-bold text-navy-900">Detalhe da mensalidade</h1>
       </header>
 
-      <div className="px-4 pb-8">
-        <Card className="mt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-bold text-navy-900">{name}</p>
-              <p className="text-sm text-navy-700/60">
-                {centsToBRL(invoice.amount_cents)} • vence{" "}
-                {invoice.due_date.slice(8, 10)}/{invoice.due_date.slice(5, 7)} •
-                tolerância {invoice.tolerance_days}d
-              </p>
-            </div>
-            <StatusPill tone={st.tone}>{st.label}</StatusPill>
+      <div className="space-y-4 px-4 pb-8 pt-4">
+        {/* Resumo — azul-marinho: aluno, valor e situação */}
+        <section className="rounded-2xl bg-navy-900 p-5 text-white">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-lg font-bold">{name}</p>
+            <StatusPill tone={st.tone} onDark>{st.label}</StatusPill>
           </div>
-        </Card>
+          <p className="mt-2 text-3xl font-bold text-yellow-400">{centsToBRL(invoice.amount_cents)}</p>
+          <p className="mt-1 text-sm text-white/70">
+            Vence {invoice.due_date.slice(8, 10)}/{invoice.due_date.slice(5, 7)} · tolerância {invoice.tolerance_days} dias
+          </p>
+        </section>
 
-        <SectionTitle>Ações</SectionTitle>
-        <InvoiceActions
-          invoiceId={invoiceId}
-          status={invoice.status}
-          hasSent={has("final_warning_sent")}
-          hasDelivered={has("final_warning_delivered")}
-          hasFailed={has("final_warning_failed")}
-        />
+        <Section tone="cream" icon={Zap} title="Ações">
+          <InvoiceActions
+            invoiceId={invoiceId}
+            status={invoice.status}
+            hasSent={has("final_warning_sent")}
+            hasDelivered={has("final_warning_delivered")}
+            hasFailed={has("final_warning_failed")}
+          />
+        </Section>
 
-        <SectionTitle>Régua de cobrança</SectionTitle>
-        {!events?.length ? (
-          <Card className="text-sm text-navy-700/60">Nenhum evento ainda.</Card>
-        ) : (
-          <Card>
+        <Section icon={ListChecks} title="Régua de cobrança">
+          {!events?.length ? (
+            <p className="text-sm text-navy-700/60">Nenhum evento ainda.</p>
+          ) : (
             <ol>
               {events.map((e, i) => {
                 const last = i === events.length - 1;
@@ -114,8 +112,8 @@ export default async function InvoiceDetailPage({
                 );
               })}
             </ol>
-          </Card>
-        )}
+          )}
+        </Section>
       </div>
     </>
   );

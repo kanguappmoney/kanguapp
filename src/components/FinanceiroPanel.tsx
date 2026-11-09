@@ -5,7 +5,8 @@ import { StatusPill } from "@/components/patterns";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { CalendarCheck, ChevronRight, Receipt, RefreshCw, SlidersHorizontal, Wallet } from "lucide-react";
+import { Section } from "@/components/ui";
 import { centsToBRL } from "@/lib/money";
 import {
   setStudentFee,
@@ -53,8 +54,8 @@ export function FinanceiroPanel({
   }
 
   return (
-    <div className="space-y-6">
-      {/* A receber */}
+    <div className="space-y-4">
+      {/* A receber — azul-marinho: o número que importa */}
       <div className="rounded-2xl bg-navy-900 p-5 text-white">
         <p className="text-sm text-white/60">A receber neste mês</p>
         <p className="mt-1 text-3xl font-bold">{centsToBRL(aReceber)}</p>
@@ -68,26 +69,8 @@ export function FinanceiroPanel({
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{msg}</p>
       )}
 
-      {/* Mensalidades */}
-      <div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
-          Mensalidade por aluno
-        </h2>
-        {!students.length ? (
-          <p className="rounded-xl border border-dashed border-navy-900/15 p-3 text-sm text-navy-700/60">
-            Cadastre alunos para definir mensalidades.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {students.map((s) => (
-              <FeeRow key={s.id} student={s} disabled={pending} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Ações do mês */}
-      <div className="space-y-2">
+      {/* Ações do mês — creme: o que fazer agora */}
+      <Section tone="cream" icon={CalendarCheck} title="Ações do mês" className="space-y-2">
         <button
           onClick={() => run(generateMonthlyInvoices)}
           disabled={pending}
@@ -99,28 +82,23 @@ export function FinanceiroPanel({
           <button
             onClick={() => run(markOverdueInvoices)}
             disabled={pending}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-navy-900/15 py-2.5 text-sm font-semibold text-navy-900 disabled:opacity-60"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-navy-900/15 bg-white py-2.5 text-sm font-semibold text-navy-900 disabled:opacity-60"
           >
             <RefreshCw className="h-4 w-4" /> Atualizar vencidas
           </button>
           <Link
             href="/motorista/financeiro/regua"
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-navy-900/15 py-2.5 text-sm font-semibold text-navy-900"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-navy-900/15 bg-white py-2.5 text-sm font-semibold text-navy-900"
           >
             <SlidersHorizontal className="h-4 w-4" /> Régua
           </Link>
         </div>
-      </div>
+      </Section>
 
       {/* Faturas do mês */}
-      <div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
-          Faturas do mês
-        </h2>
+      <Section icon={Receipt} title="Faturas do mês">
         {!invoices.length ? (
-          <p className="rounded-xl border border-dashed border-navy-900/15 p-3 text-sm text-navy-700/60">
-            Nenhuma fatura gerada neste mês.
-          </p>
+          <p className="text-sm text-navy-700/60">Nenhuma fatura gerada neste mês.</p>
         ) : (
           <div className="space-y-2">
             {invoices.map((i) => {
@@ -129,13 +107,12 @@ export function FinanceiroPanel({
                 <Link
                   key={i.id}
                   href={`/motorista/financeiro/${i.id}`}
-                  className="flex items-center justify-between rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
+                  className="flex items-center justify-between rounded-xl border border-navy-900/10 bg-white p-3"
                 >
                   <div>
                     <p className="font-semibold text-navy-900">{i.name}</p>
                     <p className="text-sm text-navy-700/60">
-                      {centsToBRL(i.amount_cents)} • vence{" "}
-                      {i.due_date.slice(8, 10)}/{i.due_date.slice(5, 7)}
+                      {centsToBRL(i.amount_cents)} • vence {i.due_date.slice(8, 10)}/{i.due_date.slice(5, 7)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -147,7 +124,20 @@ export function FinanceiroPanel({
             })}
           </div>
         )}
-      </div>
+      </Section>
+
+      {/* Mensalidade por aluno */}
+      <Section icon={Wallet} title="Mensalidade por aluno">
+        {!students.length ? (
+          <p className="text-sm text-navy-700/60">Cadastre alunos para definir mensalidades.</p>
+        ) : (
+          <div className="space-y-2">
+            {students.map((s) => (
+              <FeeRow key={s.id} student={s} disabled={pending} />
+            ))}
+          </div>
+        )}
+      </Section>
     </div>
   );
 }

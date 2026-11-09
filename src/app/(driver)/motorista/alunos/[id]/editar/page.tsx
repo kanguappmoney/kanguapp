@@ -38,7 +38,7 @@ export default async function EditarAlunoPage({
         </Link>
         <h1 className="text-lg font-bold text-navy-900">Editar aluno</h1>
       </header>
-      <div className="px-4 pb-8">
+      <div className="px-4 pb-8 pt-4">
         {gate.complete ? (
           <EditStudentForm
             student={{

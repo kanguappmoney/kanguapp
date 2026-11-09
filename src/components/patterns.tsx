@@ -24,14 +24,22 @@ export function StatusPill({
   tone,
   children,
   className = "",
+  onDark = false,
 }: {
   tone: PillTone;
   children: React.ReactNode;
   className?: string;
+  onDark?: boolean; // sobre azul-marinho: neutro = branco translúcido, pendente = amarelo cheio
 }) {
+  const cls =
+    onDark && tone === "neutral"
+      ? "bg-white/15 text-white/85"
+      : onDark && tone === "pending"
+        ? "bg-yellow-400 text-navy-900"
+        : PILL[tone];
   return (
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${PILL[tone]} ${className}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${cls} ${className}`}
     >
       {children}
     </span>
@@ -42,15 +50,17 @@ export function IconBadge({
   icon: Icon,
   size = "md",
   className = "",
+  onDark = false,
 }: {
   icon: ComponentType<{ className?: string }>;
   size?: "sm" | "md";
   className?: string;
+  onDark?: boolean; // sobre azul-marinho: círculo amarelo com ícone azul-marinho
 }) {
   const box = size === "sm" ? "h-9 w-9" : "h-10 w-10";
   const ico = size === "sm" ? "h-4 w-4" : "h-5 w-5";
   return (
-    <span className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-navy-900 text-yellow-400 ${className}`}>
+    <span className={`flex ${box} shrink-0 items-center justify-center rounded-full ${onDark ? "bg-yellow-400 text-navy-900" : "bg-navy-900 text-yellow-400"} ${className}`}>
       <Icon className={ico} />
     </span>
   );

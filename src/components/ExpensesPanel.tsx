@@ -166,7 +166,7 @@ export function ExpenseForm({
     <form
       ref={formRef}
       action={action}
-      className="space-y-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
+      className="space-y-3 rounded-2xl border border-yellow-400/40 bg-cream p-4"
     >
       <p className="font-semibold text-navy-900">Nova despesa</p>
       <label className="block text-sm">

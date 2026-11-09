@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Map as MapIcon, MapPin } from "lucide-react";
+import { Camera, Car, Info, Map as MapIcon, MapPin, ShieldCheck, SlidersHorizontal, Store, User, Wallet } from "lucide-react";
+import { Section } from "@/components/ui";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { CoverageSelector } from "@/components/CoverageSelector";
 import { VanPhotoUploader } from "@/components/VanPhotoUploader";
@@ -33,27 +34,31 @@ export function MyProfileForm({
   const [state, action, pending] = useActionState(saveMyProfile, initial);
   return (
     <form action={action} className="space-y-4">
-      <Field label="Nome completo" name="full_name" defaultValue={fullName} required />
-      <Field label="Telefone" name="phone" type="tel" defaultValue={phone ?? ""} placeholder="(00) 00000-0000" required />
-      <label className="block">
-        <span className="mb-1 block text-sm font-medium text-navy-800">
-          E-mail <span className="text-navy-700/40">(não editável)</span>
-        </span>
-        <input
-          value={email ?? ""}
-          disabled
-          className="w-full rounded-xl border border-navy-900/10 bg-navy-900/[0.03] px-3 py-3 text-navy-700/60"
+      <Section tone="navy" icon={User} title="Identificação" className="space-y-4">
+        <Field onDark label="Nome completo" name="full_name" defaultValue={fullName} required />
+        <Field onDark label="Telefone" name="phone" type="tel" defaultValue={phone ?? ""} placeholder="(00) 00000-0000" required />
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-white/80">
+            E-mail <span className="text-white/40">(não editável)</span>
+          </span>
+          <input
+            value={email ?? ""}
+            disabled
+            className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-white/60"
+          />
+        </label>
+      </Section>
+      <Section tone="cream" icon={MapPin} title="Endereço">
+        <AddressAutocomplete
+          label="Endereço residencial"
+          name="address"
+          latName="address_lat"
+          lngName="address_lng"
+          placeholder="Rua, número, bairro, cidade"
+          initialValue={address ?? ""}
+          withNumber
         />
-      </label>
-      <AddressAutocomplete
-        label="Endereço residencial"
-        name="address"
-        latName="address_lat"
-        lngName="address_lng"
-        placeholder="Rua, número, bairro, cidade"
-        initialValue={address ?? ""}
-        withNumber
-      />
+      </Section>
       <SaveBar error={state.error} pending={pending} />
     </form>
   );
@@ -68,14 +73,18 @@ export function VehicleForm({
   const [state, action, pending] = useActionState(saveVehicle, initial);
   return (
     <form action={action} className="space-y-4">
-      <Field label="Prefixo" name="prefix" defaultValue={v.prefix ?? ""} placeholder="Nº de identificação da van" required />
-      <Field label="Placa" name="plate" defaultValue={v.plate ?? ""} placeholder="ABC-1D23" required />
-      <Field label="Modelo" name="model" defaultValue={v.model ?? ""} placeholder="Ex.: Mercedes-Benz Sprinter" required />
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Ano" name="year" type="number" defaultValue={v.year ?? ""} placeholder="2022" required />
-        <Field label="Cor" name="color" defaultValue={v.color ?? ""} placeholder="Branca" required />
-      </div>
-      <Field label="Vagas" name="capacity" type="number" defaultValue={v.capacity ?? ""} placeholder="Ex.: 15" required />
+      <Section tone="navy" icon={Car} title="Identificação da van" className="space-y-4">
+        <Field onDark label="Prefixo" name="prefix" defaultValue={v.prefix ?? ""} placeholder="Nº de identificação da van" required />
+        <Field onDark label="Placa" name="plate" defaultValue={v.plate ?? ""} placeholder="ABC-1D23" required />
+      </Section>
+      <Section tone="cream" icon={Info} title="Detalhes" className="space-y-4">
+        <Field label="Modelo" name="model" defaultValue={v.model ?? ""} placeholder="Ex.: Mercedes-Benz Sprinter" required />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Ano" name="year" type="number" defaultValue={v.year ?? ""} placeholder="2022" required />
+          <Field label="Cor" name="color" defaultValue={v.color ?? ""} placeholder="Branca" required />
+        </div>
+        <Field label="Vagas" name="capacity" type="number" defaultValue={v.capacity ?? ""} placeholder="Ex.: 15" required />
+      </Section>
       <SaveBar error={state.error} pending={pending} />
     </form>
   );
@@ -91,30 +100,32 @@ export function TrackingForm({ initialMode }: { initialMode: "map" | "timeline" 
   const [state, action, pending] = useActionState(saveTracking, initial);
   const [mode, setMode] = useState(initialMode);
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="space-y-4">
       <input type="hidden" name="mode" value={mode} />
-      {TRACKING.map((o) => {
-        const active = mode === o.value;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => setMode(o.value)}
-            aria-pressed={active}
-            className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition ${
-              active ? "border-navy-900 bg-navy-900/[0.03] ring-2 ring-yellow-400/40" : "border-navy-900/10 bg-white"
-            }`}
-          >
-            <o.icon className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" />
-            <span className="flex-1">
-              <span className="block font-semibold text-navy-900">{o.title}</span>
-              <span className="block text-sm text-navy-700/60">{o.desc}</span>
-            </span>
-            {active && <span className="text-yellow-500">✓</span>}
-          </button>
-        );
-      })}
-      <p className="text-xs text-navy-700/50">
+      <Section icon={MapIcon} title="Como os pais acompanham" className="space-y-3">
+        {TRACKING.map((o) => {
+          const active = mode === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => setMode(o.value)}
+              aria-pressed={active}
+              className={`flex w-full items-start gap-3 rounded-2xl p-4 text-left transition ${
+                active ? "bg-navy-900 text-white" : "border border-navy-900/10 bg-white"
+              }`}
+            >
+              <o.icon className={`mt-0.5 h-5 w-5 shrink-0 ${active ? "text-yellow-400" : "text-navy-900"}`} />
+              <span className="flex-1">
+                <span className={`block font-semibold ${active ? "text-white" : "text-navy-900"}`}>{o.title}</span>
+                <span className={`block text-sm ${active ? "text-white/70" : "text-navy-700/60"}`}>{o.desc}</span>
+              </span>
+              {active && <span className="font-bold text-yellow-400">✓</span>}
+            </button>
+          );
+        })}
+      </Section>
+      <p className="rounded-2xl bg-cream px-4 py-3 text-xs text-navy-800">
         Vale para todas as suas rotas. No modo Linha do tempo, o app nunca compartilha a localização por GPS.
       </p>
       <SaveBar error={state.error} pending={pending} />
@@ -127,21 +138,23 @@ export function SubscriptionForm({ status }: { status: string }) {
   const [state, action, pending] = useActionState(saveSubscription, initial);
   return (
     <form action={action} className="space-y-4">
-      <label className="block">
-        <span className="mb-1 block text-sm font-medium text-navy-800">Status da assinatura</span>
-        <select
-          name="subscription_status"
-          defaultValue={status}
-          className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3"
-        >
-          <option value="trial">Trial</option>
-          <option value="active">Ativa</option>
-          <option value="paused">Pausada</option>
-        </select>
-        <span className="mt-1 block text-xs text-navy-700/50">
-          Controle interno — a cobrança da assinatura é feita fora do app no piloto.
-        </span>
-      </label>
+      <Section tone="navy" icon={ShieldCheck} title="Assinatura Kangu">
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-white/80">Status da assinatura</span>
+          <select
+            name="subscription_status"
+            defaultValue={status}
+            className="w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-navy-900"
+          >
+            <option value="trial">Trial</option>
+            <option value="active">Ativa</option>
+            <option value="paused">Pausada</option>
+          </select>
+          <span className="mt-1 block text-xs text-white/60">
+            Controle interno — a cobrança da assinatura é feita fora do app no piloto.
+          </span>
+        </label>
+      </Section>
       <SaveBar error={state.error} pending={pending} />
     </form>
   );
@@ -181,15 +194,13 @@ export function MarketplaceForm({ d }: { d: MarketplaceDefaults }) {
   return (
     <form action={action} className="space-y-4">
       <StatusBlock status={d.status} listedNow={listed} />
-      <div>
-        <span className="mb-1 block text-sm font-medium text-navy-800">Foto da van</span>
+
+      <Section icon={Camera} title="Foto da van">
         <VanPhotoUploader driverId={d.driver_id} currentUrl={d.van_photo_url} currentPath={d.van_photo_path} />
-        <span className="mt-1 block text-xs text-navy-700/50">Foto pública. Evite mostrar a placa e pessoas.</span>
-      </div>
-      <div>
-        <span className="mb-1 flex items-center gap-1.5 text-sm font-medium text-navy-800">
-          <MapPin className="h-4 w-4 text-navy-700/50" aria-hidden /> Onde você atende
-        </span>
+        <span className="mt-2 block text-xs text-navy-700/60">Foto pública. Evite mostrar a placa e pessoas.</span>
+      </Section>
+
+      <Section tone="cream" icon={MapPin} title="Onde você atende">
         <CoverageSelector
           initialCities={d.service_cities}
           initialNeighborhoods={d.service_neighborhoods}
@@ -199,54 +210,65 @@ export function MarketplaceForm({ d }: { d: MarketplaceDefaults }) {
           initialHoodIds={d.hood_ids}
           initialHoodCityIds={d.hood_city_ids}
         />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Idade mínima" name="age_min" type="number" min={0} max={30} defaultValue={d.age_min ?? ""} placeholder="3" />
-        <Field label="Idade máxima" name="age_max" type="number" min={0} max={30} defaultValue={d.age_max ?? ""} placeholder="17" />
-      </div>
-      <fieldset>
-        <legend className="mb-1 block text-sm font-medium text-navy-800">Turnos atendidos</legend>
-        <div className="flex gap-2">
-          {SHIFT_OPTIONS.map((o) => (
-            <label
-              key={o.value}
-              className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-navy-900/15 bg-white py-3 text-sm has-[:checked]:border-navy-900 has-[:checked]:bg-yellow-400/30 has-[:checked]:font-semibold"
-            >
-              <input
-                type="checkbox"
-                name="service_shifts"
-                value={o.value}
-                defaultChecked={d.service_shifts.includes(o.value)}
-                className="sr-only"
-              />
-              {o.label}
-            </label>
-          ))}
+      </Section>
+
+      <Section icon={SlidersHorizontal} title="Quem você atende" className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Idade mínima" name="age_min" type="number" min={0} max={30} defaultValue={d.age_min ?? ""} placeholder="3" />
+          <Field label="Idade máxima" name="age_max" type="number" min={0} max={30} defaultValue={d.age_max ?? ""} placeholder="17" />
         </div>
-      </fieldset>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Preço mínimo (R$/mês)" name="price_min" inputMode="decimal" defaultValue={centsToInput(d.price_min_cents)} placeholder="250,00" />
-        <Field label="Preço máximo (R$/mês)" name="price_max" inputMode="decimal" defaultValue={centsToInput(d.price_max_cents)} placeholder="400,00" />
-      </div>
-      <span className="-mt-2 block text-xs text-navy-700/50">
-        Faixa pública de referência. Não muda o valor cobrado de cada aluno.
-      </span>
-      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-navy-900/15 bg-white px-4 py-3">
-        <span>
-          <span className="block text-sm font-medium text-navy-800">Aparecer no marketplace</span>
-          <span className="block text-xs text-navy-700/50">
-            {listed ? "Ligado: seu perfil pode ser listado." : "Desligado, seu perfil não é listado."}
-          </span>
+        <fieldset>
+          <legend className="mb-1 block text-sm font-medium text-navy-800">Turnos atendidos</legend>
+          <div className="flex gap-2">
+            {SHIFT_OPTIONS.map((o) => (
+              <label
+                key={o.value}
+                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-navy-900/15 bg-white py-3 text-sm has-[:checked]:border-navy-900 has-[:checked]:bg-yellow-400/30 has-[:checked]:font-semibold"
+              >
+                <input
+                  type="checkbox"
+                  name="service_shifts"
+                  value={o.value}
+                  defaultChecked={d.service_shifts.includes(o.value)}
+                  className="sr-only"
+                />
+                {o.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </Section>
+
+      <Section tone="cream" icon={Wallet} title="Faixa de preço" className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Preço mínimo (R$/mês)" name="price_min" inputMode="decimal" defaultValue={centsToInput(d.price_min_cents)} placeholder="250,00" />
+          <Field label="Preço máximo (R$/mês)" name="price_max" inputMode="decimal" defaultValue={centsToInput(d.price_max_cents)} placeholder="400,00" />
+        </div>
+        <span className="block text-xs text-navy-700/70">
+          Faixa pública de referência. Não muda o valor cobrado de cada aluno.
         </span>
-        <input
-          type="checkbox"
-          name="marketplace_listed"
-          role="switch"
-          checked={listed}
-          onChange={(e) => setListed(e.target.checked)}
-          className="h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-navy-900/20 transition-colors checked:bg-yellow-400 relative before:absolute before:left-0.5 before:top-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:shadow before:transition-transform checked:before:translate-x-5"
-        />
-      </label>
+      </Section>
+
+      {/* Liga/desliga a vitrine — azul-marinho: é a ação principal da tela */}
+      <Section tone="navy" icon={Store} title="Vitrine">
+        <label className="flex cursor-pointer items-center justify-between gap-3">
+          <span>
+            <span className="block text-sm font-medium text-white">Aparecer no marketplace</span>
+            <span className="block text-xs text-white/60">
+              {listed ? "Ligado: seu perfil pode ser listado." : "Desligado, seu perfil não é listado."}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            name="marketplace_listed"
+            role="switch"
+            checked={listed}
+            onChange={(e) => setListed(e.target.checked)}
+            className="h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-white/25 transition-colors checked:bg-yellow-400 relative before:absolute before:left-0.5 before:top-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:shadow before:transition-transform checked:before:translate-x-5"
+          />
+        </label>
+      </Section>
+
       <SaveBar error={state.error} pending={pending} />
     </form>
   );

@@ -68,6 +68,7 @@ export function FinanceDashboard({ data }: { data: Data }) {
           label="Em atraso"
           value={centsToBRL(f.overdueCents)}
           hint={`${f.overdueStudents} ${f.overdueStudents === 1 ? "aluno" : "alunos"} • vencidas e suspensas`}
+          emphasis={f.overdueCents > 0 ? "cream" : undefined}
         />
         <Stat
           label="Inadimplência"
@@ -81,6 +82,7 @@ export function FinanceDashboard({ data }: { data: Data }) {
           value={centsToBRL(f.netCents)}
           hint="recebido − despesas"
           tone={f.netCents < 0 ? "bad" : "default"}
+          emphasis="navy"
         />
       </Group>
       <div className="rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
@@ -153,30 +155,41 @@ function Stat({
   hint,
   tone = "default",
   gauge,
+  emphasis,
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: "default" | "bad";
   gauge?: number | null;
+  emphasis?: "navy" | "cream"; // destaque: navy = o resultado principal; cream = pede atenção
 }) {
   const noData = value === NO_DATA;
+  const dark = emphasis === "navy";
   const number = (
     <p
       className={`mt-1 font-bold ${
         noData
           ? "text-sm text-navy-700/40"
           : tone === "bad"
-            ? "text-lg text-red-700"
-            : "text-lg text-navy-900"
+            ? dark ? "text-lg text-red-300" : "text-lg text-red-700"
+            : dark ? "text-lg text-yellow-400" : "text-lg text-navy-900"
       }`}
     >
       {value}
     </p>
   );
   return (
-    <div className="rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium text-navy-700/60">{label}</p>
+    <div
+      className={`rounded-2xl p-4 ${
+        dark
+          ? "bg-navy-900 text-white"
+          : emphasis === "cream"
+            ? "border border-yellow-400/40 bg-cream"
+            : "border border-navy-900/5 bg-white shadow-sm"
+      }`}
+    >
+      <p className={`text-xs font-medium ${dark ? "text-white/70" : "text-navy-700/60"}`}>{label}</p>
       {gauge === undefined ? (
         number
       ) : (
@@ -185,7 +198,9 @@ function Stat({
           <div className="min-w-0">{number}</div>
         </div>
       )}
-      {hint && <p className="mt-0.5 text-[11px] leading-tight text-navy-700/50">{hint}</p>}
+      {hint && (
+        <p className={`mt-0.5 text-[11px] leading-tight ${dark ? "text-white/60" : "text-navy-700/50"}`}>{hint}</p>
+      )}
     </div>
   );
 }

@@ -21,16 +21,20 @@ export function MensalidadesList({ rows, filtered }: { rows: MensalidadeRow[]; f
 
   return (
     <div className="space-y-3">
-      <div className="flex items-baseline justify-between px-1 text-sm">
-        <span className="text-navy-700/60">
-          {rows.length}{" "}
-          {filtered
-            ? `${rows.length === 1 ? "aluno" : "alunos"} no filtro`
-            : rows.length === 1
-              ? "aluno ativo"
-              : "alunos ativos"}
-        </span>
-        <span className="font-semibold text-navy-900">{centsToBRL(total)}/mês</span>
+      {/* Resumo — azul-marinho */}
+      <div className="flex items-center justify-between rounded-2xl bg-navy-900 p-4 text-white">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
+            {filtered ? "No filtro" : "Alunos ativos"}
+          </p>
+          <p className="mt-0.5 text-sm text-white/70">
+            {rows.length} {rows.length === 1 ? "aluno" : "alunos"}
+          </p>
+        </div>
+        <p className="text-2xl font-bold">
+          {centsToBRL(total)}
+          <span className="text-sm font-medium text-white/60">/mês</span>
+        </p>
       </div>
 
       {rows.length === 0 ? (

@@ -12,9 +12,11 @@ import { setStudentPhoto } from "@/lib/actions/students";
 export function PhotoUploader({
   studentId,
   currentUrl,
+  onDark = false,
 }: {
   studentId: string;
   currentUrl: string | null;
+  onDark?: boolean; // dentro de um cartão azul-marinho: sem moldura própria, texto claro
 }) {
   const router = useRouter();
   const [preview, setPreview] = useState<string | null>(currentUrl);
@@ -44,7 +46,7 @@ export function PhotoUploader({
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-4">
+    <div className={onDark ? "flex items-center gap-3" : "flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-4"}>
       <label className="cursor-pointer">
         <input type="file" accept="image/*" className="hidden" onChange={onPick} />
         {preview ? (
@@ -55,14 +57,14 @@ export function PhotoUploader({
             className="h-16 w-16 rounded-full object-cover ring-2 ring-yellow-400"
           />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-navy-900/5 text-navy-700/50">
+          <div className={`flex h-16 w-16 items-center justify-center rounded-full ${onDark ? "bg-white/15 text-white/70" : "bg-navy-900/5 text-navy-700/50"}`}>
             <Camera className="h-6 w-6" />
           </div>
         )}
       </label>
       <div>
-        <p className="text-sm font-medium text-navy-900">Foto do aluno</p>
-        <p className="text-xs text-navy-700/50">
+        <p className={`text-sm font-medium ${onDark ? "text-white" : "text-navy-900"}`}>Foto do aluno</p>
+        <p className={`text-xs ${onDark ? "text-white/60" : "text-navy-700/50"}`}>
           {busy
             ? "Enviando…"
             : `Toque para ${preview ? "trocar" : "adicionar"} a foto`}
