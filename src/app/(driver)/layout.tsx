@@ -12,7 +12,7 @@ export default async function DriverLayout({
   if (user.role !== "driver") redirect(homePathForRole(user.role));
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-[#f5f7fa]">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-white">
       <div className="flex-1">{children}</div>
       <BottomNav role="driver" />
     </div>

@@ -1687,6 +1687,25 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   Conferido na tela: Configurações sem o bloco, switch persistido desligado, status da vitrine "Falta: ligar o toggle,
   foto da van" (a regra real do banco, agora também com a foto removida).
 
+- **Configurações em LISTA de categorias + telas por categoria (salvar por tela) + causa das cores "não aplicadas":**
+  `/motorista/perfil` agora é uma lista (ícone + nome + seta): **Meu perfil** (`/meu-perfil`), **Veículo** (`/veiculo`),
+  **Acompanhamento** (`/acompanhamento`), **Assinatura Kangu** (`/assinatura`), **Marketplace** (`/marketplace`); abaixo
+  seguem Notificações, Suporte e Sair como estavam. Cartão do perfil em **creme** no topo; a linha do Marketplace fica
+  **azul-marinho** quando a vitrine está no ar (status REAL, `my_marketplace_status`) e **creme** com "falta: …" quando não;
+  a linha do Veículo fica creme se faltam dados da van. Cada categoria é uma rota com cabeçalho (seta de volta + título) e
+  **seu próprio Salvar**, via `src/lib/actions/driver-settings.ts` (`saveMyProfile`, `saveVehicle`, `saveTracking`,
+  `saveSubscription`, `saveMarketplace`): cada uma grava só os campos dela e volta à lista. O `updateDriverProfile` único e
+  o `EditDriverForm` foram removidos; `/motorista/perfil/editar` só redireciona para a lista; o aviso "Complete seu perfil"
+  agora leva a `/veiculo`. O "Receber pedidos pela vitrine" foi para dentro de Marketplace (salva ao tocar). Saíram de
+  Configurações, por serem duplicados ou não-configuração: o resumo de veículo, o resumo de marketplace, o cartão Contato
+  (os dados estão em Meu perfil) e os contadores de alunos/rotas (existem nas abas Alunos/Rotas).
+  **Causa das cores "não aplicadas":** `(driver)/layout.tsx` e `(guardian)/layout.tsx` tinham o fundo fixo `bg-[#f5f7fa]`
+  (cinza fora da paleta) que cobria o branco do `body` — o "branco como fundo padrão" nunca apareceu nas telas logadas.
+  Trocado por `bg-white` (e no sheet de despesas). Validado no navegador (motorista logado): lista, as 5 telas abrindo
+  pelo toque e salvando (voltam à lista), Acompanhamento mudado para Linha do tempo e restaurado, Marketplace
+  preservando 3 escolas/2 bairros/cidade, console limpo (as mensagens antigas no buffer são de uma queda transitória
+  de compilação). **Não visto na tela:** a linha do Marketplace em azul-marinho (a conta de teste está fora da vitrine).
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

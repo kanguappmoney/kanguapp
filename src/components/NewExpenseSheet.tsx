@@ -37,7 +37,7 @@ export function NewExpenseSheet({ defaultDate }: { defaultDate: string }) {
             aria-modal="true"
             aria-label="Nova despesa"
             onClick={(e) => e.stopPropagation()}
-            className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-[#f5f7fa] p-4 pb-6"
+            className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-4 pb-6"
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="mx-auto h-1 w-10 rounded-full bg-navy-900/15" />

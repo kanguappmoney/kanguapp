@@ -21,10 +21,10 @@ export function ProfileGateNotice({
             {missing.length ? ` (falta: ${missing.join(", ")})` : ""}.
           </p>
           <Link
-            href="/motorista/perfil/editar"
+            href="/motorista/perfil/veiculo"
             className="mt-3 inline-flex rounded-xl bg-yellow-400 px-4 py-2 text-sm font-semibold text-navy-900"
           >
-            Ir para Configurações
+            Completar o veículo
           </Link>
         </div>
       </div>

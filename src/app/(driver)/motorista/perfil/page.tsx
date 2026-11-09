@@ -1,15 +1,13 @@
 import Link from "next/link";
 import {
   ShieldCheck,
-  Users,
-  Route as RouteIcon,
+  User,
   Car,
-  Phone,
-  Mail,
-  MapPin,
-  Pencil,
+  Eye,
+  Store,
   Bell,
   MessageCircle,
+  Mail,
   LogOut,
   ChevronRight,
 } from "lucide-react";
@@ -17,8 +15,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { missingText, parseStatus } from "@/lib/marketplace-status";
-import { centsToBRL } from "@/lib/money";
-import { OpenRequestsToggle } from "@/components/OpenRequestsToggle";
 import { DriverPhotoUploader } from "@/components/DriverPhotoUploader";
 import { DriverActions } from "@/components/DriverHeaderActions";
 import { getDriverHeader } from "@/lib/driver-header";
@@ -29,25 +25,16 @@ import { signOut } from "@/lib/actions/auth";
 const SUPPORT_WHATSAPP_NUMBER = "5511953790054";
 const SUPPORT_EMAIL = "house@domhub.co";
 
-// Configurações do motorista (era "Perfil" no menu — mesmo conteúdo no topo:
-// dados pessoais, veículo, foto, assinatura, G6; abaixo, Notificações, Suporte
-// e Sair). A rota segue /motorista/perfil.
+// Configurações do motorista: LISTA de categorias (ícone + nome + seta); cada item abre a tela da categoria,
+// com cabeçalho e botão Salvar próprios (/motorista/perfil/<categoria>). Abaixo: Notificações, Suporte e Sair.
 export default async function PerfilMotoristaPage() {
   const user = await getCurrentUser();
   const supabase = await createClient();
 
   const { data: profile } = await supabase
     .from("driver_profiles")
-    .select(
-      "verification, address, photo_path, subscription_status, marketplace_listed, van_photo_path, service_cities, price_min_cents, price_max_cents",
-    )
+    .select("verification, photo_path, subscription_status, parent_tracking_mode")
     .eq("user_id", user!.id)
-    .single();
-
-  const { data: userRow } = await supabase
-    .from("users")
-    .select("phone")
-    .eq("id", user!.id)
     .single();
 
   const { data: vehicle } = await supabase
@@ -57,28 +44,11 @@ export default async function PerfilMotoristaPage() {
     .limit(1)
     .maybeSingle();
 
-  const { count: alunos } = await supabase
-    .from("students")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "active");
-  const { count: rotas } = await supabase
-    .from("routes")
-    .select("id", { count: "exact", head: true });
-
   let photoUrl: string | null = null;
   if (profile?.photo_path) {
-    const { data } = await supabase.storage
-      .from("driver-photos")
-      .createSignedUrl(profile.photo_path, 3600);
+    const { data } = await supabase.storage.from("driver-photos").createSignedUrl(profile.photo_path, 3600);
     photoUrl = data?.signedUrl ?? null;
   }
-
-  const { count: openRequestLinks } = await supabase
-    .from("capture_links")
-    .select("id", { count: "exact", head: true })
-    .eq("kind", "generic")
-    .eq("status", "active");
-  const openRequests = (openRequestLinks ?? 0) > 0;
 
   const verified = profile?.verification === "verified";
   const SUB: Record<string, { label: string; cls: string }> = {
@@ -88,140 +58,75 @@ export default async function PerfilMotoristaPage() {
   };
   const sub = SUB[profile?.subscription_status ?? "trial"] ?? SUB.trial;
   const { unread } = await getDriverHeader();
+
   // Status REAL da vitrine (a mesma regra do banco): o toggle sozinho não garante que aparece.
   const { data: statusRaw } = await supabase.rpc("my_marketplace_status");
   const mkt = parseStatus(statusRaw);
 
+  const vehicleComplete = Boolean(vehicle?.prefix && vehicle?.plate && vehicle?.model && vehicle?.color);
+  const trackingLabel = profile?.parent_tracking_mode === "timeline" ? "Linha do tempo" : "Mapa ao vivo";
+
   return (
     <>
-      <AppHeader
-        title="Configurações"
-        subtitle="Conta profissional"
-        actions={<DriverActions />}
-      />
+      <AppHeader title="Configurações" subtitle="Conta profissional" actions={<DriverActions />} />
       <div className="px-4 pb-6">
-        {/* Cabeçalho do perfil — foto + nome + verificação + editar */}
+        {/* Cartão do perfil — creme (destaque secundário) */}
         <Card tone="cream" className="mt-4 flex items-center gap-4">
           <DriverPhotoUploader driverId={user!.id} currentUrl={photoUrl} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-bold text-navy-900">
-              {user?.fullName}
-            </p>
+            <p className="truncate text-lg font-bold text-navy-900">{user?.fullName}</p>
             <p className="text-sm text-navy-700/60">Motorista parceiro</p>
             <p
               className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                verified
-                  ? "bg-green-100 text-green-800"
-                  : "bg-navy-900/5 text-navy-700/70"
+                verified ? "bg-green-100 text-green-800" : "bg-navy-900/5 text-navy-700/70"
               }`}
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               {verified ? "Perfil verificado" : "Verificação pendente"}
             </p>
-            <p
-              className={`ml-2 mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sub.cls}`}
-            >
+            <p className={`ml-2 mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sub.cls}`}>
               {sub.label}
             </p>
           </div>
         </Card>
 
-        <Link
-          href="/motorista/perfil/editar"
-          className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-navy-900/15 py-3 font-semibold text-navy-900"
-        >
-          <Pencil className="h-4 w-4" /> Editar perfil
-        </Link>
-
-        {/* Veículo */}
-        <SectionTitle>Meu veículo</SectionTitle>
-        {vehicle ? (
-          <Card className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
-              <Car className="h-6 w-6" />
-            </span>
-            <div>
-              <p className="font-semibold text-navy-900">
-                {vehicle.model ?? "Veículo"}
-                {vehicle.year ? ` • ${vehicle.year}` : ""}
-              </p>
-              <p className="text-sm text-navy-700/60">
-                {vehicle.prefix ? `Prefixo ${vehicle.prefix} • ` : ""}
-                Placa {vehicle.plate ?? "—"}
-                {vehicle.color ? ` • ${vehicle.color}` : ""} • {vehicle.capacity}{" "}
-                vagas
-              </p>
-            </div>
-          </Card>
-        ) : (
-          <Card className="border-dashed text-center text-sm text-navy-700/60">
-            Nenhum veículo cadastrado. Toque em “Editar perfil” para adicionar.
-          </Card>
-        )}
-
-        {/* Marketplace — resumo; edição em Editar perfil */}
-        <SectionTitle>Marketplace</SectionTitle>
-        <Card className="overflow-hidden p-0">
-          {profile?.van_photo_path && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={
-                supabase.storage
-                  .from("van-photos")
-                  .getPublicUrl(profile.van_photo_path).data.publicUrl
-              }
-              alt="Foto da van"
-              className="h-36 w-full object-cover"
-            />
-          )}
-          <div className="p-4 text-sm">
-            <p
-              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                mkt?.visible
-                  ? "bg-green-100 text-green-800"
-                  : "bg-navy-900/5 text-navy-700/70"
-              }`}
-            >
-              {mkt?.visible ? "Aparecendo" : "Não aparece"}
-            </p>
-            {mkt && !mkt.visible && mkt.missing.length > 0 && (
-              <p className="mt-2 rounded-lg bg-cream px-3 py-2 text-xs text-navy-800">
-                Falta: {missingText(mkt.missing)}.{" "}
-                <Link href="/motorista/perfil/editar" className="font-semibold underline">
-                  Completar
-                </Link>
-              </p>
-            )}
-            {(profile?.price_min_cents || profile?.price_max_cents) && (
-              <p className="mt-2 text-navy-700/70">
-                {[profile?.price_min_cents, profile?.price_max_cents]
-                  .map((c) => (c ? centsToBRL(c) : null))
-                  .filter(Boolean)
-                  .join(" a ")}{" "}
-                / mês
-              </p>
-            )}
-            {profile?.service_cities && (
-              <p className="mt-1 text-navy-700/70">{profile.service_cities}</p>
-            )}
-          </div>
-        </Card>
-
-        <OpenRequestsToggle initial={openRequests} />
-
-        {/* Números */}
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <Stat icon={Users} value={alunos ?? 0} label="alunos" />
-          <Stat icon={RouteIcon} value={rotas ?? 0} label="rotas" />
-        </div>
-
-        {/* Contato */}
-        <SectionTitle>Contato</SectionTitle>
-        <Card className="space-y-2 text-sm">
-          <Row icon={Phone} value={userRow?.phone} />
-          <Row icon={Mail} value={user?.email} />
-          <Row icon={MapPin} value={profile?.address} />
-        </Card>
+        {/* Categorias — navegação por lista */}
+        <SectionTitle>Minha conta</SectionTitle>
+        <ul className="overflow-hidden rounded-2xl border border-navy-900/10 bg-white">
+          <Row href="/motorista/perfil/meu-perfil" icon={User} title="Meu perfil" subtitle="Nome, telefone e endereço" />
+          <Row
+            href="/motorista/perfil/veiculo"
+            icon={Car}
+            title="Veículo"
+            subtitle={
+              vehicleComplete
+                ? `${vehicle?.model} • ${vehicle?.plate}`
+                : "Preencha os dados da van para cadastrar alunos"
+            }
+            tone={vehicleComplete ? "white" : "cream"}
+          />
+          <Row href="/motorista/perfil/acompanhamento" icon={Eye} title="Acompanhamento" subtitle={trackingLabel} />
+          <Row
+            href="/motorista/perfil/assinatura"
+            icon={ShieldCheck}
+            title="Assinatura Kangu"
+            subtitle={sub.label}
+          />
+          <Row
+            href="/motorista/perfil/marketplace"
+            icon={Store}
+            title="Marketplace"
+            subtitle={
+              mkt?.visible
+                ? "Aparecendo na vitrine"
+                : mkt && mkt.missing.length > 0
+                  ? `Não aparece — falta: ${missingText(mkt.missing)}`
+                  : "Não aparece"
+            }
+            tone={mkt?.visible ? "navy" : "cream"}
+            last
+          />
+        </ul>
 
         {/* Notificações — o mesmo destino do sininho do cabeçalho */}
         <SectionTitle>Notificações</SectionTitle>
@@ -233,13 +138,9 @@ export default async function PerfilMotoristaPage() {
             <Bell className="h-5 w-5" />
           </span>
           <span className="flex-1">
-            <span className="block font-semibold text-navy-900">
-              Ver notificações
-            </span>
+            <span className="block font-semibold text-navy-900">Ver notificações</span>
             <span className="block text-xs text-navy-700/60">
-              {unread
-                ? `${unread} ${unread === 1 ? "nova" : "novas"}`
-                : "Nenhuma nova"}
+              {unread ? `${unread} ${unread === 1 ? "nova" : "novas"}` : "Nenhuma nova"}
             </span>
           </span>
           <ChevronRight className="h-5 w-5 text-navy-700/40" />
@@ -279,39 +180,39 @@ export default async function PerfilMotoristaPage() {
   );
 }
 
-function Stat({
-  icon: Icon,
-  value,
-  label,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  value: number;
-  label: string;
-}) {
-  return (
-    <Card className="flex items-center gap-3">
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
-        <Icon className="h-5 w-5" />
-      </span>
-      <div>
-        <p className="text-lg font-bold text-navy-900">{value}</p>
-        <p className="text-xs text-navy-700/60">{label}</p>
-      </div>
-    </Card>
-  );
-}
-
+// Item da lista de categorias: ícone + nome (+ resumo) + seta. `navy` = destaque primário (vitrine no ar),
+// `cream` = precisa de atenção/informativo, `white` = padrão.
 function Row({
+  href,
   icon: Icon,
-  value,
+  title,
+  subtitle,
+  tone = "white",
+  last = false,
 }: {
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
-  value: string | null | undefined;
+  title: string;
+  subtitle?: string;
+  tone?: "white" | "cream" | "navy";
+  last?: boolean;
 }) {
+  const bg = tone === "navy" ? "bg-navy-900 text-white" : tone === "cream" ? "bg-cream" : "bg-white";
+  const chip = tone === "navy" ? "bg-yellow-400 text-navy-900" : "bg-yellow-400/20 text-navy-900";
+  const sub = tone === "navy" ? "text-white/70" : "text-navy-700/60";
+  const arrow = tone === "navy" ? "text-white/60" : "text-navy-700/40";
   return (
-    <div className="flex items-center gap-3">
-      <Icon className="h-4 w-4 shrink-0 text-navy-700/40" />
-      <span className="text-navy-900">{value || "—"}</span>
-    </div>
+    <li className={last ? "" : "border-b border-navy-900/10"}>
+      <Link href={href} className={`flex items-center gap-3 px-4 py-3.5 ${bg}`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${chip}`}>
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className={`block font-semibold ${tone === "navy" ? "text-white" : "text-navy-900"}`}>{title}</span>
+          {subtitle && <span className={`block line-clamp-2 text-xs ${sub}`}>{subtitle}</span>}
+        </span>
+        <ChevronRight className={`h-5 w-5 shrink-0 ${arrow}`} />
+      </Link>
+    </li>
   );
 }
