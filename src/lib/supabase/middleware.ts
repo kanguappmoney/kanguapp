@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import { clientIp, shouldAttempt } from "@/lib/access-log";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
@@ -22,7 +23,7 @@ function isPublic(pathname: string) {
 }
 
 // Renova a sessão a cada request e protege rotas privadas.
-export async function updateSession(request: NextRequest) {
+export async function updateSession(request: NextRequest, event?: NextFetchEvent) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -52,6 +53,22 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  // Log legal de acesso (IP + hora, 6 meses), por sessão: em segundo plano, sem atrasar a resposta. O banco decide
+  // se grava (dedupe de 6 h por IP + usuário); aqui só se evita chamar à toa (não-GET, já enviado há 30 min).
+  // (O prefetch do Next não é distinguível aqui — o middleware não recebe esses cabeçalhos — mas vem do mesmo
+  // navegador e a deduplicação o absorve.)
+  if (event && request.method === "GET") {
+    const ip = clientIp(request.headers);
+    if (ip && shouldAttempt(`${ip}|${user?.id ?? "-"}`)) {
+      event.waitUntil(
+        Promise.resolve(supabase.rpc("log_app_access", { p_ip: ip })).then(
+          () => undefined,
+          () => undefined, // o log nunca pode derrubar a requisição
+        ),
+      );
+    }
+  }
 
   // Área /admin: só quem está na allowlist (tabela admin_users, checada no banco por
   // is_admin()). Anônimo e qualquer outro usuário recebem 403 — não vão para o login.
