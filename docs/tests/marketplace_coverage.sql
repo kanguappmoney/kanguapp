@@ -109,9 +109,9 @@ begin
 end $$;
 
 do $$
-declare o text; n int; v int; m_disp text;
+declare o text; n int; v int; v_m text;
 begin
-  select m_disp into m_disp from t_names;
+  select t.m_disp into v_m from t_names t;
   set local role anon;
   select count(*) into n from public.marketplace_filter_options() x where x.kind <> 'city';
   select string_agg(x.value || '=' || x.driver_count, '|' order by x.value) into o
@@ -122,8 +122,8 @@ begin
   set local role anon;
   select string_agg(x.value || '=' || x.driver_count, '|' order by x.value) into o
     from public.marketplace_filter_options('Santo André') x where x.kind = 'neighborhood' and x.value like 'Zz Bairro %';
-  select x.driver_count into v from public.marketplace_school_options('Mauá', substr(m_disp, 1, 6)) x where x.value = m_disp;
-  select count(*) into n from public.marketplace_school_options(null, m_disp);
+  select x.driver_count into v from public.marketplace_school_options('Mauá', substr(v_m, 1, 6)) x where x.value = v_m;
+  select count(*) into n from public.marketplace_school_options(null, v_m);
   reset role;
   if o is distinct from 'Zz Bairro C=1' then raise exception 'FALHOU (4): bairros de Santo André esperados C=1, veio [%]', o; end if;
   if v is null or v < 2 then raise exception 'FALHOU (4): school_options deveria achar a escola de Mauá com ≥ 2 motoristas, veio %', v; end if;

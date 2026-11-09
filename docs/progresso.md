@@ -1635,6 +1635,25 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   antigo" e podem ser removidos. Visto na tela (conta de teste): ids 1 e 304 casados do texto salvo, legado "Todos"
   preservado, campo antigo `service_neighborhoods` fora do formulário, console limpo; nada salvo.
 
+- **Marketplace: cidade → bairro → escola, vazio = todos (fatia 2 de 2 — migration 051):** `marketplace_visible` exige
+  só **cidade** (bairro e escola deixaram de ser requisito); no filtro de `marketplace_listing`, lista marcada restringe
+  ao marcado e lista **vazia** casa qualquer bairro/escola que pertença a uma cidade do motorista (e à cidade do filtro,
+  se houver); a escola casa o nome de exibição **ou** o oficial do INEP (cadastros antigos). Contrato de colunas da
+  listagem inalterado. Dropdowns **city-first**: `marketplace_filter_options(p_city)` (sem cidade: só cidades; com cidade:
+  bairros dela — pool + marcados — que ao menos um motorista atende, com a contagem) e a nova
+  `marketplace_school_options(p_city, p_q)` (busca de escola na cidade, até 20, com a contagem; as escolas são milhares).
+  `/buscar`: a cidade recarrega a busca e zera bairro/escola; bairro fica desabilitado até escolher a cidade; escola é
+  um typeahead (`FilterControls`); o perfil público mostra "Todos os bairros/Todas as escolas de X" quando a lista é
+  vazia. Testes: **`docs/tests/marketplace_coverage.sql` 4/4** (visibilidade só por cidade; filtro de bairro e de escola
+  com lista marcada × vazia, outra cidade, nome oficial; opções city-first e contagens) e o
+  **`marketplace_view.sql` 7/7** re-executado e adaptado (saíram os casos "bairros/escolas faltando escondem"; opções
+  passaram a ser city-first). Índices novos `lower(display_name)` e `lower(name)`. Aplicação: houve uma janela de
+  poucos minutos entre a migration e o deploy em que os dropdowns de bairro/escola do `/buscar` público ficaram só com
+  "Todas" (sem erro). **Não re-executei** os testes de guarda do /admin (usam `marketplace_visible`, mas só com
+  fixtures completos). **Não exercitado na tela:** o fluxo cidade → bairro → escola no `/buscar` com dados reais — hoje
+  não há motorista visível em produção (a tela foi vista no estado vazio, console limpo); o comportamento está provado
+  no banco pelos testes. Conta de teste do Abner continua com o toggle do marketplace desligado.
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---
