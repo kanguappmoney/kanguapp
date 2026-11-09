@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Car, Search } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Throttled } from "@/components/Throttled";
+import { CitySelect, SchoolFilter } from "./FilterControls";
 import { centsToBRL } from "@/lib/money";
 import { clientIp, limitMarketplace } from "@/lib/rate-limit";
 import {
@@ -42,7 +43,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Searc
     await logSearch(filters, ip === "unknown" ? null : ip);
   }
   const [options, { drivers, total, error }] = await Promise.all([
-    getFilterOptions(),
+    getFilterOptions(filters.city),
     searchDrivers(filters, page),
   ]);
   const cards = await Promise.all(
@@ -52,8 +53,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Searc
   const hasFilters = Boolean(
     filters.city || filters.neighborhood || filters.school || filters.age !== null || filters.shift,
   );
-  const noOptions =
-    !options.city.length && !options.neighborhood.length && !options.school.length;
+  const noOptions = !options.city.length;
 
   return (
     <main className="mx-auto min-h-dvh max-w-lg px-4 py-6">
@@ -66,9 +66,16 @@ export default async function BuscarPage({ searchParams }: { searchParams: Searc
       </header>
 
       <form action="/buscar" method="get" className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
-        <SelectField label="Cidade" name="cidade" value={filters.city} options={options.city} />
-        <SelectField label="Bairro" name="bairro" value={filters.neighborhood} options={options.neighborhood} />
-        <SelectField label="Escola" name="escola" value={filters.school} options={options.school} />
+        <CitySelect value={filters.city} options={options.city} />
+        <SelectField
+          label="Bairro"
+          name="bairro"
+          value={filters.neighborhood}
+          options={options.neighborhood}
+          disabled={!filters.city}
+          allLabel={filters.city ? "Todos" : "Escolha a cidade primeiro"}
+        />
+        <SchoolFilter key={filters.city} city={filters.city} initial={filters.city ? filters.school : ""} />
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-navy-800">Idade do filho</span>
@@ -232,11 +239,15 @@ function SelectField({
   name,
   value,
   options,
+  disabled = false,
+  allLabel = "Todas",
 }: {
   label: string;
   name: string;
   value: string;
   options: string[];
+  disabled?: boolean;
+  allLabel?: string;
 }) {
   // Valor vindo da URL que não está mais nas opções continua selecionável.
   const list = value && !options.some((o) => o.toLowerCase() === value.toLowerCase()) ? [value, ...options] : options;
@@ -246,9 +257,10 @@ function SelectField({
       <select
         name={name}
         defaultValue={list.find((o) => o.toLowerCase() === value.toLowerCase()) ?? ""}
-        className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3"
+        disabled={disabled}
+        className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 disabled:bg-navy-900/[0.03] disabled:text-navy-700/50"
       >
-        <option value="">Todas</option>
+        <option value="">{allLabel}</option>
         {list.map((o) => (
           <option key={o} value={o}>
             {o}

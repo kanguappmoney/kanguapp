@@ -95,9 +95,11 @@ export async function getDriver(publicId: string): Promise<Driver | null> {
   return ((data ?? []) as Driver[])[0] ?? null;
 }
 
-export async function getFilterOptions(): Promise<FilterOptions> {
+// City-first: sem cidade só vêm as cidades; com cidade vêm também os bairros dela. As escolas (milhares) não
+// vêm em lista: o filtro usa a busca `marketplace_school_options` (componente SchoolFilter).
+export async function getFilterOptions(city: string): Promise<FilterOptions> {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("marketplace_filter_options");
+  const { data } = await supabase.rpc("marketplace_filter_options", { p_city: city || null });
   const out: FilterOptions = { city: [], neighborhood: [], school: [] };
   for (const o of (data ?? []) as { kind: keyof FilterOptions; value: string }[]) {
     out[o.kind]?.push(o.value);

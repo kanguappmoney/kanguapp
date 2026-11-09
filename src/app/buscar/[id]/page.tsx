@@ -84,10 +84,18 @@ export default async function PerfilPublicoPage({
           <Chips items={splitList(d.service_cities)} />
         </Section>
         <Section icon={MapPin} title="Bairros">
-          <Chips items={splitList(d.service_neighborhoods)} />
+          {splitList(d.service_neighborhoods).length ? (
+            <Chips items={splitList(d.service_neighborhoods)} />
+          ) : (
+            <p className="text-sm text-navy-800">Todos os bairros de {splitList(d.service_cities).join(", ")}</p>
+          )}
         </Section>
         <Section icon={School} title="Escolas">
-          <Chips items={splitList(d.service_schools)} />
+          {splitList(d.service_schools).length ? (
+            <Chips items={splitList(d.service_schools)} />
+          ) : (
+            <p className="text-sm text-navy-800">Todas as escolas de {splitList(d.service_cities).join(", ")}</p>
+          )}
         </Section>
       </div>
 

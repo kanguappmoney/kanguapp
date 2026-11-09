@@ -5,7 +5,7 @@
 --   (1) perfil completo + toggle ligado APARECE (e as vagas = capacidade − alunos ATIVOS);
 --   (2) toggle desligado NÃO aparece, mesmo com tudo preenchido;
 --   (3) toggle ligado mas faltando QUALQUER requisito NÃO aparece — cada campo, um a um:
---       área (cidades, bairros, escolas; nulo e só-espaços), idade (mín, máx), turno
+--       área (cidades; nulo e só-espaços — bairros e escolas são OPCIONAIS desde a 051: vazio = todos), idade (mín, máx), turno
 --       (nenhum), preço (mín, máx), foto (nula e vazia), perfil da Frente A (prefixo,
 --       placa, modelo, cor, sem veículo) e telefone. Para cada um, restaurar o campo faz
 --       o motorista voltar a aparecer — prova que foi AQUELE campo que o tirou;
@@ -176,14 +176,6 @@ insert into cases values
                              $q$update public.driver_profiles set service_cities = 'Mauá' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$),
   ('cidades só espaços',     $q$update public.driver_profiles set service_cities = '   ' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$,
                              $q$update public.driver_profiles set service_cities = 'Mauá' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$),
-  ('bairros nulos',          $q$update public.driver_profiles set service_neighborhoods = null where user_id = '00000000-0000-0000-0000-0000000e0001'$q$,
-                             $q$update public.driver_profiles set service_neighborhoods = 'Centro' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$),
-  ('bairros vazios',         $q$update public.driver_profiles set service_neighborhoods = '' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$,
-                             $q$update public.driver_profiles set service_neighborhoods = 'Centro' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$),
-  ('escolas nulas',          $q$update public.driver_profiles set service_schools = null where user_id = '00000000-0000-0000-0000-0000000e0001'$q$,
-                             $q$update public.driver_profiles set service_schools = 'EMEF Fulano' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$),
-  ('escolas só espaços',     $q$update public.driver_profiles set service_schools = ' ' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$,
-                             $q$update public.driver_profiles set service_schools = 'EMEF Fulano' where user_id = '00000000-0000-0000-0000-0000000e0001'$q$),
   -- Idade
   ('idade mínima nula',      $q$update public.driver_profiles set age_min = null where user_id = '00000000-0000-0000-0000-0000000e0001'$q$,
                              $q$update public.driver_profiles set age_min = 4 where user_id = '00000000-0000-0000-0000-0000000e0001'$q$),
@@ -422,12 +414,21 @@ begin
     from public.marketplace_filter_options() o
    where o.value in ('Mauá', 'Santo André', 'Jardim', 'Centro');
   reset role;
-  if opts is distinct from 'city:Mauá=1|city:Santo André=2|neighborhood:Centro=1|neighborhood:Jardim=1' then
-    raise exception 'FALHOU (7): opções dos filtros inesperadas: %', opts;
+  -- city-first (051): sem cidade só vêm cidades; com cidade vêm os bairros dela.
+  if opts is distinct from 'city:Mauá=1|city:Santo André=2' then
+    raise exception 'FALHOU (7): opções dos filtros (sem cidade) inesperadas: %', opts;
+  end if;
+  set local role anon;
+  select string_agg(o.kind || ':' || o.value || '=' || o.driver_count, '|' order by o.kind, o.value) into opts
+    from public.marketplace_filter_options('Santo André') o
+   where o.value in ('Jardim', 'Centro');
+  reset role;
+  if opts is distinct from 'neighborhood:Centro=1|neighborhood:Jardim=1' then
+    raise exception 'FALHOU (7): opções de bairro (Santo André) inesperadas: %', opts;
   end if;
   update public.driver_profiles set marketplace_listed = false where user_id = '00000000-0000-0000-0000-0000000e0002';
   set local role anon;
-  select count(*) into k from public.marketplace_filter_options() o where o.value = 'Jardim';
+  select count(*) into k from public.marketplace_filter_options('Santo André') o where o.value = 'Jardim';
   reset role;
   if k <> 0 then raise exception 'FALHOU (7): opção de motorista oculto vazou nas opções dos filtros'; end if;
 
