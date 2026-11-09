@@ -1680,6 +1680,13 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   Sobraram, por decisão de não mexer sem pedido: a foto de teste no bucket público (fora da vitrine, sem link) e o
   "Receber pedidos pela vitrine" ainda ligado (link de captação genérico ativo; só era descoberto pelo perfil público).
 
+- **Limpeza da conta de teste + Acompanhamento só no Editar perfil:** a pedido do Abner, "Receber pedidos pela vitrine"
+  desligado (o link de captação genérico fica revogado), a foto de teste da van apagada (objeto do bucket `van-photos` e
+  `van_photo_path`, só daquele motorista e daquele caminho; resíduo 0) e o bloco "Como os pais acompanham" **saiu de
+  Configurações** — o modo Mapa/Linha do tempo agora vive só na seção Acompanhamento do Editar perfil (sem duplicidade).
+  Conferido na tela: Configurações sem o bloco, switch persistido desligado, status da vitrine "Falta: ligar o toggle,
+  foto da van" (a regra real do banco, agora também com a foto removida).
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

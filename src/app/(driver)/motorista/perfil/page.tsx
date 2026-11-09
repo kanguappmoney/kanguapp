@@ -16,7 +16,6 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
-import { TrackingModeToggle } from "@/components/TrackingModeToggle";
 import { missingText, parseStatus } from "@/lib/marketplace-status";
 import { centsToBRL } from "@/lib/money";
 import { OpenRequestsToggle } from "@/components/OpenRequestsToggle";
@@ -40,7 +39,7 @@ export default async function PerfilMotoristaPage() {
   const { data: profile } = await supabase
     .from("driver_profiles")
     .select(
-      "parent_tracking_mode, verification, address, photo_path, subscription_status, marketplace_listed, van_photo_path, service_cities, price_min_cents, price_max_cents",
+      "verification, address, photo_path, subscription_status, marketplace_listed, van_photo_path, service_cities, price_min_cents, price_max_cents",
     )
     .eq("user_id", user!.id)
     .single();
@@ -81,7 +80,6 @@ export default async function PerfilMotoristaPage() {
     .eq("status", "active");
   const openRequests = (openRequestLinks ?? 0) > 0;
 
-  const mode = (profile?.parent_tracking_mode ?? "map") as "map" | "timeline";
   const verified = profile?.verification === "verified";
   const SUB: Record<string, { label: string; cls: string }> = {
     active: { label: "Assinatura ativa", cls: "bg-green-100 text-green-800" },
@@ -224,14 +222,6 @@ export default async function PerfilMotoristaPage() {
           <Row icon={Mail} value={user?.email} />
           <Row icon={MapPin} value={profile?.address} />
         </Card>
-
-        {/* G6 — como os pais acompanham */}
-        <SectionTitle>Como os pais acompanham</SectionTitle>
-        <TrackingModeToggle initial={mode} />
-        <p className="mt-2 px-1 text-xs text-navy-700/50">
-          Vale para todas as suas rotas. No modo Linha do tempo, o app nunca
-          compartilha a localização por GPS.
-        </p>
 
         {/* Notificações — o mesmo destino do sininho do cabeçalho */}
         <SectionTitle>Notificações</SectionTitle>
