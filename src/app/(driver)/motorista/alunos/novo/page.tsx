@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Logo } from "@/components/Logo";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { SchoolPicker } from "@/components/SchoolPicker";
 
 const STEPS = ["Dados", "Escola", "Rota"];
 
@@ -155,7 +156,7 @@ export default function NovoAlunoPage() {
           {/* ================= Passo 2 — Escola ================= */}
           <div className={step === 2 ? "space-y-4" : "hidden"}>
             <SectionHeading>Dados escolares</SectionHeading>
-            <Field label="Escola" name="school" req placeholder="Digite o nome da escola" icon={Building2} />
+            <SchoolPicker source={{ kind: "driver" }} />
             <AddressAutocomplete
               label="Endereço da escola"
               name="school_address"

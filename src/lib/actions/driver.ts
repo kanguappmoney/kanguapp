@@ -102,7 +102,6 @@ export async function updateDriverProfile(
       subscription_status,
       service_cities: text("service_cities"),
       service_neighborhoods: text("service_neighborhoods"),
-      service_schools: text("service_schools"),
       age_min,
       age_max,
       service_shifts,
@@ -112,6 +111,24 @@ export async function updateDriverProfile(
     })
     .eq("user_id", user.id);
   if (dErr) return { error: dErr.message };
+
+  // Escolas atendidas: fonte única = driver_schools; a função grava também `service_schools` (texto da
+  // Frente C que o marketplace lê) na mesma transação. Só roda quando o seletor terminou de carregar.
+  if (formData.get("school_sync") === "1") {
+    const codes = String(formData.get("school_codes") ?? "")
+      .split(",")
+      .map((c) => Number(c.trim()))
+      .filter((n) => Number.isInteger(n) && n > 0);
+    let extra: string[] = [];
+    try {
+      const parsed = JSON.parse(String(formData.get("school_extra") ?? "[]"));
+      if (Array.isArray(parsed)) extra = parsed.filter((x): x is string => typeof x === "string").slice(0, 50);
+    } catch {
+      /* ignora: sem extras */
+    }
+    const { error: sErr } = await supabase.rpc("set_my_schools", { p_codes: codes, p_extra: extra });
+    if (sErr) return { error: sErr.message };
+  }
 
   // Veículo primário: upsert (um por motorista no v1).
   const { data: existing } = await supabase

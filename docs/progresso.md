@@ -1587,6 +1587,26 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   vale para o exibido e para o oficial**, e cadastros antigos que salvaram o nome oficial continuam casando (viram
   o nome amigável ao salvar de novo). Testes unitários `tests/school-name.test.ts` (29/29 no total).
 
+- **Escolas que o motorista atende (migration 048):** `driver_schools` (motorista × escola, por `inep_code`, sem
+  casar por nome) é a **fonte única** da cobertura de escolas. Escrita só por `set_my_schools(codes, extras)`
+  (SECURITY DEFINER, exige ser motorista; teto 150 por cidade e 300 no total; **substitui** a lista) que grava na
+  mesma transação `driver_profiles.service_schools` (nomes de exibição + nomes digitados à mão que não existem no
+  INEP) — o marketplace (Frente D/E) segue lendo o texto, sem mudança. Leitura da tabela dono-only (RLS). Leitura
+  pública mínima para o formulário do pai: `capture_link_schools(token)` (só nomes, só de link **ativo**); `get_capture_link`
+  e `submit_capture` **não** foram tocados. Teste `docs/tests/driver_schools.sql` **6/6** (só motorista; substitui +
+  sincroniza o texto; código inválido/extras ruins; tetos; isolamento e escrita direta negada; link ativo × revogado ×
+  desconhecido, sem login). **UI:** o checklist de escolas do perfil (Editar perfil → Marketplace) agora grava por
+  código (nome igual na mesma cidade = um item que carrega todos os códigos); o texto antigo vira reserva para quem
+  ainda não passou pela migração e os nomes sem correspondência no INEP ("do cadastro antigo") seguem como extras.
+  Enquanto o seletor carrega, `school_sync` não é enviado e a action não mexe nas escolas. Novo `SchoolPicker`
+  (escolha única + busca) em **aluno novo, editar aluno, link de captação (motorista) e formulário do pai**: mostra só
+  a lista do motorista; sem lista configurada cai na **busca por digitação** em todas as escolas de SP (≥ 3 letras,
+  mostra a cidade); sempre há "Outra escola (digitar)"; `students.school` segue texto. Restrição só na tela (o servidor
+  aceita qualquer texto). Validado no navegador com o motorista logado: perfil (códigos e extras corretos no
+  submit, legado "Todas" preservado), editar aluno (valor salvo aparece, busca com cidade, escolha, "Outra escola");
+  console limpo; nada foi salvo na conta de teste. **Não exercitado na tela:** modo "lista configurada" (precisa salvar
+  o perfil com escolas — coberto pelo teste de banco) e o formulário do pai (precisa de um link genérico ativo).
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { submitCapture, type SubmitState } from "@/lib/actions/capture";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { SchoolPicker } from "@/components/SchoolPicker";
 
 const initial: SubmitState = { error: null };
 
@@ -52,7 +53,7 @@ export function CaptureForm({
           <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
             Escola e turno
           </h2>
-          <Field label="Escola" name="school" placeholder="Nome da escola" autoComplete="off" />
+          <SchoolPicker required source={{ kind: "link", token }} />
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-navy-800">Turno</span>
             <select

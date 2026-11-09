@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateStudent, type StudentFormState } from "@/lib/actions/students";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { SchoolPicker } from "@/components/SchoolPicker";
 
 const initial: StudentFormState = { error: null };
 
@@ -45,7 +46,7 @@ export function EditStudentForm({ student }: { student: StudentDefaults }) {
       <Field label="E-mail do responsável" name="responsible_email" type="email" defaultValue={student.responsible_email ?? ""} required />
 
       <SectionHeading>Escola</SectionHeading>
-      <Field label="Escola" name="school" defaultValue={student.school ?? ""} required />
+      <SchoolPicker required source={{ kind: "driver" }} initialValue={student.school ?? ""} />
       <AddressAutocomplete
         label="Endereço da escola"
         name="school_address"

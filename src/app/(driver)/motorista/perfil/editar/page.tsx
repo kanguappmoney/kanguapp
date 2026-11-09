@@ -27,6 +27,16 @@ export default async function EditarPerfilPage() {
     .limit(1)
     .maybeSingle();
 
+  // Fonte única das escolas atendidas (driver_schools): códigos INEP e as cidades deles.
+  const { data: ds } = await supabase.from("driver_schools").select("inep_code, schools(city_id)");
+  type DsRow = { inep_code: number; schools: { city_id: number } | { city_id: number }[] | null };
+  const dsRows = (ds ?? []) as unknown as DsRow[];
+  const schoolCityIds = [
+    ...new Set(
+      dsRows.flatMap((r) => (Array.isArray(r.schools) ? r.schools : r.schools ? [r.schools] : [])).map((s) => s.city_id),
+    ),
+  ];
+
   const vanUrl = profile?.van_photo_path
     ? supabase.storage.from("van-photos").getPublicUrl(profile.van_photo_path).data
         .publicUrl
@@ -57,6 +67,8 @@ export default async function EditarPerfilPage() {
             service_cities: profile?.service_cities ?? null,
             service_neighborhoods: profile?.service_neighborhoods ?? null,
             service_schools: profile?.service_schools ?? null,
+            school_codes: dsRows.map((r) => r.inep_code),
+            school_city_ids: schoolCityIds,
             age_min: profile?.age_min ?? null,
             age_max: profile?.age_max ?? null,
             service_shifts: (profile?.service_shifts as string[] | null) ?? [],

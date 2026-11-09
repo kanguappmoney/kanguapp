@@ -8,6 +8,7 @@ import {
   regenerateCaptureLink,
 } from "@/lib/actions/capture";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { SchoolPicker } from "@/components/SchoolPicker";
 import { ProfileGateNotice } from "@/components/ProfileGateNotice";
 
 export interface CaptureLink {
@@ -102,15 +103,7 @@ function NewLinkForm() {
         </select>
       </label>
 
-      <label className="block text-sm">
-        <span className="mb-1 block text-navy-700/70">Escola</span>
-        <input
-          name="school"
-          required
-          placeholder="Ex.: EMEF Jardim Zaíra"
-          className="w-full rounded-xl border border-navy-900/15 px-3 py-2"
-        />
-      </label>
+      <SchoolPicker required key={`s${addrKey}`} source={{ kind: "driver" }} />
 
       <AddressAutocomplete
         key={addrKey}

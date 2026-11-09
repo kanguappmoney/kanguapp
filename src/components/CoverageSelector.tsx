@@ -30,6 +30,7 @@ interface City {
 interface Opt {
   label: string;
   alt?: string;
+  codes?: number[]; // escolas: códigos INEP que compartilham este nome de exibição (driver_schools)
 }
 interface CityData {
   schools: Opt[];
@@ -60,10 +61,16 @@ export function CoverageSelector({
   initialCities,
   initialNeighborhoods,
   initialSchools,
+  initialSchoolCodes,
+  initialSchoolCityIds,
 }: {
   initialCities: string | null;
   initialNeighborhoods: string | null;
   initialSchools: string | null;
+  // Fonte única das escolas (driver_schools): códigos INEP e as cidades deles. O texto `initialSchools`
+  // só entra como reserva (motorista que ainda não passou pela migração) e para os nomes digitados à mão.
+  initialSchoolCodes: number[];
+  initialSchoolCityIds: number[];
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
@@ -82,24 +89,30 @@ export function CoverageSelector({
 
   async function loadCity(id: number): Promise<CityData> {
     const [schools, hoods] = await Promise.all([
-      fetchAll<{ name: string; display_name: string | null }>((from, to) =>
-        supabase.from("schools").select("name, display_name").eq("city_id", id).order("inep_code").range(from, to),
+      fetchAll<{ inep_code: number; name: string; display_name: string | null }>((from, to) =>
+        supabase.from("schools").select("inep_code, name, display_name").eq("city_id", id).order("inep_code").range(from, to),
       ),
       fetchAll<{ name: string }>((from, to) =>
         supabase.from("neighborhoods").select("name").eq("city_id", id).order("id").range(from, to),
       ),
     ]);
-    const uniq = (rows: { name: string; display_name?: string | null }[]) => {
-      const seen = new Set<string>();
+    const uniq = (rows: { inep_code?: number; name: string; display_name?: string | null }[]) => {
+      const seen = new Map<string, Opt>();
       const out: Opt[] = [];
       for (const r of rows) {
         const label = cleanName(r.display_name || r.name);
         const k = label.toLowerCase();
-        if (label && !seen.has(k)) {
-          seen.add(k);
-          const alt = cleanName(r.name);
-          out.push(alt && alt.toLowerCase() !== k ? { label, alt } : { label });
+        if (!label) continue;
+        const prev = seen.get(k);
+        if (prev) {
+          if (r.inep_code !== undefined) (prev.codes ??= []).push(r.inep_code);
+          continue;
         }
+        const alt = cleanName(r.name);
+        const opt: Opt = alt && alt.toLowerCase() !== k ? { label, alt } : { label };
+        if (r.inep_code !== undefined) opt.codes = [r.inep_code];
+        seen.set(k, opt);
+        out.push(opt);
       }
       return out.sort((a, b) => a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }));
     };
@@ -127,6 +140,13 @@ export function CoverageSelector({
           else if (!c) legacyCities.push(n);
         }
 
+        // Cidades das escolas já salvas em driver_schools entram mesmo que não estejam no texto de cidades.
+        for (const cid of initialSchoolCityIds) {
+          const c = sorted.find((x) => x.id === cid);
+          if (c && !matched.some((m) => m.id === c.id)) matched.push(c);
+        }
+        const codeSet = new Set(initialSchoolCodes);
+
         const loaded = await Promise.all(matched.map((c) => loadCity(c.id)));
         const nextData: Record<number, CityData> = {};
         const nextPick: Record<number, Pick> = {};
@@ -137,7 +157,9 @@ export function CoverageSelector({
           // O salvo casa pelo nome de exibição OU pelo oficial; o que casa sai dos "antigos".
           const hit = (o: Opt, unused: Map<string, string>) =>
             unused.has(nameKey(o.label)) || (o.alt !== undefined && unused.has(nameKey(o.alt)));
-          const schools = loaded[i].schools.filter((o) => hit(o, unusedSchools));
+          const schools = loaded[i].schools.filter(
+            (o) => o.codes?.some((code) => codeSet.has(code)) || hit(o, unusedSchools),
+          );
           const hoods = loaded[i].hoods.filter((o) => hit(o, unusedHoods));
           for (const o of schools) {
             unusedSchools.delete(nameKey(o.label));
@@ -196,9 +218,17 @@ export function CoverageSelector({
 
   // Valores que vão no submit.
   const outCities = ready ? joinList([...chosen.map((c) => c.name), ...legacy.cities]) : (initialCities ?? "");
-  const outSchools = ready
-    ? joinList([...chosen.flatMap((c) => pick[c.id]?.schools ?? []), ...legacy.schools])
-    : (initialSchools ?? "");
+  // Escolas: vão como CÓDIGOS INEP (+ nomes digitados à mão) para set_my_schools. Enquanto a base carrega,
+  // `school_sync` não é enviado e a action não mexe nas escolas salvas.
+  const outCodes = ready
+    ? [
+        ...new Set(
+          chosen.flatMap((c) =>
+            (pick[c.id]?.schools ?? []).flatMap((label) => data[c.id]?.schools.find((o) => o.label === label)?.codes ?? []),
+          ),
+        ),
+      ]
+    : [];
   const outHoods = ready
     ? joinList([...chosen.flatMap((c) => pick[c.id]?.hoods ?? []), ...legacy.hoods])
     : (initialNeighborhoods ?? "");
@@ -209,7 +239,9 @@ export function CoverageSelector({
     <div className="space-y-3">
       <input type="hidden" name="service_cities" value={outCities} />
       <input type="hidden" name="service_neighborhoods" value={outHoods} />
-      <input type="hidden" name="service_schools" value={outSchools} />
+      {ready && <input type="hidden" name="school_sync" value="1" />}
+      <input type="hidden" name="school_codes" value={outCodes.join(",")} />
+      <input type="hidden" name="school_extra" value={JSON.stringify(ready ? legacy.schools : [])} />
 
       <div className="rounded-xl border border-navy-900/10 bg-navy-900/[0.03] px-3 py-2 text-sm text-navy-800">
         Estado: <strong>SP</strong>

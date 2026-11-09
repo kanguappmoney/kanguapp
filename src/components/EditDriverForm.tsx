@@ -23,6 +23,8 @@ export interface DriverDefaults {
   service_cities: string | null;
   service_neighborhoods: string | null;
   service_schools: string | null;
+  school_codes: number[]; // driver_schools (fonte única das escolas atendidas)
+  school_city_ids: number[];
   age_min: number | null;
   age_max: number | null;
   service_shifts: string[];
@@ -112,6 +114,8 @@ export function EditDriverForm({ driver }: { driver: DriverDefaults }) {
           initialCities={driver.service_cities}
           initialNeighborhoods={driver.service_neighborhoods}
           initialSchools={driver.service_schools}
+          initialSchoolCodes={driver.school_codes}
+          initialSchoolCityIds={driver.school_city_ids}
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
