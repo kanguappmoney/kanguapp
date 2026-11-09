@@ -35,6 +35,56 @@ export interface DriveMapStop {
   lat: number | null;
   lng: number | null;
   done: boolean; // embarcou/desembarcou ou ausente (parada já resolvida)
+  photoUrl?: string | null; // foto do aluno (bolinha da próxima parada)
+}
+
+const NAVY = "#0D1B3D";
+const YELLOW = "#FFD000";
+
+// Pino de parada: número (azul-marinho) — a PRÓXIMA parada vira uma bolinha maior com a foto do aluno
+// (ou a inicial, sem foto) e o número num selo amarelo no canto. Feitas ficam esmaecidas.
+function styleStopMarker(el: HTMLDivElement, s: DriveMapStop, isNext: boolean, name: string) {
+  el.innerHTML = "";
+  el.style.opacity = s.done ? "0.4" : "1";
+  if (!isNext) {
+    el.style.cssText =
+      `width:26px;height:26px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font:700 12px system-ui;color:${YELLOW};background:${NAVY};border:2px solid #fff;box-shadow:0 1px 4px rgba(13,27,61,.4);opacity:${s.done ? 0.4 : 1}`;
+    el.textContent = String(s.position);
+    return;
+  }
+  el.style.cssText = "position:relative;width:52px;height:52px;z-index:5";
+  const face = document.createElement("div");
+  face.style.cssText =
+    `width:52px;height:52px;border-radius:9999px;overflow:hidden;border:3px solid ${YELLOW};background:${NAVY};box-shadow:0 2px 8px rgba(13,27,61,.5);display:flex;align-items:center;justify-content:center;color:#fff;font:700 20px system-ui`;
+  if (s.photoUrl) {
+    const img = document.createElement("img");
+    img.src = s.photoUrl;
+    img.alt = "";
+    img.style.cssText = "width:100%;height:100%;object-fit:cover";
+    face.appendChild(img);
+  } else {
+    face.textContent = (name.trim()[0] ?? "?").toUpperCase();
+  }
+  const badge = document.createElement("div");
+  badge.style.cssText =
+    `position:absolute;right:-6px;bottom:-6px;min-width:22px;height:22px;padding:0 4px;border-radius:9999px;background:${YELLOW};color:${NAVY};border:2px solid ${NAVY};display:flex;align-items:center;justify-content:center;font:800 12px system-ui`;
+  badge.textContent = String(s.position);
+  el.appendChild(face);
+  el.appendChild(badge);
+}
+
+// Marcador do motorista: o canguru (ícone da marca) num círculo amarelo com halo. A câmera gira com o rumo,
+// então o canguru fica "para frente" na tela, como o carrinho do Waze/Google.
+function makeDriverEl(): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.cssText =
+    `width:48px;height:48px;border-radius:9999px;background:${YELLOW};border:3px solid #fff;box-shadow:0 0 0 8px rgba(255,208,0,.28),0 2px 8px rgba(13,27,61,.5);display:flex;align-items:center;justify-content:center;overflow:hidden`;
+  const img = document.createElement("img");
+  img.src = "/brand/kangu-icon.png";
+  img.alt = "";
+  img.style.cssText = "width:42px;height:42px";
+  el.appendChild(img);
+  return el;
 }
 
 export function DriveMap({
@@ -43,23 +93,41 @@ export function DriveMap({
   line,
   anchor,
   driverPos,
+  navLine = null,
+  nextStopId = null,
+  stopNames = {},
 }: {
   token: string;
   stops: DriveMapStop[];
   line: [number, number][] | null; // GeoJSON da rota (lng,lat), pode faltar
   anchor: GeoPoint | null; // escola (âncora)
   driverPos: (GeoPoint & { heading: number | null }) | null; // posição + rumo
+  navLine?: [number, number][] | null; // trecho da navegação no app (van → próxima parada)
+  nextStopId?: string | null; // próxima parada (bolinha com foto)
+  stopNames?: Record<string, string>; // inicial quando não há foto
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const readyRef = useRef(false);
+  const stopMarkersRef = useRef<Map<string, { el: HTMLDivElement; marker: mapboxgl.Marker }>>(new Map());
+  const navLineRef = useRef<[number, number][] | null>(null);
   // "Seguindo" a van (câmera automática) vs. o motorista mexeu na câmera à mão.
   const followRef = useRef(true);
   const lastPosRef = useRef<DriverPos | null>(null);
   // Enquadramento da rota (centro/zoom), pra recentrar quando ainda não há GPS.
   const routeViewRef = useRef<{ center: [number, number]; zoom: number } | null>(null);
   const [showRecenter, setShowRecenter] = useState(false);
+  const [markersReady, setMarkersReady] = useState(false);
+
+  // Empurra o trecho de navegação para a fonte do mapa (se o mapa já carregou; senão o load aplica).
+  function applyNavLine() {
+    const map = mapRef.current;
+    const src = map?.getSource("nav") as mapboxgl.GeoJSONSource | undefined;
+    if (!src) return;
+    const coords = navLineRef.current ?? [];
+    src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } });
+  }
 
   // Voltar pro modo condução e retomar o "seguir". Com GPS: centra no motorista
   // (pitch/bearing certos). Sem GPS ainda (preview / sinal não chegou): recentra
@@ -157,18 +225,38 @@ export function DriveMap({
         });
       }
 
-      // Pinos das paradas (numerados; feitas ficam esmaecidas).
+      // Pinos das paradas: criados aqui, estilizados (número × foto da próxima, esmaecida se feita) no efeito abaixo.
       for (const s of stops) {
         if (s.lat == null || s.lng == null) continue;
+        // Casca externa intocada (o Mapbox posiciona por transform nela); o visual vai no div interno.
+        const outer = document.createElement("div");
         const el = document.createElement("div");
-        el.style.cssText =
-          "width:26px;height:26px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font:700 12px system-ui;color:#FFD000;background:#0D1B3D;border:2px solid #fff;box-shadow:0 1px 4px rgba(13,27,61,.4)";
-        el.textContent = String(s.position);
-        if (s.done) el.style.opacity = "0.4";
-        new mapboxgl.Marker({ element: el })
-          .setLngLat([s.lng, s.lat])
-          .addTo(map);
+        outer.appendChild(el);
+        const marker = new mapboxgl.Marker({ element: outer }).setLngLat([s.lng, s.lat]).addTo(map);
+        stopMarkersRef.current.set(s.studentId, { el, marker });
       }
+      setMarkersReady(true);
+
+      // Trecho da navegação no app (amarelo com contorno azul-marinho), por cima da linha geral.
+      map.addSource("nav", {
+        type: "geojson",
+        data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
+      });
+      map.addLayer({
+        id: "nav-casing",
+        type: "line",
+        source: "nav",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": NAVY, "line-width": 11 },
+      });
+      map.addLayer({
+        id: "nav",
+        type: "line",
+        source: "nav",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": YELLOW, "line-width": 7 },
+      });
+      applyNavLine();
 
       // Escola (âncora), losango amarelo.
       if (anchor) {
@@ -188,6 +276,8 @@ export function DriveMap({
       map.remove();
       mapRef.current = null;
       driverMarkerRef.current = null;
+      stopMarkersRef.current.clear();
+      setMarkersReady(false);
       readyRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,10 +290,7 @@ export function DriveMap({
     if (!map || !driverPos) return;
     lastPosRef.current = driverPos;
     if (!driverMarkerRef.current) {
-      const el = document.createElement("div");
-      el.style.cssText =
-        "width:20px;height:20px;border-radius:9999px;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,235,.25)";
-      driverMarkerRef.current = new mapboxgl.Marker({ element: el })
+      driverMarkerRef.current = new mapboxgl.Marker({ element: makeDriverEl() })
         .setLngLat([driverPos.lng, driverPos.lat])
         .addTo(map);
     } else {
@@ -211,6 +298,23 @@ export function DriveMap({
     }
     if (followRef.current) driveCamera(map, driverPos, 800);
   }, [driverPos]);
+
+  // Estilo dos pinos: a próxima parada vira a bolinha com foto + número; feitas esmaecem.
+  useEffect(() => {
+    if (!markersReady) return;
+    for (const st of stops) {
+      const m = stopMarkersRef.current.get(st.studentId);
+      if (m) styleStopMarker(m.el, st, st.studentId === nextStopId, stopNames[st.studentId] ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markersReady, stops, nextStopId]);
+
+  // Trecho da navegação no app.
+  useEffect(() => {
+    navLineRef.current = navLine;
+    applyNavLine();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navLine, markersReady]);
 
   return (
     <div className="relative h-full w-full">

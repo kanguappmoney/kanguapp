@@ -15,12 +15,14 @@ export function NavMenu({
   address,
   label,
   fullWidth = false,
+  onInApp,
 }: {
   lat: number | null;
   lng: number | null;
   address: string | null;
   label: string; // nome da parada, só pro título do menu
   fullWidth?: boolean; // ação secundária em largura total (Modo Direção)
+  onInApp?: () => void; // navegar no mapa do próprio app (Modo Direção, parada atual)
 }) {
   const [open, setOpen] = useState(false);
 
@@ -71,6 +73,18 @@ export function NavMenu({
               </button>
             </div>
             <div className="space-y-2">
+              {onInApp && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onInApp();
+                  }}
+                  className="block w-full rounded-xl bg-yellow-400 py-3 text-center font-semibold text-navy-900"
+                >
+                  Navegar no mapa do app
+                </button>
+              )}
               <a
                 href={wazeUrl}
                 target="_blank"

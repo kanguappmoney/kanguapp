@@ -21,6 +21,9 @@ export function DriveMapLoader(props: {
   line: [number, number][] | null;
   anchor: GeoPoint | null;
   driverPos: (GeoPoint & { heading: number | null }) | null;
+  navLine?: [number, number][] | null;
+  nextStopId?: string | null;
+  stopNames?: Record<string, string>;
 }) {
   return <DriveMap {...props} />;
 }

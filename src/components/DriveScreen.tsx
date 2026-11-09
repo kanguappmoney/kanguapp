@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, type PointerEvent } from "react";
-import { ArrowLeft, MapPin, MapPinOff, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUp,
+  CornerUpLeft,
+  CornerUpRight,
+  MapPin,
+  MapPinOff,
+  ChevronDown,
+  ChevronUp,
+  Undo2,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import {
   setStopState,
@@ -14,6 +25,7 @@ import { DragConfirm } from "@/components/DragConfirm";
 import { DriveMapLoader } from "@/components/DriveMapLoader";
 import { StatusPill, StepDot } from "@/components/patterns";
 import { formatStopAddress } from "@/lib/address";
+import { distM, distToLine, fetchNavRoute, upcomingStepIndex, type Maneuver, type NavRoute } from "@/lib/navigation";
 import { usePositionBroadcast } from "@/components/usePositionBroadcast";
 import { useDriverPosition } from "@/components/useDriverPosition";
 import {
@@ -39,7 +51,16 @@ export interface DriveStop {
   lat: number | null;
   lng: number | null;
   state: StopState;
+  photoUrl?: string | null;
 }
+
+const MANEUVER_ICON: Record<Maneuver, React.ComponentType<{ className?: string }>> = {
+  left: CornerUpLeft,
+  right: CornerUpRight,
+  straight: ArrowUp,
+  uturn: Undo2,
+  arrive: MapPin,
+};
 
 // Modo Direção 2.0: mapa em tela cheia (mapbox-gl, GPS ao vivo — janela do G4) +
 // bottom sheet por cima com a parada atual e o botão grande de "cheguei". O gate
@@ -117,6 +138,43 @@ export function DriveScreen({
   // Entre 100 e 130m é faixa morta (histerese): o GPS oscilando em torno dos 100m não
   // faz o painel piscar. Ver sheetAutoTarget (lib/geo, com testes).
   const [collapsed, setCollapsed] = useState(false);
+
+  // Navegação no mapa do app (van → parada atual, curva a curva). Só com GPS + coord + token; a posição
+  // continua só na memória (vai à Directions do Mapbox apenas para traçar o caminho até a parada do motorista).
+  const [navigating, setNavigating] = useState(false);
+  const [nav, setNav] = useState<{ stopId: string; route: NavRoute } | null>(null);
+  const [stepIdx, setStepIdx] = useState(0);
+  const navFetch = useRef({ at: 0, inFlight: false });
+  const curId = current?.studentId ?? null;
+
+  useEffect(() => {
+    if (!current) setNavigating(false); // todas resolvidas: encerra a navegação
+  }, [current]);
+
+  useEffect(() => {
+    if (!navigating || !driverPos || !currentPoint || !mapToken || !curId) return;
+    const fresh = nav && nav.stopId === curId ? nav.route : null;
+    const now = Date.now();
+    const offRoute = fresh ? distToLine(driverPos, fresh.line) > 60 : true;
+    if (fresh && !offRoute) return;
+    if (navFetch.current.inFlight || now - navFetch.current.at < 6000) return;
+    navFetch.current = { at: now, inFlight: true };
+    fetchNavRoute(mapToken, driverPos, currentPoint).then((route) => {
+      navFetch.current.inFlight = false;
+      if (route) {
+        setNav({ stopId: curId, route });
+        setStepIdx(0);
+      }
+    });
+  }, [navigating, driverPos, currentPoint, mapToken, curId, nav]);
+
+  useEffect(() => {
+    if (!driverPos || !nav || nav.stopId !== curId) return;
+    setStepIdx((i) => upcomingStepIndex(driverPos, nav.route.steps, i));
+  }, [driverPos, nav, curId]);
+
+  const navRoute = navigating && nav && nav.stopId === curId ? nav.route : null;
+  const navStep = navRoute ? navRoute.steps[Math.min(stepIdx, navRoute.steps.length - 1)] : null;
   const autoTarget = sheetAutoTarget(currentDist);
   // Aplica o padrão só quando o alvo AUTOMÁTICO muda (cruza o threshold). Entre
   // transições, o arraste manual manda — o auto não briga com a mão.
@@ -146,7 +204,9 @@ export function DriveScreen({
     lat: s.lat,
     lng: s.lng,
     done: s.state !== "pending",
+    photoUrl: s.photoUrl ?? null,
   }));
+  const stopNames = Object.fromEntries(stops.map((s) => [s.studentId, s.name]));
 
   function set(studentId: string, state: StopState, proximity?: BoardingProximity) {
     setStops((prev) =>
@@ -170,6 +230,9 @@ export function DriveScreen({
               line={mapLine}
               anchor={mapAnchor}
               driverPos={driverPos}
+              navLine={navRoute?.line ?? null}
+              nextStopId={current?.studentId ?? null}
+              stopNames={stopNames}
             />
           ) : (
             <div className="h-full w-full bg-navy-900/10" />
@@ -196,6 +259,42 @@ export function DriveScreen({
               style={{ width: `${pct}%` }}
             />
           </div>
+
+          {/* Navegação no app: próxima manobra (como no Waze/Google). */}
+          {navigating && (
+            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-navy-900 p-3 text-white shadow-lg" data-testid="nav-banner">
+              {(() => {
+                const Icon = navStep ? MANEUVER_ICON[navStep.maneuver] : MapPin;
+                return (
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-yellow-400 text-navy-900">
+                    <Icon className="h-7 w-7" />
+                  </span>
+                );
+              })()}
+              <div className="min-w-0 flex-1">
+                {navStep && driverPos ? (
+                  <>
+                    <p className="text-lg font-bold leading-tight text-yellow-400">
+                      {navStep.maneuver === "arrive" ? "Chegando" : `Em ${formatDistance(distM(driverPos, navStep.at))}`}
+                    </p>
+                    <p className="line-clamp-2 text-sm text-white/90">{navStep.instruction}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-white/80">
+                    {driverPos ? "Calculando a rota…" : "Aguardando sinal de GPS para navegar…"}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setNavigating(false)}
+                aria-label="Sair da navegação"
+                className="shrink-0 rounded-full bg-white/10 p-2 text-white/80"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Bottom sheet por cima do mapa. Recolhe/expande por distância (auto) +
@@ -327,6 +426,14 @@ export function DriveScreen({
                   address={current.address}
                   label={current.name}
                   fullWidth
+                  onInApp={
+                    mapToken && currentPoint
+                      ? () => {
+                          setNavigating(true);
+                          setCollapsed(true); // dá a tela ao mapa; reabre sozinho perto da parada
+                        }
+                      : undefined
+                  }
                 />
               </div>
               </>

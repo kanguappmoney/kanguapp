@@ -36,9 +36,9 @@ export default async function ModoDirecaoPage({
   const trackingMode = profile?.parent_tracking_mode ?? "map";
 
   // Fonte única do quadro de embarque (resolve paradas da perna + estado). A home
-  // usa o mesmo helper — sem foto aqui (o Modo Direção não exibe foto na lista).
+  // usa o mesmo helper. Aqui a foto serve só à bolinha da próxima parada no mapa.
   const kind = kindOf(execution);
-  const board = await resolveBoardStops(supabase, execution);
+  const board = await resolveBoardStops(supabase, execution, { withPhotos: true });
   const driveStops: DriveStop[] = board.map((s) => ({
     studentId: s.studentId,
     position: s.position,
@@ -47,6 +47,7 @@ export default async function ModoDirecaoPage({
     lat: s.lat,
     lng: s.lng,
     state: s.state,
+    photoUrl: s.photoUrl,
   }));
   const routeName = boardRouteName(execution);
 
