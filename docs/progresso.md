@@ -1654,6 +1654,15 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   não há motorista visível em produção (a tela foi vista no estado vazio, console limpo); o comportamento está provado
   no banco pelos testes. Conta de teste do Abner continua com o toggle do marketplace desligado.
 
+- **Validação do /buscar com dado real (conta de teste do Abner, autorizada por ele):** tirados "Todas"/"Todos" do cadastro
+  antigo; subida uma foto de teste genérica (a visibilidade exige foto da van — a tela de Configurações dizia
+  "Aparecendo" sem ela: ponto a corrigir). Com lista marcada (3 escolas, 2 bairros): cidade → recarrega com os bairros
+  dela, escola em typeahead (as 3 marcadas, "1 motorista"), filtros marcado → 1, não marcado → 0. Com listas VAZIAS
+  (temporário, depois restaurado): qualquer bairro/escola de Mauá → 1, escola de São Paulo → 0, perfil público "Todos os
+  bairros de Mauá / Todas as escolas de Mauá". **Bug achado e corrigido (d6ab141):** o perfil público dava 500 com
+  bairros/escolas nulos (`splitList(null)`) — chegou a ir ao ar com a fatia 2; corrigido. A busca de escola passou a
+  esconder as que nenhum motorista atende (contagem 0).
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---
