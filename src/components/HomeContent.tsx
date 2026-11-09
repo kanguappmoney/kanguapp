@@ -1,13 +1,14 @@
 import Link from "next/link";
 import {
-  Users,
   CalendarCheck,
   MapPin,
   Play,
   ChevronRight,
   Truck,
+  ListChecks,
+  Route,
 } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Section } from "@/components/ui";
 import { StatusPill, StepDot } from "@/components/patterns";
 import { RouteRunList } from "@/components/RouteRunList";
 import { DriverHeaderActions } from "@/components/DriverHeaderActions";
@@ -92,24 +93,14 @@ export function HomeContent({
           </div>
         )}
 
-        {/* Contadores reais. Alunos e paradas viram atalhos; ausências não tem
-            tela própria (só aparece na Revisão de hoje), então fica informativo. */}
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <Counter
-            icon={Users}
-            value={alunos}
-            label="alunos"
-            highlight
-            href="/motorista/alunos"
-          />
-          <Counter icon={CalendarCheck} value={ausencias} label="ausências" />
-          <Counter
-            icon={MapPin}
-            value={paradas}
-            label="paradas"
-            href="/motorista/rotas"
-          />
-        </div>
+        {/* Resumo de hoje — creme. Alunos e paradas viram atalho; ausências (sem tela própria) é informativo. */}
+        <Section tone="cream" icon={CalendarCheck} title="Resumo de hoje" className="mt-4">
+          <div className="grid grid-cols-3 divide-x divide-yellow-400/40 text-center">
+            <Counter value={alunos} label="alunos" href="/motorista/alunos" />
+            <Counter value={ausencias} label="ausências" />
+            <Counter value={paradas} label="paradas" href="/motorista/rotas" />
+          </div>
+        </Section>
 
         {/* Mapa sempre visível: bloco vivo (traçado da perna rodando) OU mapa
             idle centrado no endereço do motorista quando nada roda (G4-safe). */}
@@ -125,17 +116,16 @@ export function HomeContent({
           <IdleMap mapUrl={idleMapUrl} />
         )}
 
-        {/* Lista das rotas de hoje SEMPRE abaixo do mapa — concluídas e próximas,
-            não só quando ocioso. */}
-        <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-navy-700/50">
-          Rota de hoje
-        </h2>
-        <RouteRunList
-          routes={routes}
-          execByLeg={execByLeg}
-          departureByRoute={departureByRoute}
-          emptyText={routesEmptyText}
-        />
+        {/* Rotas de hoje SEMPRE abaixo do mapa — concluídas e próximas. Ocioso: é o foco da tela (azul-marinho);
+            com rota rodando o foco é a parada atual, então aqui fica em branco. */}
+        <Section tone={board ? "white" : "navy"} icon={Route} title="Rota de hoje" className="mt-4">
+          <RouteRunList
+            routes={routes}
+            execByLeg={execByLeg}
+            departureByRoute={departureByRoute}
+            emptyText={routesEmptyText}
+          />
+        </Section>
 
         {/* Ponte home ↔ /rotas: gestão vive lá (criar/editar). */}
         <Link
@@ -154,19 +144,21 @@ export function HomeContent({
 // SEM GPS — G4 não permite rastreio fora de in_progress) + aviso. ----------------
 function IdleMap({ mapUrl }: { mapUrl: string | null }) {
   return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-navy-900/10 bg-navy-900/[0.03]">
-      {mapUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={mapUrl} alt="Sua região" className="h-48 w-full object-cover" />
-      ) : (
-        <div className="flex h-32 items-center justify-center text-sm text-navy-700/40">
-          Mapa indisponível
-        </div>
-      )}
-      <p className="px-4 py-3 text-center text-sm text-navy-700/60">
-        Nenhuma rota em andamento agora
-      </p>
-    </div>
+    <Section icon={MapPin} title="Sua região" className="mt-4 overflow-hidden">
+      <div className="-mx-4 -mb-4 overflow-hidden rounded-b-2xl">
+        {mapUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={mapUrl} alt="Sua região" className="h-44 w-full object-cover" />
+        ) : (
+          <div className="flex h-28 items-center justify-center bg-navy-900/[0.03] text-sm text-navy-700/40">
+            Mapa indisponível
+          </div>
+        )}
+        <p className="bg-navy-900/[0.03] px-4 py-3 text-center text-sm text-navy-700/60">
+          Nenhuma rota em andamento agora
+        </p>
+      </div>
+    </Section>
   );
 }
 
@@ -254,13 +246,10 @@ function RunningBlock({
       </Link>
 
       {/* Lista de embarque (dado vivo). */}
-      <Card className="mt-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="font-semibold text-navy-900">Lista de embarque</span>
-          <span className="text-xs text-navy-700/50">
-            {board.boardedCount} de {board.total} {label}
-          </span>
-        </div>
+      <Section icon={ListChecks} title="Lista de embarque" className="mt-4">
+        <p className="-mt-1 mb-2 text-xs text-navy-700/60">
+          {board.boardedCount} de {board.total} {label}
+        </p>
         <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-navy-900/10">
           <div
             className="h-full rounded-full bg-yellow-400"
@@ -307,38 +296,20 @@ function RunningBlock({
           Ver todos os alunos
           <ChevronRight className="h-4 w-4" />
         </Link>
-      </Card>
+      </Section>
     </>
   );
 }
 
-function Counter({
-  icon: Icon,
-  value,
-  label,
-  highlight,
-  href,
-}: {
-  icon: typeof Users;
-  value: number;
-  label: string;
-  highlight?: boolean;
-  href?: string;
-}) {
+function Counter({ value, label, href }: { value: number; label: string; href?: string }) {
   const inner = (
-    <Card
-      className={`h-full ${highlight ? "bg-cream" : ""} ${
-        href ? "transition hover:border-navy-900/25" : ""
-      }`}
-    >
-      <Icon className="mb-1 h-5 w-5 text-navy-700/50" />
+    <div className="px-2 py-1">
       <p className="text-2xl font-bold leading-none text-navy-900">{value}</p>
-      <p className="mt-1 text-xs text-navy-700/60">{label}</p>
-    </Card>
+      <p className="mt-1 text-xs text-navy-700/70">{label}</p>
+    </div>
   );
-  // Alunos/paradas viram atalho; ausências (sem tela própria) fica informativo.
   return href ? (
-    <Link href={href} className="block">
+    <Link href={href} className="block rounded-lg transition hover:bg-yellow-400/20">
       {inner}
     </Link>
   ) : (
