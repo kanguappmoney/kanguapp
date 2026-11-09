@@ -47,7 +47,8 @@ export function RouteRunList({
         // (G2 no banco). Some com o botão — conveniência por cima da lei.
         const running =
           execByLeg.get(execKey(r.id, "pickup"))?.status === "in_progress" ||
-          execByLeg.get(execKey(r.id, "dropoff"))?.status === "in_progress";
+          execByLeg.get(execKey(r.id, "dropoff"))?.status === "in_progress" ||
+          execByLeg.get(execKey(r.id, null))?.status === "in_progress";
 
         return (
           <Card key={r.id} className="space-y-3">
@@ -70,8 +71,8 @@ export function RouteRunList({
                     <CalendarClock className="h-3.5 w-3.5" />
                     Exceções
                   </Link>
-                  {/* Editar congela com perna in_progress (G2) e só rota 'both'. */}
-                  {r.direction === "both" && !running && (
+                  {/* Editar: toda rota (inclusive as antigas de uma perna); congela só com perna em andamento (G2). */}
+                  {!running && (
                     <Link
                       href={`/motorista/rotas/${r.id}/editar`}
                       className="flex items-center gap-1 rounded-lg border border-navy-900/10 px-2.5 py-1.5 text-xs font-medium text-navy-700/70"

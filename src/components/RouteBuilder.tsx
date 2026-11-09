@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { ChevronUp, ChevronDown, X, Plus, RotateCcw, Wand2 } from "lucide-react";
+import { ChevronUp, ChevronDown, X, Plus, RotateCcw, Wand2, Info } from "lucide-react";
 import {
   createRoute,
   updateRoute,
@@ -34,7 +34,8 @@ type Shift = "morning" | "afternoon" | "integral";
 export interface RouteToEdit {
   id: string;
   name: string;
-  shift: Shift;
+  shift: Shift | ""; // rota antiga pode não ter turno: o motorista escolhe ao editar
+  legacy?: boolean; // rota antiga de uma perna: ao salvar vira "ida e volta"
   pickup: string[];
   dropoff: string[];
   weekdays: number[];
@@ -111,12 +112,13 @@ export function RouteBuilder({
   // Trocar de turno reinicia as listas (evita aluno de outro turno preso nelas).
   // Mas NÃO na hidratação inicial — senão apagaria as listas carregadas na
   // edição. Só dispara em troca real do usuário (a partir do 2º render).
-  const shiftHydrated = useRef(false);
+  // Também NÃO zera quando o turno estava vazio (rota antiga sem turno): a 1ª escolha de turno preserva as
+  // listas que a rota já tem.
+  const prevShift = useRef<Shift | "">(route?.shift ?? "");
   useEffect(() => {
-    if (!shiftHydrated.current) {
-      shiftHydrated.current = true;
-      return;
-    }
+    const prev = prevShift.current;
+    prevShift.current = shift;
+    if (prev === "" || prev === shift) return;
     setPickup([]);
     setDropoff([]);
     setVoltaTouched(false);
@@ -137,8 +139,11 @@ export function RouteBuilder({
     setDropoff([...pickup].reverse());
   }
 
+  const field =
+    "w-full rounded-xl border border-white/20 bg-white px-3 py-3 text-navy-900 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/40";
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} className="space-y-4">
       {editing && <input type="hidden" name="route_id" value={route!.id} />}
       <input type="hidden" name="pickup_ids" value={JSON.stringify(pickup)} />
       <input type="hidden" name="dropoff_ids" value={JSON.stringify(dropoff)} />
@@ -146,100 +151,113 @@ export function RouteBuilder({
       <input type="hidden" name="pickup_target_time" value={pickupTargetTime} />
       <input type="hidden" name="shift" value={shift} />
 
-      <label className="block">
-        <span className="mb-1 block text-sm font-medium text-navy-800">
-          Nome da rota
-        </span>
-        <input
-          name="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Ex.: Turma Manhã"
-          className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
-        />
-      </label>
-
-      <div>
-        <span className="mb-1 block text-sm font-medium text-navy-800">Turno</span>
-        <div className="grid grid-cols-3 gap-2">
-          {(["morning", "afternoon", "integral"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setShift(s)}
-              className={`rounded-xl border py-2.5 text-sm font-semibold ${
-                shift === s
-                  ? "border-navy-900 bg-navy-900/[0.04] text-navy-900 ring-2 ring-yellow-400/40"
-                  : "border-navy-900/15 text-navy-700/70"
-              }`}
-            >
-              {SHIFT_LABEL[s]}
-            </button>
-          ))}
+      {route?.legacy && (
+        <div className="flex items-start gap-2 rounded-2xl bg-cream px-4 py-3 text-sm text-navy-800">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Esta é uma rota antiga de uma perna só. Ao salvar, ela passa a ser de <b>ida e volta</b>: escolha o turno e
+            confira as duas listas abaixo.
+          </span>
         </div>
-      </div>
+      )}
 
-      <div>
-        <span className="mb-1 block text-sm font-medium text-navy-800">
-          Dias da semana
-        </span>
-        <div className="grid grid-cols-7 gap-1.5">
-          {WEEKDAYS.map(({ dow, label }) => {
-            const on = weekdays.includes(dow);
-            return (
+      {/* 1 · Dados da rota — azul-marinho (identificação principal) */}
+      <section className="space-y-4 rounded-2xl bg-navy-900 p-4 text-white">
+        <SectionHead n={1} title="Dados da rota" onDark />
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-white/80">Nome da rota</span>
+          <input
+            name="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ex.: Turma Manhã"
+            className={field}
+          />
+        </label>
+        <div>
+          <span className="mb-1 block text-sm font-medium text-white/80">Turno</span>
+          <div className="grid grid-cols-3 gap-2">
+            {(["morning", "afternoon", "integral"] as const).map((s) => (
               <button
-                key={dow}
+                key={s}
                 type="button"
-                onClick={() => toggleDay(dow)}
-                aria-pressed={on}
-                className={`rounded-lg border py-2 text-xs font-semibold ${
-                  on
-                    ? "border-navy-900 bg-navy-900/[0.04] text-navy-900 ring-2 ring-yellow-400/40"
-                    : "border-navy-900/15 text-navy-700/60"
+                onClick={() => setShift(s)}
+                aria-pressed={shift === s}
+                className={`rounded-xl border py-2.5 text-sm font-semibold ${
+                  shift === s
+                    ? "border-yellow-400 bg-yellow-400 text-navy-900"
+                    : "border-white/20 bg-white/10 text-white/80"
                 }`}
               >
-                {label}
+                {SHIFT_LABEL[s]}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
-        {weekdays.length === 0 && (
-          <p className="mt-1.5 text-xs text-navy-700/50">
-            Sem dias fixos: a rota não aparece na home, mas você pode iniciá-la
-            num dia extra em Rotas.
-          </p>
-        )}
-      </div>
+      </section>
 
-      <label className="block">
-        <span className="mb-1 block text-sm font-medium text-navy-800">
-          Horário de começar a pegar{" "}
-          <span className="text-navy-700/50">(opcional)</span>
-        </span>
-        <input
-          type="time"
-          value={pickupTargetTime}
-          onChange={(e) => setPickupTargetTime(e.target.value)}
-          className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
-        />
-        <span className="mt-1 block text-xs text-navy-700/50">
-          A home sugere a que horas você deve sair de casa para não atrasar o 1º
-          aluno. Sem isto, a sugestão não aparece.
-        </span>
-      </label>
+      {/* 2 · Quando roda — creme (agenda) */}
+      <section className="space-y-4 rounded-2xl bg-cream p-4">
+        <SectionHead n={2} title="Quando roda" />
+        <div>
+          <span className="mb-1 block text-sm font-medium text-navy-800">Dias da semana</span>
+          <div className="grid grid-cols-7 gap-1.5">
+            {WEEKDAYS.map(({ dow, label }) => {
+              const on = weekdays.includes(dow);
+              return (
+                <button
+                  key={dow}
+                  type="button"
+                  onClick={() => toggleDay(dow)}
+                  aria-pressed={on}
+                  className={`rounded-lg border py-2 text-xs font-semibold ${
+                    on
+                      ? "border-navy-900 bg-navy-900 text-white"
+                      : "border-navy-900/15 bg-white text-navy-700/60"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {weekdays.length === 0 && (
+            <p className="mt-1.5 text-xs text-navy-700/60">
+              Sem dias fixos: a rota não aparece na home, mas você pode iniciá-la num dia extra em Rotas.
+            </p>
+          )}
+        </div>
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-navy-800">
+            Horário de começar a pegar <span className="text-navy-700/50">(opcional)</span>
+          </span>
+          <input
+            type="time"
+            value={pickupTargetTime}
+            onChange={(e) => setPickupTargetTime(e.target.value)}
+            className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
+          />
+          <span className="mt-1 block text-xs text-navy-700/60">
+            A home sugere a que horas você deve sair de casa para não atrasar o 1º aluno. Sem isto, a sugestão não
+            aparece.
+          </span>
+        </label>
+      </section>
 
       {!shift ? (
-        <p className="rounded-xl border border-dashed border-navy-900/15 p-3 text-sm text-navy-700/60">
+        <p className="rounded-2xl border border-dashed border-navy-900/20 p-4 text-sm text-navy-700/70">
           Escolha o turno para ver os alunos que fazem parte dele.
         </p>
       ) : pool.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-navy-900/15 p-3 text-sm text-navy-700/60">
-          Nenhum aluno ativo neste turno. Cadastre alunos ou aprove cadastros da
-          captação primeiro.
+        <p className="rounded-2xl border border-dashed border-navy-900/20 p-4 text-sm text-navy-700/70">
+          Nenhum aluno ativo neste turno. Cadastre alunos ou aprove cadastros da captação primeiro.
         </p>
       ) : (
         <>
+          {/* 3 · Ida — azul-marinho */}
           <Leg
+            n={3}
+            tone="navy"
             title="Ida (embarque)"
             emptyHint="Adicione quem a van pega de manhã."
             ordered={pickup}
@@ -248,7 +266,10 @@ export function RouteBuilder({
             onChange={setPickup}
             legKind="pickup"
           />
+          {/* 4 · Volta — creme */}
           <Leg
+            n={4}
+            tone="cream"
             title="Volta (desembarque)"
             emptyHint="Proposta: a ida invertida. Ajuste quem só vai / só volta."
             ordered={dropoff}
@@ -261,7 +282,7 @@ export function RouteBuilder({
                 <button
                   type="button"
                   onClick={reseedVolta}
-                  className="flex items-center gap-1 text-xs font-medium text-navy-700/60"
+                  className="flex items-center gap-1 text-xs font-medium text-navy-700/70"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Usar ida invertida
@@ -273,9 +294,7 @@ export function RouteBuilder({
       )}
 
       {state.error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          {state.error}
-        </p>
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       )}
 
       <button
@@ -286,6 +305,26 @@ export function RouteBuilder({
         {pending ? "Salvando…" : editing ? "Salvar alterações" : "Salvar rota"}
       </button>
     </form>
+  );
+}
+
+// Cabeçalho de seção: número em círculo + título (amarelo sobre azul-marinho, navy sobre creme).
+function SectionHead({ n, title, onDark = false }: { n: number; title: string; onDark?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+          onDark ? "bg-yellow-400 text-navy-900" : "bg-navy-900 text-yellow-400"
+        }`}
+      >
+        {n}
+      </span>
+      <h2
+        className={`text-sm font-bold uppercase tracking-wide ${onDark ? "text-yellow-400" : "text-navy-900"}`}
+      >
+        {title}
+      </h2>
+    </div>
   );
 }
 
@@ -311,6 +350,8 @@ function sharedSchoolAnchor(students: Student[]): GeoPoint | null {
 }
 
 function Leg({
+  n,
+  tone,
   title,
   emptyHint,
   ordered,
@@ -320,6 +361,8 @@ function Leg({
   legKind,
   headerAction,
 }: {
+  n: number;
+  tone: "navy" | "cream";
   title: string;
   emptyHint: string;
   ordered: string[];
@@ -396,10 +439,13 @@ function Leg({
     }
   }
 
+  const dark = tone === "navy";
+  const wand = dark ? "text-white/80" : "text-navy-700/70";
+
   return (
-    <div className="rounded-2xl border border-navy-900/10 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-navy-900">{title}</span>
+    <section className={`rounded-2xl p-4 ${dark ? "bg-navy-900 text-white" : "bg-cream"}`}>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <SectionHead n={n} title={title} onDark={dark} />
         <div className="flex items-center gap-3">
           {headerAction}
           {ordered.length >= 2 && (
@@ -407,7 +453,7 @@ function Leg({
               type="button"
               onClick={suggest}
               disabled={busy}
-              className="flex items-center gap-1 text-xs font-medium text-navy-700/70 disabled:opacity-50"
+              className={`flex items-center gap-1 text-xs font-medium disabled:opacity-50 ${wand}`}
             >
               <Wand2 className="h-3.5 w-3.5" />
               {busy ? "Sugerindo…" : "Sugerir ordem"}
@@ -417,29 +463,28 @@ function Leg({
       </div>
 
       {note && (
-        <p className="mb-2 rounded-lg bg-cream px-2.5 py-1.5 text-xs text-navy-800">
+        <p className={`mb-2 rounded-lg px-2.5 py-1.5 text-xs ${dark ? "bg-white/10 text-white/90" : "bg-white text-navy-800"}`}>
           {note}
         </p>
       )}
 
       {ordered.length === 0 ? (
-        <p className="mb-2 text-xs text-navy-700/50">{emptyHint}</p>
+        <p className={`mb-2 text-xs ${dark ? "text-white/60" : "text-navy-700/60"}`}>{emptyHint}</p>
       ) : (
-        <div className="mb-2 space-y-2">
+        <div className="mb-3 space-y-2">
           {ordered.map((id, idx) => {
             const s = byId.get(id);
             if (!s) return null;
             return (
-              <div
-                key={id}
-                className="flex items-center gap-2 rounded-xl border border-navy-900/10 bg-white px-3 py-2"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-yellow-400">
+              <div key={id} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm">
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                    dark ? "bg-yellow-400 text-navy-900" : "bg-navy-900 text-yellow-400"
+                  }`}
+                >
                   {idx + 1}
                 </span>
-                <span className="flex-1 text-sm font-medium text-navy-900">
-                  {s.full_name}
-                </span>
+                <span className="flex-1 text-sm font-medium text-navy-900">{s.full_name}</span>
                 <button
                   type="button"
                   onClick={() => move(idx, -1)}
@@ -473,27 +518,34 @@ function Leg({
       )}
 
       {unselected.length > 0 && (
-        <div className="space-y-2">
-          {unselected.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => onChange([...ordered, s.id])}
-              className="flex w-full items-center justify-between rounded-xl border border-navy-900/10 bg-white px-3 py-2 text-left"
-            >
-              <span>
-                <span className="block text-sm font-medium text-navy-900">
-                  {s.full_name}
+        <>
+          <p className={`mb-1.5 text-xs font-semibold uppercase tracking-wide ${dark ? "text-white/60" : "text-navy-700/60"}`}>
+            Adicionar à {legKind === "pickup" ? "ida" : "volta"}
+          </p>
+          <div className="space-y-2">
+            {unselected.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onChange([...ordered, s.id])}
+                className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left ${
+                  dark ? "border-white/15 bg-white/10" : "border-navy-900/10 bg-white/60"
+                }`}
+              >
+                <span>
+                  <span className={`block text-sm font-medium ${dark ? "text-white" : "text-navy-900"}`}>
+                    {s.full_name}
+                  </span>
+                  {s.school && (
+                    <span className={`block text-xs ${dark ? "text-white/60" : "text-navy-700/60"}`}>{s.school}</span>
+                  )}
                 </span>
-                {s.school && (
-                  <span className="block text-xs text-navy-700/50">{s.school}</span>
-                )}
-              </span>
-              <Plus className="h-4 w-4 text-navy-700/40" />
-            </button>
-          ))}
-        </div>
+                <Plus className={`h-4 w-4 ${dark ? "text-yellow-400" : "text-navy-900"}`} />
+              </button>
+            ))}
+          </div>
+        </>
       )}
-    </div>
+    </section>
   );
 }

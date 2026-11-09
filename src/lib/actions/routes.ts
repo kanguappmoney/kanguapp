@@ -138,16 +138,14 @@ export async function updateRoute(
   if (!pickupIds.length && !dropoffIds.length)
     return { error: "Adicione ao menos um aluno na ida ou na volta." };
 
-  // Confere que a rota existe, é do motorista (RLS só devolve as próprias) e é
-  // 'both'. Escopo desta fatia: não editamos rota legada de uma perna.
+  // Confere que a rota existe e é do motorista (RLS só devolve as próprias). Rota antiga de uma perna
+  // também edita: ao salvar ela vira "ida e volta" (direction='both') com as duas listas do formulário.
   const { data: route } = await supabase
     .from("routes")
     .select("id, direction")
     .eq("id", routeId)
     .maybeSingle();
   if (!route) return { error: "Rota não encontrada." };
-  if (route.direction !== "both")
-    return { error: "Só rotas de ida e volta podem ser editadas por aqui." };
 
   // G2 (pré-checagem): há perna em andamento hoje? Não reescreve nada.
   const { count: running } = await supabase
@@ -167,7 +165,13 @@ export async function updateRoute(
 
   const { error: nameError } = await supabase
     .from("routes")
-    .update({ name, shift: shift as Shift, weekdays, pickup_target_time })
+    .update({
+      name,
+      shift: shift as Shift,
+      weekdays,
+      pickup_target_time,
+      ...(route.direction !== "both" ? { direction: "both" as const } : {}),
+    })
     .eq("id", routeId);
   if (nameError) return { error: nameError.message };
 
@@ -210,6 +214,53 @@ export async function updateRoute(
     };
 
   revalidatePath("/motorista/rotas");
+  redirect("/motorista/rotas");
+}
+
+export type DeleteRouteState = { error: string | null };
+
+// Apaga a rota do motorista (e, em cascata no banco, paradas, exceções, execuções e o histórico de viagens
+// dela). Não apaga alunos, faturas nem ausências. G2: com perna em andamento hoje não apaga (o trigger de
+// route_stops é o backstop no banco). A tela avisa quantas viagens do histórico serão apagadas junto.
+export async function deleteRoute(
+  _prev: DeleteRouteState,
+  formData: FormData,
+): Promise<DeleteRouteState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sessão expirada." };
+
+  const routeId = String(formData.get("route_id") ?? "");
+  if (!routeId) return { error: "Rota não informada." };
+
+  const { data: route } = await supabase
+    .from("routes")
+    .select("id")
+    .eq("id", routeId)
+    .maybeSingle();
+  if (!route) return { error: "Rota não encontrada." };
+
+  const { count: running } = await supabase
+    .from("route_executions")
+    .select("id", { count: "exact", head: true })
+    .eq("route_id", routeId)
+    .eq("status", "in_progress");
+  if ((running ?? 0) > 0)
+    return { error: "Esta rota está em andamento. Encerre a viagem para poder apagar." };
+
+  const { error } = await supabase.from("routes").delete().eq("id", routeId);
+  if (error)
+    return {
+      error:
+        error.code === "23514"
+          ? "Esta rota está em andamento. Encerre a viagem para poder apagar."
+          : error.message,
+    };
+
+  revalidatePath("/motorista/rotas");
+  revalidatePath("/motorista");
   redirect("/motorista/rotas");
 }
 

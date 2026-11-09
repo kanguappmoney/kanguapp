@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { brlToCents } from "@/lib/money";
 import { saoPauloToday } from "@/lib/day";
+import { dueDateFor } from "@/lib/payment-day";
 
 export type FinanceState = { error: string | null };
 
@@ -11,8 +12,24 @@ export type FinanceState = { error: string | null };
 function firstOfMonth() {
   return `${saoPauloToday().slice(0, 7)}-01`;
 }
-function dueDay10() {
-  return `${saoPauloToday().slice(0, 7)}-10`;
+// Define (ou limpa) o dia de pagamento do aluno. RLS (students update owner) garante o dono.
+export async function setStudentPaymentDay(
+  studentId: string,
+  day: number | null,
+): Promise<FinanceState> {
+  if (day !== null && (!Number.isInteger(day) || day < 1 || day > 31))
+    return { error: "Escolha um dia entre 1 e 31." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("students")
+    .update({ payment_due_day: day })
+    .eq("id", studentId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/motorista/alunos/${studentId}`);
+  revalidatePath("/motorista/financeiro");
+  return { error: null };
 }
 
 // Define a mensalidade do aluno. RLS (students update owner) garante o dono.
@@ -44,11 +61,10 @@ export async function generateMonthlyInvoices(): Promise<FinanceState> {
   if (!user) return { error: "Sessão expirada." };
 
   const period = firstOfMonth();
-  const due = dueDay10();
 
   const { data: students } = await supabase
     .from("students")
-    .select("id, monthly_fee_cents")
+    .select("id, monthly_fee_cents, payment_due_day")
     .eq("driver_id", user.id)
     .eq("status", "active")
     .not("monthly_fee_cents", "is", null);
@@ -92,7 +108,7 @@ export async function generateMonthlyInvoices(): Promise<FinanceState> {
     status: "pending" as const,
     billing_period: period,
     amount_cents: s.monthly_fee_cents as number,
-    due_date: due,
+    due_date: dueDateFor(period.slice(0, 7), s.payment_due_day),
     tolerance_days: tolerance,
   }));
 

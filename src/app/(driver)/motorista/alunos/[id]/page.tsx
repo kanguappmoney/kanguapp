@@ -1,3 +1,4 @@
+import { PaymentDayField } from "@/components/PaymentDayField";
 import Link from "next/link";
 import { ArrowLeft, User } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -39,7 +40,7 @@ export default async function DetalheAlunoPage({
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, full_name, birth_date, school, school_address, shift, turma, entry_time, exit_time, pickup_address, dropoff_address, responsible_name, responsible_phone, responsible_whatsapp, responsible_email, photo_path, pay_status",
+      "id, full_name, birth_date, school, school_address, shift, turma, entry_time, exit_time, pickup_address, dropoff_address, responsible_name, responsible_phone, responsible_whatsapp, responsible_email, photo_path, pay_status, payment_due_day",
     )
     .eq("id", id)
     .single();
@@ -107,6 +108,10 @@ export default async function DetalheAlunoPage({
             return <StatusPill tone={pay.tone}>{pay.label}</StatusPill>;
           })()}
           {student.shift && <StatusPill tone="neutral">{SHIFT_LABEL[student.shift]}</StatusPill>}
+        </div>
+
+        <div className="mt-4">
+          <PaymentDayField studentId={id} initialDay={student.payment_due_day ?? null} />
         </div>
 
         <SectionTitle>Dados do aluno</SectionTitle>

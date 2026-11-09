@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarClock, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { saoPauloToday } from "@/lib/day";
 import { RouteBuilder, type RouteToEdit } from "@/components/RouteBuilder";
+import { DeleteRouteButton } from "@/components/DeleteRouteButton";
+import { IconBadge } from "@/components/patterns";
 
 export default async function EditarRotaPage({
   params,
@@ -24,8 +26,9 @@ export default async function EditarRotaPage({
     .maybeSingle();
 
   if (!route) notFound();
-  // Escopo desta fatia: só as rotas 'both'. Legado de uma perna não edita aqui.
-  if (route.direction !== "both") redirect("/motorista/rotas");
+  // Rota antiga de uma perna (outbound/inbound) também edita: a lista dela vira a ida ou a volta, e ao salvar
+  // ela passa a ser "ida e volta".
+  const legacy = route.direction !== "both";
 
   // Separa as duas listas, cada uma ordenada por sua própria numeração.
   const stops = (route.route_stops ?? []) as {
@@ -35,16 +38,19 @@ export default async function EditarRotaPage({
   }[];
   const ordered = (kind: "pickup" | "dropoff") =>
     stops
-      .filter((s) => s.kind === kind)
+      .filter((s) => legacy || s.kind === kind)
       .sort((a, b) => a.position - b.position)
       .map((s) => s.student_id);
+  // Legada: todas as paradas formam UMA lista — a ida (outbound) ou a volta (inbound).
+  const legacyIsPickup = route.direction === "outbound";
 
   const toEdit: RouteToEdit = {
     id: route.id,
     name: route.name,
-    shift: route.shift,
-    pickup: ordered("pickup"),
-    dropoff: ordered("dropoff"),
+    shift: route.shift ?? "",
+    legacy,
+    pickup: legacy ? (legacyIsPickup ? ordered("pickup") : []) : ordered("pickup"),
+    dropoff: legacy ? (legacyIsPickup ? [] : ordered("dropoff")) : ordered("dropoff"),
     weekdays: (route.weekdays ?? []) as number[],
     pickupTargetTime: route.pickup_target_time
       ? String(route.pickup_target_time).slice(0, 5)
@@ -66,6 +72,11 @@ export default async function EditarRotaPage({
     .eq("route_id", routeId)
     .gte("date", saoPauloToday());
 
+  const { count: tripCount } = await supabase
+    .from("route_executions")
+    .select("id", { count: "exact", head: true })
+    .eq("route_id", routeId);
+
   return (
     <>
       <header className="flex items-center gap-3 border-b border-navy-900/10 bg-white px-4 pb-5 pt-6 text-navy-900">
@@ -77,18 +88,15 @@ export default async function EditarRotaPage({
       <div className="px-4 pb-8">
         <RouteBuilder students={students ?? []} route={toEdit} />
 
-        {/* Atalho pra gestão de exceções (feriado/reposição). A UI vive na
-            sub-tela dedicada; aqui é só a porta de entrada + o resumo. */}
+        {/* 5 · Exceções — atalho para a sub-tela (feriado/reposição). */}
         <Link
           href={`/motorista/rotas/${routeId}/excecoes`}
-          className="mt-4 flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-4"
+          className="mt-4 flex items-center gap-3 rounded-2xl bg-cream p-4"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-navy-900/5 text-navy-700/70">
-            <CalendarClock className="h-5 w-5" />
-          </span>
+          <IconBadge icon={CalendarClock} />
           <span className="min-w-0 flex-1">
             <span className="block font-semibold text-navy-900">Exceções</span>
-            <span className="block text-sm text-navy-700/60">
+            <span className="block text-sm text-navy-700/70">
               {excecoesCount
                 ? `${excecoesCount} ${excecoesCount === 1 ? "marcada" : "marcadas"} — feriados e reposições`
                 : "Feriados e reposições que fogem da agenda"}
@@ -96,6 +104,10 @@ export default async function EditarRotaPage({
           </span>
           <ChevronRight className="h-5 w-5 shrink-0 text-navy-700/40" />
         </Link>
+
+        <div className="mt-4">
+          <DeleteRouteButton routeId={routeId} routeName={route.name} tripCount={tripCount ?? 0} />
+        </div>
       </div>
     </>
   );
