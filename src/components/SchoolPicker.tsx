@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Building2, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { cleanName } from "@/lib/coverage";
+import { cleanName, nameKey, parseList } from "@/lib/coverage";
 
 // Seletor de escola (escolha única + busca). Mostra SÓ a lista de escolas que o motorista atende
-// (`driver_schools`); se ele ainda não configurou nenhuma, cai para a busca por digitação em todas as
-// escolas de SP (`schools`) — nunca bloqueia o cadastro. Em qualquer caso há "Outra escola (digitar)".
+// (`driver_schools`); se ele ainda não configurou nenhuma, cai para a busca por digitação nas escolas das
+// CIDADES que ele atende (hierarquia cidade → escola; escola é opcional) — nunca bloqueia o cadastro. Só se
+// o motorista não tiver nenhuma cidade cadastrada a busca é no estado todo. Em qualquer caso há "Outra escola (digitar)".
 // Salva o NOME (texto) no campo `name` — `students.school` continua texto, sem FK.
 //
 // `source`: "driver" = lista do motorista logado (leitura por RLS dono-only);
@@ -42,6 +43,8 @@ export function SchoolPicker({
   const supabase = useMemo(() => createClient(), []);
   const [value, setValue] = useState(initialValue);
   const [list, setList] = useState<string[] | null>(null); // null = carregando
+  // Cidades atendidas (só lidas quando não há lista de escolas): limitam a busca geral.
+  const [scope, setScope] = useState<{ ids: number[]; names: string[] }>({ ids: [], names: [] });
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [other, setOther] = useState(false);
@@ -69,7 +72,35 @@ export function SchoolPicker({
         const uniq = [...new Set(names.filter(Boolean))].sort((a, b) =>
           a.localeCompare(b, "pt-BR", { sensitivity: "base" }),
         );
-        if (!cancelled) setList(uniq);
+        // Sem lista de escolas: descobre as cidades atendidas para limitar a busca.
+        let ids: number[] = [];
+        let cityNames: string[] = [];
+        if (uniq.length === 0) {
+          if (source.kind === "link") {
+            const { data } = await supabase.rpc("capture_link_cities", { p_token: source.token });
+            const rows = (data ?? []) as { city_id: number; name: string }[];
+            ids = rows.map((r) => r.city_id);
+            cityNames = rows.map((r) => r.name);
+          } else {
+            const { data: u } = await supabase.auth.getUser();
+            const { data: prof } = await supabase
+              .from("driver_profiles")
+              .select("service_cities")
+              .eq("user_id", u.user?.id ?? "")
+              .maybeSingle();
+            const wanted = new Set(parseList(prof?.service_cities).map(nameKey));
+            if (wanted.size > 0) {
+              const { data: cs } = await supabase.from("cities").select("id, name").limit(1000);
+              const hit = ((cs ?? []) as { id: number; name: string }[]).filter((c) => wanted.has(nameKey(c.name)));
+              ids = hit.map((c) => c.id);
+              cityNames = hit.map((c) => c.name);
+            }
+          }
+        }
+        if (!cancelled) {
+          setScope({ ids, names: cityNames });
+          setList(uniq);
+        }
       } catch {
         if (!cancelled) setList([]); // falha de rede: cai na busca geral, nunca bloqueia
       }
@@ -90,12 +121,12 @@ export function SchoolPicker({
     }
     setSearching(true);
     const t = setTimeout(async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("schools")
         .select("name, display_name, cities(name)")
-        .or(`display_name.ilike.%${term}%,name.ilike.%${term}%`)
-        .order("display_name")
-        .limit(20);
+        .or(`display_name.ilike.%${term}%,name.ilike.%${term}%`);
+      if (scope.ids.length > 0) query = query.in("city_id", scope.ids);
+      const { data } = await query.order("display_name").limit(20);
       type Row = { name: string; display_name: string | null; cities: { name: string } | { name: string }[] | null };
       const rows = ((data ?? []) as unknown as Row[]).map((r) => {
         const city = Array.isArray(r.cities) ? r.cities[0]?.name : r.cities?.name;
@@ -105,7 +136,7 @@ export function SchoolPicker({
       setSearching(false);
     }, 300);
     return () => clearTimeout(t);
-  }, [q, open, configured, list, supabase]);
+  }, [q, open, configured, list, supabase, scope]);
 
   // Fecha ao clicar fora.
   useEffect(() => {
@@ -223,7 +254,10 @@ export function SchoolPicker({
               ))}
             {list !== null && !configured && q.trim().length < 3 && (
               <li className="px-3 py-2 text-xs text-navy-700/60">
-                Você ainda não escolheu as escolas que atende (Editar perfil → Marketplace). Busque pelo nome.
+                {scope.names.length > 0
+                  ? `Buscando nas escolas de ${scope.names.slice(0, 3).join(", ")}${scope.names.length > 3 ? " e outras" : ""}.`
+                  : "Buscando em todo o estado (nenhuma cidade atendida cadastrada)."}{" "}
+                Digite o nome da escola.
               </li>
             )}
             {list !== null && !searching && options.length === 0 && (configured || q.trim().length >= 3) && (

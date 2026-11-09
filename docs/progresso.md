@@ -1607,6 +1607,18 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   console limpo; nada foi salvo na conta de teste. **Não exercitado na tela:** modo "lista configurada" (precisa salvar
   o perfil com escolas — coberto pelo teste de banco) e o formulário do pai (precisa de um link genérico ativo).
 
+- **Regra de cobertura: cidade → bairro → escola (ajuste, migration 049):** cidade atendida é obrigatória; bairro e
+  escola são opcionais e independentes (vazio = "todos dentro das cidades que atende"; marcado = restringe ao marcado).
+  Correção no que já existia: sem `driver_schools`, o `SchoolPicker` agora busca só nas escolas das **cidades que o
+  motorista atende** (`service_cities`), não no estado todo (no estado todo só se não houver nenhuma cidade cadastrada —
+  nunca bloqueia). Para o pai (sem login) a nova `capture_link_cities(token)` devolve as cidades do dono de um link
+  ativo (casa `service_cities` com `cities` sem diferença de caixa); teste `docs/tests/capture_link_cities.sql` 3/3.
+  Visto na tela o modo "lista configurada" (a conta de teste já tinha 3 escolas salvas: aparece só a lista + "Outra
+  escola"); o recorte por cidade no modo sem lista não foi visto na tela (a conta já está configurada).
+  **Marketplace público NÃO usa esse fallback e hoje contradiz a regra:** `marketplace_visible` exige bairros E
+  escolas preenchidos para o motorista aparecer, e o filtro só casa tokens explícitos — mudar para "vazio = todos
+  da cidade" mexe nas funções públicas das Frentes D/E; decisão e desenho no retorno desta fatia.
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---
