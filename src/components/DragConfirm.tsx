@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 // "Deslize para confirmar" (estilo apps de entrega) para a parada atual do Modo
@@ -27,7 +28,7 @@ export function DragConfirm({
   const startX = useRef(0);
 
   const THUMB = 56;
-  const PAD = 4;
+  const PAD = 2; // folga do thumb até a borda interna (a borda de 2px completa os 4px visíveis nos quatro lados)
   const maxX = () =>
     Math.max(0, (trackRef.current?.clientWidth ?? 0) - THUMB - PAD * 2);
 
@@ -52,20 +53,41 @@ export function DragConfirm({
     }
   }
 
+  // Borda sempre de 2px (sólida perto, tracejada longe) → folga idêntica do thumb nos quatro lados.
   const trackCls = onDark
     ? solid
-      ? "border-yellow-400 bg-white/10"
+      ? "border-2 border-yellow-400 bg-white/10"
       : "border-2 border-dashed border-yellow-400 bg-white/5"
     : solid
-      ? "border-yellow-400 bg-yellow-400/20"
+      ? "border-2 border-yellow-400 bg-yellow-400/20"
       : "border-2 border-dashed border-yellow-400 bg-white";
+
+  // Preenchimento que acompanha o arraste: gradiente amarelo → verde mapeado na trilha inteira,
+  // então só fica verde de fato perto dos 100%.
+  const trackW = trackRef.current?.clientWidth ?? 0;
+  const max = maxX();
+  const progress = max > 0 ? Math.min(1, x / max) : 0;
+  const fillW = x + THUMB + PAD * 2;
+  const complete = progress >= 0.85; // mesmo limiar que confirma ao soltar
 
   return (
     <div
       ref={trackRef}
       className={`relative h-14 select-none overflow-hidden rounded-2xl border ${trackCls}`}
     >
-      <span className={`pointer-events-none absolute inset-0 flex items-center justify-center px-16 text-center text-sm font-semibold leading-tight ${onDark ? "text-white" : "text-navy-800"}`}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 left-0 top-0 rounded-xl"
+        style={{
+          width: fillW,
+          opacity: progress > 0 ? 1 : 0,
+          backgroundImage: "linear-gradient(90deg, #ffd000 0%, #22c55e 100%)",
+          backgroundSize: `${trackW}px 100%`,
+          backgroundRepeat: "no-repeat",
+          transition: dragging.current ? "none" : "width .2s ease, opacity .2s ease",
+        }}
+      />
+      <span className={`pointer-events-none absolute inset-0 flex items-center justify-center px-16 text-center text-sm font-semibold leading-tight ${onDark && progress < 0.08 ? "text-white" : "text-navy-900"}`}>
         <span className="line-clamp-2">{label}</span>
       </span>
       <div
@@ -79,13 +101,17 @@ export function DragConfirm({
           transform: `translateX(${x}px)`,
           transition: dragging.current ? "none" : "transform .2s ease",
         }}
-        className={`absolute left-1 top-1 flex h-12 w-14 touch-none items-center justify-center rounded-xl bg-yellow-400 shadow-sm`}
+        className={`absolute bottom-0 left-0.5 top-0 my-auto flex h-12 w-14 touch-none items-center justify-center rounded-xl shadow-sm transition-colors ${complete ? "bg-green-500" : "bg-yellow-400"}`}
       >
-        <Logo
-          variant="icon"
-          alt=""
-          className="pointer-events-none h-11 w-11 select-none"
-        />
+        {complete ? (
+          <Check className="pointer-events-none h-7 w-7 text-white" strokeWidth={3} />
+        ) : (
+          <Logo
+            variant="icon"
+            alt=""
+            className="pointer-events-none h-11 w-11 select-none"
+          />
+        )}
       </div>
     </div>
   );
