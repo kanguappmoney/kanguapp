@@ -101,7 +101,6 @@ export async function updateDriverProfile(
       address,
       subscription_status,
       service_cities: text("service_cities"),
-      service_neighborhoods: text("service_neighborhoods"),
       age_min,
       age_max,
       service_shifts,
@@ -128,6 +127,23 @@ export async function updateDriverProfile(
     }
     const { error: sErr } = await supabase.rpc("set_my_schools", { p_codes: codes, p_extra: extra });
     if (sErr) return { error: sErr.message };
+  }
+
+  // Bairros atendidos: mesma ideia (driver_neighborhoods + service_neighborhoods na mesma transação).
+  if (formData.get("hood_sync") === "1") {
+    const ids = String(formData.get("hood_ids") ?? "")
+      .split(",")
+      .map((c) => Number(c.trim()))
+      .filter((n) => Number.isInteger(n) && n > 0);
+    let extra: string[] = [];
+    try {
+      const parsed = JSON.parse(String(formData.get("hood_extra") ?? "[]"));
+      if (Array.isArray(parsed)) extra = parsed.filter((x): x is string => typeof x === "string").slice(0, 50);
+    } catch {
+      /* ignora: sem extras */
+    }
+    const { error: nErr } = await supabase.rpc("set_my_neighborhoods", { p_ids: ids, p_extra: extra });
+    if (nErr) return { error: nErr.message };
   }
 
   // Veículo primário: upsert (um por motorista no v1).

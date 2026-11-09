@@ -30,7 +30,7 @@ interface City {
 interface Opt {
   label: string;
   alt?: string;
-  codes?: number[]; // escolas: códigos INEP que compartilham este nome de exibição (driver_schools)
+  codes?: number[]; // escolas: códigos INEP (driver_schools) · bairros: ids do pool (driver_neighborhoods) com este nome
 }
 interface CityData {
   schools: Opt[];
@@ -63,6 +63,8 @@ export function CoverageSelector({
   initialSchools,
   initialSchoolCodes,
   initialSchoolCityIds,
+  initialHoodIds,
+  initialHoodCityIds,
 }: {
   initialCities: string | null;
   initialNeighborhoods: string | null;
@@ -71,6 +73,9 @@ export function CoverageSelector({
   // só entra como reserva (motorista que ainda não passou pela migração) e para os nomes digitados à mão.
   initialSchoolCodes: number[];
   initialSchoolCityIds: number[];
+  // Idem para bairros (driver_neighborhoods → pool `neighborhoods`).
+  initialHoodIds: number[];
+  initialHoodCityIds: number[];
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
@@ -92,11 +97,11 @@ export function CoverageSelector({
       fetchAll<{ inep_code: number; name: string; display_name: string | null }>((from, to) =>
         supabase.from("schools").select("inep_code, name, display_name").eq("city_id", id).order("inep_code").range(from, to),
       ),
-      fetchAll<{ name: string }>((from, to) =>
-        supabase.from("neighborhoods").select("name").eq("city_id", id).order("id").range(from, to),
+      fetchAll<{ id: number; name: string }>((from, to) =>
+        supabase.from("neighborhoods").select("id, name").eq("city_id", id).order("id").range(from, to),
       ),
     ]);
-    const uniq = (rows: { inep_code?: number; name: string; display_name?: string | null }[]) => {
+    const uniq = (rows: { code?: number; name: string; display_name?: string | null }[]) => {
       const seen = new Map<string, Opt>();
       const out: Opt[] = [];
       for (const r of rows) {
@@ -105,18 +110,21 @@ export function CoverageSelector({
         if (!label) continue;
         const prev = seen.get(k);
         if (prev) {
-          if (r.inep_code !== undefined) (prev.codes ??= []).push(r.inep_code);
+          if (r.code !== undefined) (prev.codes ??= []).push(r.code);
           continue;
         }
         const alt = cleanName(r.name);
         const opt: Opt = alt && alt.toLowerCase() !== k ? { label, alt } : { label };
-        if (r.inep_code !== undefined) opt.codes = [r.inep_code];
+        if (r.code !== undefined) opt.codes = [r.code];
         seen.set(k, opt);
         out.push(opt);
       }
       return out.sort((a, b) => a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }));
     };
-    return { schools: uniq(schools), hoods: uniq(hoods) };
+    return {
+      schools: uniq(schools.map((r) => ({ code: r.inep_code, name: r.name, display_name: r.display_name }))),
+      hoods: uniq(hoods.map((r) => ({ code: r.id, name: r.name }))),
+    };
   }
 
   // Carga inicial: cidades → casa o texto salvo com a base → escolas/bairros das cidades casadas.
@@ -141,11 +149,12 @@ export function CoverageSelector({
         }
 
         // Cidades das escolas já salvas em driver_schools entram mesmo que não estejam no texto de cidades.
-        for (const cid of initialSchoolCityIds) {
+        for (const cid of [...initialSchoolCityIds, ...initialHoodCityIds]) {
           const c = sorted.find((x) => x.id === cid);
           if (c && !matched.some((m) => m.id === c.id)) matched.push(c);
         }
         const codeSet = new Set(initialSchoolCodes);
+        const hoodSet = new Set(initialHoodIds);
 
         const loaded = await Promise.all(matched.map((c) => loadCity(c.id)));
         const nextData: Record<number, CityData> = {};
@@ -160,7 +169,7 @@ export function CoverageSelector({
           const schools = loaded[i].schools.filter(
             (o) => o.codes?.some((code) => codeSet.has(code)) || hit(o, unusedSchools),
           );
-          const hoods = loaded[i].hoods.filter((o) => hit(o, unusedHoods));
+          const hoods = loaded[i].hoods.filter((o) => o.codes?.some((code) => hoodSet.has(code)) || hit(o, unusedHoods));
           for (const o of schools) {
             unusedSchools.delete(nameKey(o.label));
             if (o.alt) unusedSchools.delete(nameKey(o.alt));
@@ -229,16 +238,26 @@ export function CoverageSelector({
         ),
       ]
     : [];
-  const outHoods = ready
-    ? joinList([...chosen.flatMap((c) => pick[c.id]?.hoods ?? []), ...legacy.hoods])
-    : (initialNeighborhoods ?? "");
+  // Bairros: ids do pool (+ nomes digitados à mão e os recém-criados cujo id ainda não chegou) para set_my_neighborhoods.
+  const hoodIds: number[] = [];
+  const hoodExtra: string[] = [...legacy.hoods];
+  if (ready) {
+    for (const c of chosen)
+      for (const label of pick[c.id]?.hoods ?? []) {
+        const codes = data[c.id]?.hoods.find((o) => o.label === label)?.codes;
+        if (codes?.length) hoodIds.push(...codes);
+        else hoodExtra.push(label);
+      }
+  }
 
   const remaining = allCities.filter((c) => !chosen.some((x) => x.id === c.id));
 
   return (
     <div className="space-y-3">
       <input type="hidden" name="service_cities" value={outCities} />
-      <input type="hidden" name="service_neighborhoods" value={outHoods} />
+      {ready && <input type="hidden" name="hood_sync" value="1" />}
+      <input type="hidden" name="hood_ids" value={[...new Set(hoodIds)].join(",")} />
+      <input type="hidden" name="hood_extra" value={JSON.stringify(ready ? hoodExtra : [])} />
       {ready && <input type="hidden" name="school_sync" value="1" />}
       <input type="hidden" name="school_codes" value={outCodes.join(",")} />
       <input type="hidden" name="school_extra" value={JSON.stringify(ready ? legacy.schools : [])} />
@@ -272,7 +291,8 @@ export function CoverageSelector({
               onRemove={() => removeCity(c)}
               onSchools={(names) => setPicked(c.id, "schools", names)}
               onHoods={(names) => setPicked(c.id, "hoods", names)}
-              onNewHood={(name) =>
+              onNewHood={(name) => {
+                void loadCity(c.id).then((d) => setData((p) => ({ ...p, [c.id]: d })));
                 setData((p) => ({
                   ...p,
                   [c.id]: {
@@ -281,8 +301,8 @@ export function CoverageSelector({
                       (a, b) => a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }),
                     ),
                   },
-                }))
-              }
+                }));
+              }}
               supabase={supabase}
             />
           ))}

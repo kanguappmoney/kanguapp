@@ -1619,6 +1619,22 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   escolas preenchidos para o motorista aparecer, e o filtro só casa tokens explícitos — mudar para "vazio = todos
   da cidade" mexe nas funções públicas das Frentes D/E; decisão e desenho no retorno desta fatia.
 
+- **Bairros atendidos (fatia 1 de 2 — migration 050):** `driver_neighborhoods` (motorista × bairro do pool `neighborhoods`)
+  é a fonte única dos bairros atendidos, no mesmo padrão de `driver_schools`: `set_my_neighborhoods(ids, extras)`
+  (SECURITY DEFINER, só motorista, substitui a lista, **150 por cidade / 300 no total**) grava também
+  `driver_profiles.service_neighborhoods` na mesma transação; leitura dono-only, escrita direta negada. Teste
+  `docs/tests/driver_neighborhoods.sql` **5/5**. **Seed do pool com o IBGE** (`scripts/import-neighborhoods-ibge.ts`,
+  Censo 2022 — Agregados por Bairro, `Agregados_por_bairros_basico_BR.csv`): 2.170 bairros de SP em 58 municípios →
+  descartados 127 de ruído ("RP 1-1", "Regiões de Planejamento", ≤ 2 letras, só números) → **2.042 inseridos em 54
+  municípios** (Mauá, p.ex., só tinha "RP…" e ficou sem semente: segue só com o que os motoristas adicionam; São Paulo
+  capital e Campinas não têm bairros no IBGE); idempotente (rerodar = 0 a inserir); pool agora com 2.044 linhas.
+  **UI:** o checklist de bairros do perfil grava por id (`hood_ids`/`hood_extra`); texto antigo é só reserva, nomes sem
+  correspondência ficam como "do cadastro antigo". Os recém-adicionados via "+ adicionar bairro" recarregam a cidade
+  para pegar o id (e, se o envio for mais rápido, vão como nome). Achado: cadastros de teste usaram "Todas"/"Todos"
+  como texto livre para dizer "todos" — a regra nova (vazio = todos) torna isso desnecessário; aparecem como "do cadastro
+  antigo" e podem ser removidos. Visto na tela (conta de teste): ids 1 e 304 casados do texto salvo, legado "Todos"
+  preservado, campo antigo `service_neighborhoods` fora do formulário, console limpo; nada salvo.
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

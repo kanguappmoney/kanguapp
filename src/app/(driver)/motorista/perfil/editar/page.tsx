@@ -37,6 +37,16 @@ export default async function EditarPerfilPage() {
     ),
   ];
 
+  // Idem para bairros (driver_neighborhoods → pool): ids e as cidades deles.
+  const { data: dn } = await supabase.from("driver_neighborhoods").select("neighborhood_id, neighborhoods(city_id)");
+  type DnRow = { neighborhood_id: number; neighborhoods: { city_id: number } | { city_id: number }[] | null };
+  const dnRows = (dn ?? []) as unknown as DnRow[];
+  const hoodCityIds = [
+    ...new Set(
+      dnRows.flatMap((r) => (Array.isArray(r.neighborhoods) ? r.neighborhoods : r.neighborhoods ? [r.neighborhoods] : [])).map((n) => n.city_id),
+    ),
+  ];
+
   const vanUrl = profile?.van_photo_path
     ? supabase.storage.from("van-photos").getPublicUrl(profile.van_photo_path).data
         .publicUrl
@@ -69,6 +79,8 @@ export default async function EditarPerfilPage() {
             service_schools: profile?.service_schools ?? null,
             school_codes: dsRows.map((r) => r.inep_code),
             school_city_ids: schoolCityIds,
+            hood_ids: dnRows.map((r) => r.neighborhood_id),
+            hood_city_ids: hoodCityIds,
             age_min: profile?.age_min ?? null,
             age_max: profile?.age_max ?? null,
             service_shifts: (profile?.service_shifts as string[] | null) ?? [],
