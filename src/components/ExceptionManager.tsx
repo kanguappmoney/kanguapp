@@ -1,5 +1,6 @@
 "use client";
 
+import { IconBadge, StatusPill } from "@/components/patterns";
 import { useActionState, useEffect, useState } from "react";
 import { CalendarOff, CalendarPlus, Trash2 } from "lucide-react";
 import {
@@ -141,25 +142,13 @@ export function ExceptionManager({
                 key={e.id}
                 className="flex items-center gap-3 rounded-xl border border-navy-900/10 bg-white px-3 py-2.5"
               >
-                <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                    e.kind === "skip"
-                      ? "bg-navy-900/5 text-navy-700/70"
-                      : "bg-yellow-400/25 text-navy-900"
-                  }`}
-                >
-                  {e.kind === "skip" ? (
-                    <CalendarOff className="h-4 w-4" />
-                  ) : (
-                    <CalendarPlus className="h-4 w-4" />
-                  )}
-                </span>
+                <IconBadge icon={e.kind === "skip" ? CalendarOff : CalendarPlus} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-navy-900">
                     {prettyDate(e.date)}
-                    <span className="ml-2 text-xs font-normal text-navy-700/60">
-                      {e.kind === "skip" ? "não roda" : "roda"}
-                    </span>
+                    <StatusPill tone={e.kind === "skip" ? "neutral" : "pending"} className="ml-2 align-middle">
+                      {e.kind === "skip" ? "Não roda" : "Roda"}
+                    </StatusPill>
                   </p>
                   {e.reason && (
                     <p className="truncate text-xs text-navy-700/50">{e.reason}</p>

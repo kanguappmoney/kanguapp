@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusPill } from "@/components/patterns";
 import { useState, useTransition, useEffect } from "react";
 import { Copy, Check, RefreshCw, Ban, Plus, Sun, Sunset, Clock } from "lucide-react";
 import {
@@ -185,9 +186,10 @@ function LinkCard({
     <div className="space-y-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <ShiftIcon shift={link.shift} />
-        <p className="font-semibold text-navy-900">
+        <p className="min-w-0 flex-1 font-semibold text-navy-900">
           {SHIFT_LABEL[link.shift]} · {link.school}
         </p>
+        <StatusPill tone="done">Ativo</StatusPill>
       </div>
       {times && <p className="-mt-1 text-sm text-navy-700/60">{times}</p>}
 

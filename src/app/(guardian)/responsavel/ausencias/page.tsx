@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { StatusPill } from "@/components/patterns";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { AbsenceForm } from "@/components/AbsenceForm";
 import { UndoAbsenceButton } from "@/components/UndoAbsenceButton";
@@ -64,7 +65,12 @@ export default async function AusenciasPage() {
                         {brDate(a.service_date)} • {LEG_LABEL[a.leg] ?? a.leg}
                       </p>
                     </div>
-                    <UndoAbsenceButton absenceId={a.id} />
+                    <div className="flex items-center gap-2">
+                      <StatusPill tone={a.service_date === saoPauloToday() ? "done" : "neutral"}>
+                        {a.service_date === saoPauloToday() ? "Hoje" : "Agendada"}
+                      </StatusPill>
+                      <UndoAbsenceButton absenceId={a.id} />
+                    </div>
                   </Card>
                 ))}
               </div>

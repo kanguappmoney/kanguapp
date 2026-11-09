@@ -1706,6 +1706,8 @@ parada no mapa **do responsável** (dependeriam de expor endereço — G5).
   preservando 3 escolas/2 bairros/cidade, console limpo (as mensagens antigas no buffer são de uma queda transitória
   de compilação). **Não visto na tela:** a linha do Marketplace em azul-marinho (a conta de teste está fora da vitrine).
 
+- **3 padrões de diferenciação de itens (aprovados pelo Abner):** `src/components/patterns.tsx` — `StatusPill` (verde = concluído/pago/ativo/em andamento, amarelo-claro = pendente, cinza = agendado/neutro; Vencida âmbar com borda mais forte; Suspensa vermelha), `IconBadge` (ícone amarelo em círculo azul-marinho) e `StepDot` (navy = concluído, amarelo = atual, cinza = futuro; sobre navy: branco/amarelo/branco translúcido). Mapas de fatura/pagamento unificados em `lib/pay-status.ts`. Aplicado: Início (lista de embarque), Rotas (pílula por rota/perna), Modo Direção (paradas), Alunos (lista, detalhe, aprovações, links de captação), Financeiro (faturas, detalhe com linha do tempo), despesas, Configurações e Notificações (ícones), Novo aluno (stepper), Exceções, Construtor de rota; responsável: Jornada (stepper sobre navy), atalhos, "Seus filhos", Pagamentos e Ausências. "Ausente" unificado em cinza. /admin fora. **Visto na tela:** Alunos, Rotas, Configurações, Novo aluno. **Não visto:** Início com rota ativa, Modo Direção, detalhe de fatura, Financeiro "A receber", telas do responsável (sem sessão), Exceções e Captação.
+
 > Ao fim de cada sessão, atualizar o log e as seções afetadas.
 
 ---

@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusPill } from "@/components/patterns";
 import { useState, useTransition } from "react";
 import { Check, X, MapPin, Phone, Cake, School } from "lucide-react";
 import { approveSubmission, rejectSubmission } from "@/lib/actions/capture";
@@ -46,7 +47,10 @@ function ApprovalCard({ sub }: { sub: Submission }) {
 
   return (
     <div className="space-y-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm">
-      <p className="font-semibold text-navy-900">{sub.child_full_name}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-semibold text-navy-900">{sub.child_full_name}</p>
+        <StatusPill tone="pending">Pendente</StatusPill>
+      </div>
 
       <div className="space-y-1.5 text-sm text-navy-700/80">
         {sub.child_school && (

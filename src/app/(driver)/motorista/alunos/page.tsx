@@ -6,6 +6,7 @@ import { DriverActions } from "@/components/DriverHeaderActions";
 import { ProfileGateNotice } from "@/components/ProfileGateNotice";
 import { getProfileGate } from "@/lib/profile-gate";
 import { PAY_CHIP, SHIFT_LABEL } from "@/lib/pay-status";
+import { StatusPill } from "@/components/patterns";
 import { saoPauloToday } from "@/lib/day";
 
 export default async function AlunosPage() {
@@ -100,16 +101,8 @@ export default async function AlunosPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {absentSet.has(s.id) && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                          Ausente hoje
-                        </span>
-                      )}
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}
-                      >
-                        {chip.label}
-                      </span>
+                      {absentSet.has(s.id) && <StatusPill tone="neutral">Ausente hoje</StatusPill>}
+                      <StatusPill tone={chip.tone}>{chip.label}</StatusPill>
                     </div>
                   </Card>
                 </Link>

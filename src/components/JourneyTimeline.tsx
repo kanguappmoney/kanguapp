@@ -1,4 +1,5 @@
 import { Logo } from "@/components/Logo";
+import { StepDot, type StepState } from "@/components/patterns";
 // Linha do tempo do responsável (modo G6 'timeline'). Sem mapa, sem GPS.
 // Alimentada só pelos agregados de get_active_journey (route_events confirmados).
 
@@ -79,52 +80,53 @@ export function JourneyTimeline({ journey }: { journey: Journey }) {
         {journey.confirmed_count} de {journey.total_stops} paradas confirmadas
       </p>
 
-      {/* Marcos do próprio filho (nunca de outras crianças — G5) */}
+      {/* Marcos do próprio filho (nunca de outras crianças — G5). Stepper sobre fundo azul-marinho:
+          concluído = círculo branco, atual = amarelo, futuro = branco translúcido. */}
       <ul className="mt-4 space-y-2">
-        <Milestone done label="Rota iniciada" />
-        {journey.children.map((c) => (
-          <Milestone
-            key={c.name + c.position}
-            done={c.state === "boarded"}
-            warn={c.state === "absent"}
-            label={
-              c.state === "absent"
-                ? `${firstName(c.name)} — ausente hoje`
-                : childMilestone(journey, c)
-            }
-          />
-        ))}
-        <Milestone done={journey.ended} label="Rota concluída" />
+        {(() => {
+          const marks: { key: string; label: string; done: boolean; warn?: boolean }[] = [
+            { key: "start", label: "Rota iniciada", done: true },
+            ...journey.children.map((c) => ({
+              key: c.name + c.position,
+              done: c.state === "boarded",
+              warn: c.state === "absent",
+              label:
+                c.state === "absent"
+                  ? `${firstName(c.name)} — ausente hoje`
+                  : childMilestone(journey, c),
+            })),
+            { key: "end", label: "Rota concluída", done: journey.ended },
+          ];
+          const currentIdx = marks.findIndex((m) => !m.done && !m.warn);
+          return marks.map((m, i) => (
+            <Milestone
+              key={m.key}
+              state={m.done ? "done" : i === currentIdx ? "current" : "future"}
+              warn={m.warn}
+              label={m.label}
+            />
+          ));
+        })()}
       </ul>
     </div>
   );
 }
 
 function Milestone({
-  done,
+  state,
   warn,
   label,
 }: {
-  done?: boolean;
+  state: StepState;
   warn?: boolean;
   label: string;
 }) {
   return (
     <li className="flex items-center gap-3 text-sm">
-      <span
-        className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
-          warn
-            ? "bg-amber-100 text-amber-700"
-            : done
-              ? "bg-green-100 text-green-700"
-              : "bg-white/10 text-white/50"
-        }`}
-      >
-        {warn ? "!" : done ? "✓" : "•"}
-      </span>
-      <span className={done || warn ? "text-white" : "text-white/50"}>
-        {label}
-      </span>
+      <StepDot size="sm" onDark state={warn ? "future" : state}>
+        {warn ? "–" : state === "done" ? "✓" : "•"}
+      </StepDot>
+      <span className={state === "future" && !warn ? "text-white/50" : "text-white"}>{label}</span>
     </li>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { IconBadge } from "@/components/patterns";
 import { useActionState, useEffect, useRef, useTransition } from "react";
 import { Fuel, Wrench, Package, Trash2 } from "lucide-react";
 import { addExpense, deleteExpense, type ExpenseState } from "@/lib/actions/expenses";
@@ -111,9 +112,7 @@ export function ExpensesPanel({
                   key={e.id}
                   className="flex items-center gap-3 rounded-2xl border border-navy-900/5 bg-white p-3 shadow-sm"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
-                    <Icon className="h-4 w-4" />
-                  </span>
+                  <IconBadge icon={Icon} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-navy-900">
                       {label} • {centsToBRL(e.amount_cents)}

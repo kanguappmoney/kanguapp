@@ -8,6 +8,8 @@ import { ProfileGateNotice } from "@/components/ProfileGateNotice";
 import { getProfileGate } from "@/lib/profile-gate";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import { ArchiveButton } from "@/components/ArchiveButton";
+import { StatusPill } from "@/components/patterns";
+import { PAY_CHIP } from "@/lib/pay-status";
 
 const SHIFT_LABEL: Record<string, string> = {
   morning: "Manhã",
@@ -98,6 +100,13 @@ export default async function DetalheAlunoPage({
       <div className="px-4 pb-6">
         <div className="mt-4">
           <PhotoUploader studentId={id} currentUrl={photoUrl} />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {(() => {
+            const pay = PAY_CHIP[student.pay_status] ?? PAY_CHIP.ok;
+            return <StatusPill tone={pay.tone}>{pay.label}</StatusPill>;
+          })()}
+          {student.shift && <StatusPill tone="neutral">{SHIFT_LABEL[student.shift]}</StatusPill>}
         </div>
 
         <SectionTitle>Dados do aluno</SectionTitle>

@@ -1,5 +1,7 @@
 "use client";
 
+import { INVOICE_STATUS } from "@/lib/pay-status";
+import { StatusPill } from "@/components/patterns";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -25,13 +27,6 @@ interface Invoice {
   name: string;
 }
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  pending: { label: "Em aberto", cls: "bg-navy-900/5 text-navy-700/70" },
-  overdue: { label: "Vencida", cls: "bg-amber-100 text-amber-800" },
-  suspended: { label: "Suspensa", cls: "bg-red-100 text-red-800" },
-  paid: { label: "Paga", cls: "bg-green-100 text-green-800" },
-  canceled: { label: "Cancelada", cls: "bg-navy-900/5 text-navy-700/50" },
-};
 
 export function FinanceiroPanel({
   students,
@@ -129,7 +124,7 @@ export function FinanceiroPanel({
         ) : (
           <div className="space-y-2">
             {invoices.map((i) => {
-              const st = STATUS[i.status] ?? STATUS.pending;
+              const st = INVOICE_STATUS[i.status] ?? INVOICE_STATUS.pending;
               return (
                 <Link
                   key={i.id}
@@ -144,11 +139,7 @@ export function FinanceiroPanel({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.cls}`}
-                    >
-                      {st.label}
-                    </span>
+                    <StatusPill tone={st.tone}>{st.label}</StatusPill>
                     <ChevronRight className="h-5 w-5 text-navy-700/30" />
                   </div>
                 </Link>

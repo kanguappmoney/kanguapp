@@ -434,7 +434,7 @@ function Leg({
                 key={id}
                 className="flex items-center gap-2 rounded-xl border border-navy-900/10 bg-white px-3 py-2"
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-navy-900">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-yellow-400">
                   {idx + 1}
                 </span>
                 <span className="flex-1 text-sm font-medium text-navy-900">

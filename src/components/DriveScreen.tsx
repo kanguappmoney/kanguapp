@@ -12,6 +12,7 @@ import { OccurrenceSheet } from "@/components/OccurrenceSheet";
 import { NavMenu } from "@/components/NavMenu";
 import { DragConfirm } from "@/components/DragConfirm";
 import { DriveMapLoader } from "@/components/DriveMapLoader";
+import { StatusPill, StepDot } from "@/components/patterns";
 import { usePositionBroadcast } from "@/components/usePositionBroadcast";
 import { useDriverPosition } from "@/components/useDriverPosition";
 import {
@@ -343,40 +344,37 @@ export function DriveScreen({
             {showAll && (
               <div className="space-y-2 pb-2">
                 {stops.map((s) => (
-                  <div
-                    key={s.studentId}
-                    className={`rounded-2xl border p-3 ${
-                      s.state === "boarded"
-                        ? "border-green-200 bg-green-50"
-                        : s.state === "absent"
-                          ? "border-amber-200 bg-amber-50"
-                          : "border-navy-900/10 bg-white"
-                    }`}
-                  >
+                  <div key={s.studentId} className="rounded-2xl border border-navy-900/10 bg-white p-3">
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-yellow-400">
+                      <StepDot
+                        size="sm"
+                        state={
+                          s.state !== "pending"
+                            ? "done"
+                            : s.studentId === current?.studentId
+                              ? "current"
+                              : "future"
+                        }
+                      >
                         {s.position}
-                      </span>
+                      </StepDot>
                       <span className="flex-1 truncate text-sm font-medium text-navy-900">
                         {s.name}
                       </span>
-                      {s.state === "boarded" && (
-                        <span className="text-xs text-green-700">✓</span>
-                      )}
-                      {s.state === "absent" && (
-                        <span className="text-xs font-medium text-amber-700">
-                          Ausente
-                        </span>
+                      {s.state === "boarded" && <StatusPill tone="done">Embarcou</StatusPill>}
+                      {s.state === "absent" && <StatusPill tone="neutral">Ausente</StatusPill>}
+                      {s.state === "pending" && (
+                        <StatusPill tone={s.studentId === current?.studentId ? "pending" : "neutral"}>
+                          {s.studentId === current?.studentId ? "Próxima" : "Aguardando"}
+                        </StatusPill>
                       )}
                     </div>
                     {/* R4: embarque SÓ pelo arraste do hero. Na lista, pendente
                         é overview (sem toque-embarcar); concluída tem "Desfazer". */}
                     {s.state === "pending" ? (
-                      <p className="text-xs text-navy-700/50">
-                        {s.studentId === current?.studentId
-                          ? "Parada atual — confirme no painel acima."
-                          : "Aguardando"}
-                      </p>
+                      s.studentId === current?.studentId ? (
+                        <p className="text-xs text-navy-700/50">Parada atual — confirme no painel acima.</p>
+                      ) : null
                     ) : (
                       <button
                         onClick={() => set(s.studentId, "pending")}

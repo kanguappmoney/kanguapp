@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { missingText, parseStatus } from "@/lib/marketplace-status";
+import { IconBadge } from "@/components/patterns";
 import { DriverPhotoUploader } from "@/components/DriverPhotoUploader";
 import { DriverActions } from "@/components/DriverHeaderActions";
 import { getDriverHeader } from "@/lib/driver-header";
@@ -134,9 +135,7 @@ export default async function PerfilMotoristaPage() {
           href="/motorista/notificacoes"
           className="flex items-center gap-3 rounded-2xl border border-navy-900/5 bg-white p-4 shadow-sm"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
-            <Bell className="h-5 w-5" />
-          </span>
+          <IconBadge icon={Bell} />
           <span className="flex-1">
             <span className="block font-semibold text-navy-900">Ver notificações</span>
             <span className="block text-xs text-navy-700/60">
@@ -198,15 +197,12 @@ function Row({
   last?: boolean;
 }) {
   const bg = tone === "navy" ? "bg-navy-900 text-white" : tone === "cream" ? "bg-cream" : "bg-white";
-  const chip = tone === "navy" ? "bg-yellow-400 text-navy-900" : "bg-yellow-400/20 text-navy-900";
   const sub = tone === "navy" ? "text-white/70" : "text-navy-700/60";
   const arrow = tone === "navy" ? "text-white/60" : "text-navy-700/40";
   return (
     <li className={last ? "" : "border-b border-navy-900/10"}>
       <Link href={href} className={`flex items-center gap-3 px-4 py-3.5 ${bg}`}>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${chip}`}>
-          <Icon className="h-5 w-5" />
-        </span>
+        <IconBadge icon={Icon} className={tone === "navy" ? "ring-2 ring-yellow-400" : ""} />
         <span className="min-w-0 flex-1">
           <span className={`block font-semibold ${tone === "navy" ? "text-white" : "text-navy-900"}`}>{title}</span>
           {subtitle && <span className={`block line-clamp-2 text-xs ${sub}`}>{subtitle}</span>}

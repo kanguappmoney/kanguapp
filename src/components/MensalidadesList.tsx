@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { centsToBRL } from "@/lib/money";
 import { PAY_CHIP, SHIFT_LABEL } from "@/lib/pay-status";
+import { StatusPill } from "@/components/patterns";
 
 // Aba Mensalidades: consulta (sem editar valor aqui). "Editar" leva ao cadastro
 // do aluno que já existe — nenhum formulário duplicado.
@@ -54,9 +55,7 @@ export function MensalidadesList({ rows, filtered }: { rows: MensalidadeRow[]; f
                       {r.routes.length ? ` • ${r.routes.join(", ")}` : ""}
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${chip.cls}`}>
-                    {chip.label}
-                  </span>
+                  <StatusPill tone={chip.tone}>{chip.label}</StatusPill>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-lg font-bold text-navy-900">

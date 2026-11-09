@@ -3,6 +3,7 @@ import { CalendarOff, ChevronRight, Bell } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
+import { IconBadge, StatusPill } from "@/components/patterns";
 import { JourneyTimeline, type Journey } from "@/components/JourneyTimeline";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { LiveMapLoader } from "@/components/LiveMapLoader";
@@ -127,8 +128,8 @@ export default async function GuardianHome() {
           href="/responsavel/avisos"
           className="mt-4 flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-4"
         >
-          <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
-            <Bell className="h-5 w-5" />
+          <span className="relative">
+            <IconBadge icon={Bell} />
             {(unread ?? 0) > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                 {unread}
@@ -150,9 +151,7 @@ export default async function GuardianHome() {
           href="/responsavel/ausencias"
           className="mt-3 flex items-center gap-3 rounded-2xl border border-navy-900/10 bg-white p-4"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/20 text-navy-900">
-            <CalendarOff className="h-5 w-5" />
-          </span>
+          <IconBadge icon={CalendarOff} />
           <div className="flex-1">
             <p className="font-semibold text-navy-900">Informar ausência</p>
             <p className="text-sm text-navy-700/60">
@@ -168,12 +167,20 @@ export default async function GuardianHome() {
             {childrenWithPhoto.map((c) => (
               <Card key={c.id} className="flex items-center gap-3">
                 <ChildAvatar url={c.photoUrl} name={c.full_name} />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-navy-900">{c.full_name}</p>
                   {c.school && (
                     <p className="text-sm text-navy-700/60">{c.school}</p>
                   )}
                 </div>
+                {(() => {
+                  // Estado de hoje, só com jornada ativa (os agregados do próprio filho — G5).
+                  const st = journey?.children.find((j) => j.name === c.full_name)?.state;
+                  if (st === "boarded") return <StatusPill tone="done">Na van</StatusPill>;
+                  if (st === "absent") return <StatusPill tone="neutral">Ausente</StatusPill>;
+                  if (st === "waiting") return <StatusPill tone="neutral">Aguardando</StatusPill>;
+                  return null;
+                })()}
               </Card>
             ))}
           </div>

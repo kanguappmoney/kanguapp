@@ -1,14 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle, Placeholder } from "@/components/ui";
 import { centsToBRL } from "@/lib/money";
+import { INVOICE_STATUS } from "@/lib/pay-status";
+import { StatusPill } from "@/components/patterns";
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  pending: { label: "Em aberto", cls: "bg-navy-900/5 text-navy-700/70" },
-  overdue: { label: "Vencida", cls: "bg-amber-100 text-amber-800" },
-  suspended: { label: "Suspensa", cls: "bg-red-100 text-red-800" },
-  paid: { label: "Paga", cls: "bg-green-100 text-green-800" },
-  canceled: { label: "Cancelada", cls: "bg-navy-900/5 text-navy-700/50" },
-};
 
 export default async function PagamentosResponsavelPage() {
   const supabase = await createClient();
@@ -50,7 +45,7 @@ export default async function PagamentosResponsavelPage() {
         ) : (
           <div className="space-y-2">
             {invoices.map((i) => {
-              const st = STATUS[i.status] ?? STATUS.pending;
+              const st = INVOICE_STATUS[i.status] ?? INVOICE_STATUS.pending;
               return (
                 <Card key={i.id} className="flex items-center justify-between">
                   <div>
@@ -63,11 +58,7 @@ export default async function PagamentosResponsavelPage() {
                       {i.due_date.slice(8, 10)}/{i.due_date.slice(5, 7)}
                     </p>
                   </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.cls}`}
-                  >
-                    {st.label}
-                  </span>
+                  <StatusPill tone={st.tone}>{st.label}</StatusPill>
                 </Card>
               );
             })}

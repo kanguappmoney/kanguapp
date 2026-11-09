@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { INVOICE_STATUS } from "@/lib/pay-status";
+import { StatusPill, StepDot } from "@/components/patterns";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -6,13 +8,6 @@ import { Card, SectionTitle } from "@/components/ui";
 import { InvoiceActions } from "@/components/InvoiceActions";
 import { centsToBRL } from "@/lib/money";
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  pending: { label: "Em aberto", cls: "bg-navy-900/5 text-navy-700/70" },
-  overdue: { label: "Vencida", cls: "bg-amber-100 text-amber-800" },
-  suspended: { label: "Suspensa", cls: "bg-red-100 text-red-800" },
-  paid: { label: "Paga", cls: "bg-green-100 text-green-800" },
-  canceled: { label: "Cancelada", cls: "bg-navy-900/5 text-navy-700/50" },
-};
 
 const EVENT_LABEL: Record<string, string> = {
   reminder_sent: "Lembrete enviado",
@@ -55,7 +50,7 @@ export default async function InvoiceDetailPage({
     .order("created_at");
 
   const has = (t: string) => (events ?? []).some((e) => e.type === t);
-  const st = STATUS[invoice.status] ?? STATUS.pending;
+  const st = INVOICE_STATUS[invoice.status] ?? INVOICE_STATUS.pending;
   // @ts-expect-error relação aninhada do supabase-js
   const name = invoice.students?.full_name ?? "Aluno";
 
@@ -79,9 +74,7 @@ export default async function InvoiceDetailPage({
                 tolerância {invoice.tolerance_days}d
               </p>
             </div>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.cls}`}>
-              {st.label}
-            </span>
+            <StatusPill tone={st.tone}>{st.label}</StatusPill>
           </div>
         </Card>
 
@@ -98,18 +91,29 @@ export default async function InvoiceDetailPage({
         {!events?.length ? (
           <Card className="text-sm text-navy-700/60">Nenhum evento ainda.</Card>
         ) : (
-          <Card className="space-y-2">
-            {events.map((e, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
-                <span className="text-navy-900">
-                  {EVENT_LABEL[e.type] ?? e.type}
-                  {e.type === "final_warning_delivered" && (
-                    <span className="ml-1 text-green-700">✓</span>
-                  )}
-                </span>
-                <span className="text-xs text-navy-700/40">{dt(e.created_at)}</span>
-              </div>
-            ))}
+          <Card>
+            <ol>
+              {events.map((e, i) => {
+                const last = i === events.length - 1;
+                return (
+                  <li key={i} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <StepDot size="sm" state={last ? "current" : "done"}>
+                        {last ? i + 1 : "✓"}
+                      </StepDot>
+                      {!last && <span className="w-0.5 flex-1 bg-navy-900" />}
+                    </div>
+                    <div className={`flex flex-1 items-start justify-between gap-2 text-sm ${last ? "" : "pb-3"}`}>
+                      <span className="pt-0.5 text-navy-900">
+                        {EVENT_LABEL[e.type] ?? e.type}
+                        {e.type === "final_warning_delivered" && <span className="ml-1 text-green-700">✓</span>}
+                      </span>
+                      <span className="pt-1 text-xs text-navy-700/40">{dt(e.created_at)}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
           </Card>
         )}
       </div>

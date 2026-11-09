@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StatusPill } from "@/components/patterns";
 import { Pencil, CalendarClock, Clock } from "lucide-react";
 import { Card, Placeholder } from "@/components/ui";
 import { startOrReview } from "@/lib/actions/routes";
@@ -164,31 +165,37 @@ function LegControl({
 
   if (running) {
     return (
-      <Link
-        href={`/motorista/rota/${exec!.id}`}
-        className="block rounded-xl bg-yellow-400 py-2.5 text-center text-sm font-semibold text-navy-900"
-      >
-        {legLabel ? `Continuar ${label}` : "Continuar rota"}
-      </Link>
+      <div className="space-y-1.5">
+        <StatusPill tone="done">{legLabel ? `${legLabel} · ` : ""}Em andamento</StatusPill>
+        <Link
+          href={`/motorista/rota/${exec!.id}`}
+          className="block rounded-xl bg-yellow-400 py-2.5 text-center text-sm font-semibold text-navy-900"
+        >
+          {legLabel ? `Continuar ${label}` : "Continuar rota"}
+        </Link>
+      </div>
     );
   }
 
   if (done) {
     return (
-      <div className="rounded-xl border border-navy-900/10 py-2.5 text-center text-xs text-navy-700/60">
-        {legLabel ? `${legLabel} concluída` : "Concluída hoje"}
+      <div className="flex items-center justify-center rounded-xl border border-navy-900/10 py-2.5">
+        <StatusPill tone="done">{legLabel ? `${legLabel} concluída` : "Concluída hoje"}</StatusPill>
       </div>
     );
   }
 
   return (
-    <form action={startOrReview.bind(null, routeId, leg)}>
-      <PendingSubmit
-        pendingLabel="Iniciando…"
-        className="w-full rounded-xl bg-yellow-400 py-2.5 text-sm font-semibold text-navy-900"
-      >
-        {legLabel ? `Iniciar ${label}` : "Iniciar rota"}
-      </PendingSubmit>
-    </form>
+    <div className="space-y-1.5">
+      <StatusPill tone="neutral">{legLabel ? `${legLabel} · ` : ""}Agendada</StatusPill>
+      <form action={startOrReview.bind(null, routeId, leg)}>
+        <PendingSubmit
+          pendingLabel="Iniciando…"
+          className="w-full rounded-xl bg-yellow-400 py-2.5 text-sm font-semibold text-navy-900"
+        >
+          {legLabel ? `Iniciar ${label}` : "Iniciar rota"}
+        </PendingSubmit>
+      </form>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { IconBadge } from "@/components/patterns";
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { markAllNotificationsRead } from "@/lib/actions/notifications";
@@ -52,13 +53,13 @@ export function AvisoList({
               unread ? "border-yellow-400/60 ring-2 ring-yellow-400/40" : "border-navy-900/5"
             }`}
           >
-            <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                unread ? "bg-yellow-400/20 text-navy-900" : "bg-navy-900/5 text-navy-700/50"
-              }`}
-            >
-              <Bell className="h-5 w-5" />
-            </span>
+            {unread ? (
+              <IconBadge icon={Bell} />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-navy-900/5 text-navy-700/50">
+                <Bell className="h-5 w-5" />
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="font-semibold text-navy-900">{n.title}</p>

@@ -8,6 +8,7 @@ import {
   Truck,
 } from "lucide-react";
 import { Card } from "@/components/ui";
+import { StatusPill, StepDot } from "@/components/patterns";
 import { RouteRunList } from "@/components/RouteRunList";
 import { DriverHeaderActions } from "@/components/DriverHeaderActions";
 import type { RouteWithStops, TodayExec } from "@/lib/routes-today";
@@ -274,6 +275,18 @@ function RunningBlock({
               href={`/motorista/alunos/${s.studentId}`}
               className="flex items-center gap-3 rounded-xl px-1 py-2"
             >
+              <StepDot
+                size="sm"
+                state={
+                  s.state === "pending"
+                    ? s.studentId === board.nextStop?.studentId
+                      ? "current"
+                      : "future"
+                    : "done"
+                }
+              >
+                {s.position}
+              </StepDot>
               <Avatar url={s.photoUrl} name={s.name} />
               <span className="flex-1 truncate text-sm font-medium text-navy-900">
                 {s.name}
@@ -334,20 +347,10 @@ function Counter({
 }
 
 function StatusChip({ stop, isNext }: { stop: BoardStop; isNext: boolean }) {
-  if (stop.state === "boarded")
-    return <Chip cls="bg-green-100 text-green-800">Embarcou</Chip>;
-  if (stop.state === "absent")
-    return <Chip cls="bg-navy-900/10 text-navy-700/60">Ausente</Chip>;
-  if (isNext) return <Chip cls="bg-yellow-400 text-navy-900">Próxima</Chip>;
-  return <Chip cls="bg-navy-900/5 text-navy-700/50">Aguardando</Chip>;
-}
-
-function Chip({ children, cls }: { children: React.ReactNode; cls: string }) {
-  return (
-    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>
-      {children}
-    </span>
-  );
+  if (stop.state === "boarded") return <StatusPill tone="done">Embarcou</StatusPill>;
+  if (stop.state === "absent") return <StatusPill tone="neutral">Ausente</StatusPill>;
+  if (isNext) return <StatusPill tone="pending">Próxima</StatusPill>;
+  return <StatusPill tone="neutral">Aguardando</StatusPill>;
 }
 
 function Avatar({
