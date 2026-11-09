@@ -15,6 +15,7 @@
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { createClient } from "@supabase/supabase-js";
+import { friendlyName } from "../src/lib/school-name.ts";
 
 const DRY = process.argv.includes("--dry");
 const fileIdx = process.argv.indexOf("--file");
@@ -30,6 +31,7 @@ interface Row {
   name: string;
   dependency: number | null;
   census_year: number;
+  display_name: string;
 }
 
 // O CSV do INEP é ISO-8859-1, separado por ';' e SEM aspas (os nomes não têm ';').
@@ -69,10 +71,12 @@ for await (const line of rl) {
   }
   seen.add(inep);
   const dep = Number(f[col.TP_DEPENDENCIA]);
+  const officialName = f[col.NO_ENTIDADE].replace(/\s+/g, " ").trim();
   rows.push({
     inep_code: inep,
     city_id: Number(f[col.CO_MUNICIPIO]),
-    name: f[col.NO_ENTIDADE].replace(/\s+/g, " ").trim(),
+    name: officialName,
+    display_name: friendlyName(officialName),
     dependency: dep >= 1 && dep <= 4 ? dep : null,
     census_year: Number(f[col.NU_ANO_CENSO]),
   });

@@ -9,7 +9,6 @@ import {
   joinList,
   nameKey,
   parseList,
-  sortPt,
 } from "@/lib/coverage";
 
 // Seleção guiada da cobertura (Cobertura guiada, parte 3). Estado fixo SP → cidades (tabela
@@ -26,9 +25,15 @@ interface City {
   id: number;
   name: string;
 }
+// `label` é o que se mostra e se salva; `alt` é o nome oficial do INEP (a busca vale para os dois, e
+// cadastros antigos que salvaram o nome oficial continuam casando).
+interface Opt {
+  label: string;
+  alt?: string;
+}
 interface CityData {
-  schools: string[];
-  hoods: string[];
+  schools: Opt[];
+  hoods: Opt[];
 }
 interface Pick {
   schools: string[];
@@ -77,25 +82,26 @@ export function CoverageSelector({
 
   async function loadCity(id: number): Promise<CityData> {
     const [schools, hoods] = await Promise.all([
-      fetchAll<{ name: string }>((from, to) =>
-        supabase.from("schools").select("name").eq("city_id", id).order("inep_code").range(from, to),
+      fetchAll<{ name: string; display_name: string | null }>((from, to) =>
+        supabase.from("schools").select("name, display_name").eq("city_id", id).order("inep_code").range(from, to),
       ),
       fetchAll<{ name: string }>((from, to) =>
         supabase.from("neighborhoods").select("name").eq("city_id", id).order("id").range(from, to),
       ),
     ]);
-    const uniq = (rows: { name: string }[]) => {
+    const uniq = (rows: { name: string; display_name?: string | null }[]) => {
       const seen = new Set<string>();
-      const out: string[] = [];
+      const out: Opt[] = [];
       for (const r of rows) {
-        const n = cleanName(r.name);
-        const k = n.toLowerCase();
-        if (n && !seen.has(k)) {
+        const label = cleanName(r.display_name || r.name);
+        const k = label.toLowerCase();
+        if (label && !seen.has(k)) {
           seen.add(k);
-          out.push(n);
+          const alt = cleanName(r.name);
+          out.push(alt && alt.toLowerCase() !== k ? { label, alt } : { label });
         }
       }
-      return sortPt(out);
+      return out.sort((a, b) => a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }));
     };
     return { schools: uniq(schools), hoods: uniq(hoods) };
   }
@@ -128,15 +134,18 @@ export function CoverageSelector({
         const unusedHoods = new Map(parseList(initialNeighborhoods).map((n) => [nameKey(n), n]));
         matched.forEach((c, i) => {
           nextData[c.id] = loaded[i];
-          const schools = loaded[i].schools.filter((n) => unusedSchools.has(nameKey(n)));
-          const hoods = loaded[i].hoods.filter((n) => unusedHoods.has(nameKey(n)));
-          nextPick[c.id] = { schools, hoods };
+          // O salvo casa pelo nome de exibição OU pelo oficial; o que casa sai dos "antigos".
+          const hit = (o: Opt, unused: Map<string, string>) =>
+            unused.has(nameKey(o.label)) || (o.alt !== undefined && unused.has(nameKey(o.alt)));
+          const schools = loaded[i].schools.filter((o) => hit(o, unusedSchools));
+          const hoods = loaded[i].hoods.filter((o) => hit(o, unusedHoods));
+          for (const o of schools) {
+            unusedSchools.delete(nameKey(o.label));
+            if (o.alt) unusedSchools.delete(nameKey(o.alt));
+          }
+          for (const o of hoods) unusedHoods.delete(nameKey(o.label));
+          nextPick[c.id] = { schools: schools.map((o) => o.label), hoods: hoods.map((o) => o.label) };
         });
-        // O que casou com alguma cidade sai da lista de "antigos"; o resto fica preservado.
-        for (const p of Object.values(nextPick)) {
-          for (const n of p.schools) unusedSchools.delete(nameKey(n));
-          for (const n of p.hoods) unusedHoods.delete(nameKey(n));
-        }
         if (cancelled) return;
         setAllCities(sorted);
         setChosen(matched);
@@ -234,7 +243,12 @@ export function CoverageSelector({
               onNewHood={(name) =>
                 setData((p) => ({
                   ...p,
-                  [c.id]: { ...p[c.id], hoods: sortPt([...(p[c.id]?.hoods ?? []).filter((h) => nameKey(h) !== nameKey(name)), name]) },
+                  [c.id]: {
+                    ...p[c.id],
+                    hoods: [...(p[c.id]?.hoods ?? []).filter((h) => nameKey(h.label) !== nameKey(name)), { label: name }].sort(
+                      (a, b) => a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }),
+                    ),
+                  },
                 }))
               }
               supabase={supabase}
@@ -405,7 +419,7 @@ function Checklist({
   children,
 }: {
   title: string;
-  options: string[];
+  options: Opt[];
   selected: string[];
   onChange: (names: string[]) => void;
   max?: number;
@@ -415,7 +429,9 @@ function Checklist({
   const [q, setQ] = useState("");
   const norm = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
   const selKeys = new Set(selected.map(nameKey));
-  const filtered = q.trim() ? options.filter((o) => norm(o).includes(norm(q.trim()))) : options;
+  const filtered = q.trim()
+    ? options.filter((o) => norm(o.label).includes(norm(q.trim())) || (o.alt ? norm(o.alt).includes(norm(q.trim())) : false))
+    : options;
   const shown = filtered.slice(0, LIST_LIMIT);
   const room = max === undefined ? Infinity : max - selected.length;
 
@@ -426,7 +442,7 @@ function Checklist({
 
   // "Selecionar todas" age sobre o que a busca mostra. Com um teto (escolas), recusa listas maiores
   // que o espaço — a capital tem milhares, e marcar todas poluiria o perfil público.
-  const toAdd = filtered.filter((o) => !selKeys.has(nameKey(o)));
+  const toAdd = filtered.map((o) => o.label).filter((n) => !selKeys.has(nameKey(n)));
   const canAll = toAdd.length > 0 && toAdd.length <= room;
 
   return (
@@ -480,7 +496,8 @@ function Checklist({
             </p>
           )}
           <ul className="mt-2 max-h-60 space-y-1 overflow-y-auto rounded-lg border border-navy-900/10 p-1">
-            {shown.map((o) => {
+            {shown.map((opt) => {
+              const o = opt.label;
               const on = selKeys.has(nameKey(o));
               return (
                 <li key={o}>
