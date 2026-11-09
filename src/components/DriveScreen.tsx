@@ -13,6 +13,7 @@ import { NavMenu } from "@/components/NavMenu";
 import { DragConfirm } from "@/components/DragConfirm";
 import { DriveMapLoader } from "@/components/DriveMapLoader";
 import { StatusPill, StepDot } from "@/components/patterns";
+import { formatStopAddress } from "@/lib/address";
 import { usePositionBroadcast } from "@/components/usePositionBroadcast";
 import { useDriverPosition } from "@/components/useDriverPosition";
 import {
@@ -235,20 +236,29 @@ export function DriveScreen({
           <div className="flex-1 overflow-y-auto px-4 pb-2 pt-1">
             {/* Parada ATUAL (hero) — nome + gate de 100m no botão grande. */}
             {current ? (
-              <div className="rounded-2xl border border-navy-900/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
-                  Parada atual
-                </p>
-                <p className="mt-1 text-xl font-bold text-navy-900">
+              <>
+              {/* Card navy sólido: o que importa agora (quem + quão longe) e a ação principal (amarela). */}
+              <div className="rounded-2xl bg-navy-900 p-4 text-white">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
+                    Parada atual
+                  </p>
+                  {currentDist != null && (
+                    <p className="shrink-0 text-lg font-bold leading-none text-yellow-400" data-testid="parada-distancia">
+                      {formatDistance(currentDist)}
+                    </p>
+                  )}
+                </div>
+                <p className="mt-1 text-2xl font-bold leading-tight text-white">
                   {current.name}
                 </p>
-                {current.address && (
-                  <p className="mt-0.5 text-sm text-navy-700/60">{current.address}</p>
+                {formatStopAddress(current.address) && (
+                  <p className="mt-0.5 text-sm text-white/70">{formatStopAddress(current.address)}</p>
                 )}
 
                 {/* Dica do gate de 100m (quando longe/sem GPS/sem coord). */}
                 {!currentInRange && (
-                  <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-navy-900/[0.04] px-3 py-2 text-xs text-navy-700/70">
+                  <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-xs text-white/80">
                     {currentPoint === null ? (
                       <MapPinOff className="h-3.5 w-3.5 shrink-0" />
                     ) : (
@@ -285,14 +295,14 @@ export function DriveScreen({
                       {!currentEmbarkedIda && (
                         <button
                           onClick={() => set(current.studentId, "absent")}
-                          className="rounded-xl border border-navy-900/15 px-5 text-sm font-medium text-navy-700/70"
+                          className="rounded-xl border border-white/30 px-5 text-sm font-medium text-white/80"
                         >
                           Ausente
                         </button>
                       )}
                     </div>
                     {currentEmbarkedIda && (
-                      <p className="mt-2 text-xs text-navy-700/60">
+                      <p className="mt-2 text-xs text-white/70">
                         Embarcou na ida hoje — precisa desembarcar (não pode
                         ficar ausente na volta).
                       </p>
@@ -303,19 +313,23 @@ export function DriveScreen({
                       label={`${dragVerb} ${current.name}`}
                       solid={currentInRange}
                       onConfirm={() => setRevealed(true)}
+                      onDark
                     />
                   )}
                 </div>
-
-                <div className="mt-2">
-                  <NavMenu
-                    lat={current.lat}
-                    lng={current.lng}
-                    address={current.address}
-                    label={current.name}
-                  />
-                </div>
               </div>
+
+              {/* Ação secundária, fora do destaque navy. */}
+              <div className="mt-2">
+                <NavMenu
+                  lat={current.lat}
+                  lng={current.lng}
+                  address={current.address}
+                  label={current.name}
+                  fullWidth
+                />
+              </div>
+              </>
             ) : (
               <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-center">
                 <p className="font-semibold text-green-800">

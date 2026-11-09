@@ -14,11 +14,13 @@ export function NavMenu({
   lng,
   address,
   label,
+  fullWidth = false,
 }: {
   lat: number | null;
   lng: number | null;
   address: string | null;
   label: string; // nome da parada, só pro título do menu
+  fullWidth?: boolean; // ação secundária em largura total (Modo Direção)
 }) {
   const [open, setOpen] = useState(false);
 
@@ -39,7 +41,7 @@ export function NavMenu({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-xl border border-navy-900/15 px-3 py-2 text-sm font-medium text-navy-800"
+        className={`flex items-center gap-1.5 rounded-xl border border-navy-900/15 px-3 py-2 text-sm font-medium text-navy-800 ${fullWidth ? "w-full justify-center py-3" : ""}`}
       >
         <Navigation className="h-4 w-4 text-navy-700/70" />
         Abrir navegação

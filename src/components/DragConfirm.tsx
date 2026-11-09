@@ -14,10 +14,12 @@ export function DragConfirm({
   label,
   solid,
   onConfirm,
+  onDark = false,
 }: {
   label: string;
   solid: boolean;
   onConfirm: () => void;
+  onDark?: boolean; // dentro de um card azul-marinho: trilha translúcida e texto branco
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [x, setX] = useState(0);
@@ -50,16 +52,20 @@ export function DragConfirm({
     }
   }
 
-  const trackCls = solid
-    ? "border-yellow-400 bg-yellow-400/20"
-    : "border-2 border-dashed border-yellow-400 bg-white";
+  const trackCls = onDark
+    ? solid
+      ? "border-yellow-400 bg-white/10"
+      : "border-2 border-dashed border-yellow-400 bg-white/5"
+    : solid
+      ? "border-yellow-400 bg-yellow-400/20"
+      : "border-2 border-dashed border-yellow-400 bg-white";
 
   return (
     <div
       ref={trackRef}
       className={`relative h-14 select-none overflow-hidden rounded-2xl border ${trackCls}`}
     >
-      <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-16 text-center text-sm font-semibold leading-tight text-navy-800">
+      <span className={`pointer-events-none absolute inset-0 flex items-center justify-center px-16 text-center text-sm font-semibold leading-tight ${onDark ? "text-white" : "text-navy-800"}`}>
         <span className="line-clamp-2">{label}</span>
       </span>
       <div
