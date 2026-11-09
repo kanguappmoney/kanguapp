@@ -4,6 +4,15 @@ import { useActionState, useState } from "react";
 import { submitCapture, type SubmitState } from "@/lib/actions/capture";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { SchoolPicker } from "@/components/SchoolPicker";
+import { ConsentText } from "@/components/ConsentText";
+import {
+  CHILD_DATA_CHECKBOXES,
+  CHILD_DATA_TEMPLATE,
+  PHOTO_BUTTON_WITH,
+  PHOTO_BUTTON_WITHOUT,
+  PHOTO_TEMPLATE,
+  fill,
+} from "@/lib/consent-texts";
 
 const initial: SubmitState = { error: null };
 
@@ -13,9 +22,13 @@ export function CaptureForm({
   token,
   needsAccount,
   generic = false,
+  providerName,
+  assisted = false,
 }: {
   token: string;
   needsAccount: boolean;
+  providerName: string; // nome do motorista (vem do banco) — entra no texto da autorização
+  assisted?: boolean; // link presencial: o responsável preenche junto ao motorista (método "presencial assistido")
   // Link genérico (vitrine): turno e escola NÃO vêm travados — o pai preenche.
   generic?: boolean;
 }) {
@@ -23,6 +36,7 @@ export function CaptureForm({
   const [state, formAction, pending] = useActionState(action, initial);
 
   const [dropoffSame, setDropoffSame] = useState(true);
+  const [childName, setChildName] = useState("");
 
   if (state.needsEmailConfirm) {
     return (
@@ -35,11 +49,18 @@ export function CaptureForm({
 
   return (
     <form action={formAction} className="space-y-5">
+      {assisted && <input type="hidden" name="assisted" value="1" />}
       <section className="space-y-4">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
           Dados da criança
         </h2>
-        <Field label="Nome completo da criança" name="child_full_name" autoComplete="off" />
+        <Field
+          label="Nome completo da criança"
+          name="child_full_name"
+          autoComplete="off"
+          value={childName}
+          onChange={(e) => setChildName(e.target.value)}
+        />
         <Field
           label="Data de nascimento"
           name="child_birth_date"
@@ -138,20 +159,47 @@ export function CaptureForm({
               className="mt-0.5 h-4 w-4 rounded border-navy-900/30"
             />
             <span>
-              Autorizo o tratamento dos dados da criança para o transporte escolar
-              e aceito os{" "}
+              Li e aceito os{" "}
               <a href="/termos" className="font-semibold underline">
                 Termos de Uso
               </a>{" "}
               e a{" "}
               <a href="/privacidade" className="font-semibold underline">
                 Política de Privacidade
-              </a>
-              .
+              </a>{" "}
+              (uso da minha conta).
             </span>
           </label>
         </section>
       )}
+
+      {/* Autorização específica da criança — texto literal do jurídico, com as duas declarações. */}
+      <section className="space-y-4 rounded-2xl border border-yellow-400/40 bg-cream p-4">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-navy-900/70">
+          Autorização para o tratamento dos dados da criança
+        </h2>
+        <ConsentText
+          className="text-navy-800"
+          paragraphs={fill(CHILD_DATA_TEMPLATE, { provider: providerName, child: childName })}
+        />
+        {CHILD_DATA_CHECKBOXES.map((text, i) => (
+          <label key={i} className="flex items-start gap-2 text-sm text-navy-900">
+            <input
+              type="checkbox"
+              name={`consent_child_${i + 1}`}
+              required
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-navy-900/30"
+            />
+            <span>{text}</span>
+          </label>
+        ))}
+      </section>
+
+      {/* Foto: opcional e separada; as duas saídas enviam o cadastro. */}
+      <section className="space-y-4 rounded-2xl border border-navy-900/10 bg-white p-4 shadow-sm">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-navy-900/70">Foto da criança (opcional)</h2>
+        <ConsentText className="text-navy-800" paragraphs={fill(PHOTO_TEMPLATE, { child: childName })} />
+      </section>
 
       {state.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -159,15 +207,28 @@ export function CaptureForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
-      >
-        {pending ? "Enviando…" : "Enviar cadastro para aprovação"}
-      </button>
+      <div className="space-y-2">
+        <button
+          type="submit"
+          name="photo_choice"
+          value="with"
+          disabled={pending}
+          className="w-full rounded-xl border border-navy-900/20 bg-white py-3 font-semibold text-navy-900 disabled:opacity-60"
+        >
+          {pending ? "Enviando…" : PHOTO_BUTTON_WITH}
+        </button>
+        <button
+          type="submit"
+          name="photo_choice"
+          value="without"
+          disabled={pending}
+          className="w-full rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900 disabled:opacity-60"
+        >
+          {pending ? "Enviando…" : PHOTO_BUTTON_WITHOUT}
+        </button>
+      </div>
       <p className="text-center text-xs text-navy-700/50">
-        O motorista confere e aprova antes da criança entrar na rota.
+        O cadastro vai para aprovação do motorista antes de a criança entrar na rota.
       </p>
     </form>
   );

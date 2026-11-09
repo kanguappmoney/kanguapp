@@ -3,6 +3,9 @@
 import { useActionState, useState } from "react";
 import { Camera, Car, Info, Map as MapIcon, MapPin, ShieldCheck, SlidersHorizontal, Store, User, Wallet } from "lucide-react";
 import { Section } from "@/components/ui";
+import { ConsentText } from "@/components/ConsentText";
+import { acceptMarketplaceConsent } from "@/lib/actions/consents";
+import { LISTING_TEMPLATE } from "@/lib/consent-texts";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { CoverageSelector } from "@/components/CoverageSelector";
 import { VanPhotoUploader } from "@/components/VanPhotoUploader";
@@ -186,11 +189,32 @@ export interface MarketplaceDefaults {
   price_max_cents: number | null;
   marketplace_listed: boolean;
   status: MarketplaceStatus | null;
+  driver_name: string;
+  phone: string | null;
+  has_listing_consent: boolean;
 }
 
 export function MarketplaceForm({ d }: { d: MarketplaceDefaults }) {
   const [state, action, pending] = useActionState(saveMarketplace, initial);
   const [listed, setListed] = useState(d.marketplace_listed);
+  const [hasConsent, setHasConsent] = useState(d.has_listing_consent);
+  const [consentOpen, setConsentOpen] = useState(false);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
+
+  async function acceptListing() {
+    setConsentBusy(true);
+    setConsentError(null);
+    const r = await acceptMarketplaceConsent("marketplace_listing");
+    setConsentBusy(false);
+    if (r.error) {
+      setConsentError(r.error);
+      return;
+    }
+    setHasConsent(true);
+    setListed(true);
+    setConsentOpen(false);
+  }
   return (
     <form action={action} className="space-y-4">
       <StatusBlock status={d.status} listedNow={listed} />
@@ -263,11 +287,58 @@ export function MarketplaceForm({ d }: { d: MarketplaceDefaults }) {
             name="marketplace_listed"
             role="switch"
             checked={listed}
-            onChange={(e) => setListed(e.target.checked)}
+            onChange={(e) => {
+              // Ligar sem aceite vigente abre o texto de autorização (prévia + aceite) em vez de ligar.
+              if (e.target.checked && !hasConsent) setConsentOpen(true);
+              else setListed(e.target.checked);
+            }}
             className="h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-white/25 transition-colors checked:bg-yellow-400 relative before:absolute before:left-0.5 before:top-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:shadow before:transition-transform checked:before:translate-x-5"
           />
         </label>
       </Section>
+
+      {consentOpen && (
+        <Section tone="cream" icon={Store} title="Autorização para publicar na vitrine" className="space-y-3">
+          <div className="rounded-xl bg-white p-3 text-sm text-navy-800">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-navy-700/60">Prévia do que será público</p>
+            <ul className="space-y-1">
+              <li>Nome: {d.driver_name}</li>
+              <li>Contato: {d.phone ?? "—"}</li>
+              <li>Foto da van: {d.van_photo_url ? "sim" : "—"}</li>
+              <li>Cidades: {d.service_cities ?? "—"}</li>
+              <li>Bairros: {d.service_neighborhoods ?? "todos"}</li>
+              <li>Escolas: {d.service_schools ?? "todas"}</li>
+              <li>
+                Idades: {d.age_min ?? "—"} a {d.age_max ?? "—"} · Turnos: {d.service_shifts.length ? d.service_shifts.join(", ") : "—"}
+              </li>
+              <li>
+                Faixa de preço: {d.price_min_cents != null ? centsToInput(d.price_min_cents) : "—"} a{" "}
+                {d.price_max_cents != null ? centsToInput(d.price_max_cents) : "—"}
+              </li>
+            </ul>
+          </div>
+          <ConsentText className="text-navy-900" paragraphs={LISTING_TEMPLATE} />
+          {consentError && <p className="rounded-lg bg-white px-3 py-2 text-sm text-red-700">{consentError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConsentOpen(false)}
+              className="flex-1 rounded-xl border border-navy-900/15 bg-white py-3 text-sm font-semibold text-navy-900"
+            >
+              Agora não
+            </button>
+            <button
+              type="button"
+              disabled={consentBusy}
+              onClick={acceptListing}
+              className="flex-1 rounded-xl bg-navy-900 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {consentBusy ? "Registrando…" : "Aceitar e ativar"}
+            </button>
+          </div>
+          <p className="text-xs text-navy-700/70">Salve a tela depois para publicar os dados acima.</p>
+        </Section>
+      )}
 
       <SaveBar error={state.error} pending={pending} />
     </form>

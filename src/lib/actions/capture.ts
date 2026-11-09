@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/lib/consent";
 import { getProfileGate } from "@/lib/profile-gate";
+import { buildEvidence } from "@/lib/consent-evidence";
 
 const CAPTURE_PATH = "/motorista/alunos/captacao";
 const SHIFTS = ["morning", "afternoon", "integral"] as const;
@@ -118,6 +119,12 @@ export async function submitCapture(
   const childName = String(formData.get("child_full_name") ?? "").trim();
   if (!childName) return { error: "Informe o nome da criança." };
 
+  // Autorização específica da criança (A2): as DUAS declarações são obrigatórias e independentes dos Termos da conta.
+  if (formData.get("consent_child_1") !== "on" || formData.get("consent_child_2") !== "on") {
+    return { error: "Marque as duas declarações da autorização para continuar." };
+  }
+  const photoChoice = String(formData.get("photo_choice") ?? "without");
+
   // Precisa de um responsável autenticado. Se não houver sessão, cria a conta
   // com os campos do formulário (fluxo do pai que abriu o link sem conta).
   let {
@@ -161,6 +168,14 @@ export async function submitCapture(
   const birth = emptyToNull(formData.get("child_birth_date"));
   const dropoffSame = formData.get("dropoff_same") === "on";
 
+  // Nome do prestador vem do banco (nunca do formulário); o método "presencial assistido" vem do link especial.
+  const { data: preview } = await supabase.rpc("get_capture_link_preview", { p_token: token });
+  const provider = (preview as { driver_name?: string } | null)?.driver_name ?? "";
+  const method = formData.get("assisted") === "1" ? "assisted_in_person" : "remote";
+  const consent = await buildEvidence("child_data", { provider, child: childName }, { checked: [true, true], method });
+  const photo =
+    photoChoice === "with" ? await buildEvidence("child_photo", { child: childName }, { method }) : null;
+
   const { error: rpcError } = await supabase.rpc("submit_capture", {
     p_token: token,
     p_child_full_name: childName,
@@ -179,6 +194,8 @@ export async function submitCapture(
     p_shift: SHIFTS.includes(String(formData.get("shift")) as Shift)
       ? String(formData.get("shift"))
       : null,
+    p_consent: consent,
+    p_photo: photo,
   });
   if (rpcError) return { error: rpcError.message };
 

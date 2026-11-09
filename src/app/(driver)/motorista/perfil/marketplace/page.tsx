@@ -35,6 +35,17 @@ export default async function MarketplacePage() {
     .eq("kind", "generic")
     .eq("status", "active");
 
+  // Aceites ativos da vitrine (texto de cada toggle) + dados que a prévia pública mostra.
+  const { data: active } = await supabase
+    .from("consents")
+    .select("kind")
+    .eq("subject_user_id", user!.id)
+    .is("revoked_at", null)
+    .in("kind", ["marketplace_listing", "marketplace_requests"]);
+  const hasListingConsent = (active ?? []).some((c) => c.kind === "marketplace_listing");
+  const hasRequestsConsent = (active ?? []).some((c) => c.kind === "marketplace_requests");
+  const { data: urow } = await supabase.from("users").select("phone").eq("id", user!.id).single();
+
   const vanUrl = p?.van_photo_path
     ? supabase.storage.from("van-photos").getPublicUrl(p.van_photo_path).data.publicUrl
     : null;
@@ -62,10 +73,13 @@ export default async function MarketplacePage() {
             price_max_cents: p?.price_max_cents ?? null,
             marketplace_listed: p?.marketplace_listed ?? false,
             status: parseStatus(statusRaw),
+            driver_name: user!.fullName,
+            phone: urow?.phone ?? null,
+            has_listing_consent: hasListingConsent,
           }}
         />
         {/* Salva sozinho ao tocar (cria/revoga o link de pedidos); fica fora do formulário. */}
-        <OpenRequestsToggle initial={(openRequestLinks ?? 0) > 0} />
+        <OpenRequestsToggle initial={(openRequestLinks ?? 0) > 0} hasConsent={hasRequestsConsent} />
       </div>
     </>
   );

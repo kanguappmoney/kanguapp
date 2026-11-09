@@ -56,6 +56,9 @@ export default async function DetalheAlunoPage({
     photoUrl = signed?.signedUrl ?? null;
   }
 
+  // Foto: só com a autorização de foto do responsável (texto próprio, opcional e separada da dos dados).
+  const { data: photoAllowed } = await supabase.rpc("student_photo_allowed", { p_student_id: id });
+
   // Convite pendente ativo (se houver).
   const { data: invite } = await supabase
     .from("student_invites")
@@ -101,7 +104,13 @@ export default async function DetalheAlunoPage({
       <div className="space-y-4 px-4 pb-6 pt-4">
         {/* Resumo — azul-marinho: quem é o aluno e como está agora */}
         <Section tone="navy" icon={GraduationCap} title="Resumo">
-          <PhotoUploader studentId={id} currentUrl={photoUrl} onDark />
+          {photoAllowed ? (
+            <PhotoUploader studentId={id} currentUrl={photoUrl} onDark />
+          ) : (
+            <p className="text-sm text-white/70">
+              Foto: depende da autorização do responsável. Ele pode autorizar em Perfil → Autorizações.
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {(() => {
               const pay = PAY_CHIP[student.pay_status] ?? PAY_CHIP.ok;

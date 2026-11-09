@@ -1,5 +1,6 @@
 "use server";
 
+import { withdrawMarketplaceConsent } from "@/lib/actions/consents";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -156,7 +157,14 @@ export async function saveMarketplace(_p: SettingsFormState, fd: FormData): Prom
       marketplace_listed: fd.get("marketplace_listed") === "on",
     })
     .eq("user_id", user.id);
-  if (dErr) return { error: dErr.message };
+  if (dErr)
+    return {
+      error: dErr.message.includes("consent_required")
+        ? "Para aparecer no marketplace, aceite o texto de autorização da vitrine."
+        : dErr.message,
+    };
+  // Desligou a vitrine: o aceite é retirado (religar pede o aceite de novo).
+  if (fd.get("marketplace_listed") !== "on") await withdrawMarketplaceConsent("marketplace_listing");
 
   // Só quando o seletor terminou de carregar (senão não mexe nas listas salvas).
   if (fd.get("school_sync") === "1") {

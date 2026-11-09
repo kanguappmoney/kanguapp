@@ -48,23 +48,17 @@ export default async function AlunosPage() {
           <div className="mt-4">
             <ProfileGateNotice
               missing={gate.missing}
-              action="cadastrar alunos, gerar links e enviar convites"
+              action="gerar links e convidar responsáveis"
             />
           </div>
         )}
         <div className="mt-4 space-y-2">
-          <Link
-            href="/motorista/alunos/novo"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
-          >
-            <Plus className="h-4 w-4" /> Adicionar aluno
-          </Link>
+          {/* Convite-primeiro (LGPD): o dado da criança só entra depois da autorização do responsável. */}
           <Link
             href="/motorista/alunos/captacao"
-            className="flex items-center justify-center gap-2 rounded-xl border border-navy-900/15 py-3 text-center font-semibold text-navy-900"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-3 font-semibold text-navy-900"
           >
-            <LinkIcon className="h-4 w-4" />
-            Links de captação
+            <Plus className="h-4 w-4" /> Convidar responsável
           </Link>
           {(pendingCount ?? 0) > 0 && (
             <Link
@@ -83,7 +77,7 @@ export default async function AlunosPage() {
         <SectionTitle>Lista de alunos</SectionTitle>
         {!students?.length ? (
           <Placeholder>
-            Nenhum aluno cadastrado ainda. Toque em “Adicionar aluno”.
+            Nenhum aluno cadastrado ainda. Toque em “Convidar responsável”: o responsável preenche os dados da criança e autoriza, e você aprova.
           </Placeholder>
         ) : (
           <div className="space-y-2">

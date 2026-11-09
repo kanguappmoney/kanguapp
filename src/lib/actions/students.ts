@@ -66,39 +66,6 @@ function missingFields(payload: Record<string, unknown>): string[] {
     .map(([, label]) => label);
 }
 
-// Cadastro de aluno pelo motorista (dono). Retorna o id (sem redirect) para o
-// cliente poder subir a foto em `<id>/avatar` antes de navegar. RLS garante
-// driver_id = auth.uid().
-export async function saveNewStudent(
-  formData: FormData,
-): Promise<{ error: string | null; id?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sessão expirada. Entre novamente." };
-
-  // Portão de perfil completo (veículo com prefixo/placa/modelo/cor).
-  const gate = await getProfileGate();
-  if (!gate.complete) return { error: profileGateError(gate) };
-
-  const payload = studentPayloadFromForm(formData);
-  const missing = missingFields(payload);
-  if (missing.length)
-    return { error: `Preencha todos os campos: ${missing.join(", ")}.` };
-
-  const { data, error } = await supabase
-    .from("students")
-    .insert({ driver_id: user.id, ...payload })
-    .select("id")
-    .single();
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/motorista/alunos");
-  return { error: null, id: data.id };
-}
-
 // Grava o caminho da foto no aluno (a imagem já foi enviada ao Storage pelo
 // cliente autenticado — RLS do bucket só deixa o motorista dono subir).
 export async function setStudentPhoto(studentId: string, photoPath: string) {

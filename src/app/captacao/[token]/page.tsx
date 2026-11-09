@@ -23,10 +23,13 @@ const SHIFT_LABEL: Record<NonNullable<Preview["shift"]>, string> = {
 
 export default async function CaptacaoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ assistido?: string }>;
 }) {
   const { token } = await params;
+  const { assistido } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase.rpc("get_capture_link_preview", {
@@ -113,6 +116,8 @@ export default async function CaptacaoPage({
             token={token}
             needsAccount={needsAccount}
             generic={preview.kind === "generic"}
+            providerName={preview.driver_name}
+            assisted={assistido === "1"}
           />
         </>
       )}

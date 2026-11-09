@@ -164,14 +164,16 @@ function LinkCard({
   canRegenerate: boolean;
 }) {
   const [pending, startTransition] = useTransition();
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"normal" | "presencial" | null>(null);
   const url = origin ? `${origin}/captacao/${link.token}` : "";
+  // Presencial assistido: o responsável preenche e autoriza junto ao motorista (fica registrado como método).
+  const urlAssisted = url ? `${url}?assistido=1` : "";
 
-  function copy() {
-    if (!url) return;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+  function copy(value: string, which: "normal" | "presencial") {
+    if (!value) return;
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(which);
+      setTimeout(() => setCopied(null), 1500);
     });
   }
 
@@ -200,13 +202,19 @@ function LinkCard({
           className="min-w-0 flex-1 truncate rounded-xl border border-navy-900/15 bg-navy-900/[0.03] px-3 py-2 text-sm"
         />
         <button
-          onClick={copy}
+          onClick={() => copy(url, "normal")}
           className="flex shrink-0 items-center gap-1 rounded-xl bg-yellow-400 px-3 py-2 text-sm font-semibold text-navy-900"
         >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          {copied ? "Copiado" : "Copiar"}
+          {copied === "normal" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied === "normal" ? "Copiado" : "Copiar"}
         </button>
       </div>
+      <button
+        onClick={() => copy(urlAssisted, "presencial")}
+        className="w-full rounded-xl border border-navy-900/15 py-2 text-sm font-medium text-navy-900"
+      >
+        {copied === "presencial" ? "Link presencial copiado" : "Copiar link presencial (preencher junto ao responsável)"}
+      </button>
 
       <div className="flex gap-3">
         {canRegenerate && (
