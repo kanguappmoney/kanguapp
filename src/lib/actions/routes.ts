@@ -242,20 +242,23 @@ export async function deleteRoute(
     .maybeSingle();
   if (!route) return { error: "Rota não encontrada." };
 
+  // Só bloqueia viagem em andamento HOJE (o mesmo critério do banco, G2). Viagens de dias antigos que ficaram
+  // "em andamento" sem nunca serem encerradas não prendem a rota: saem junto com ela.
   const { count: running } = await supabase
     .from("route_executions")
     .select("id", { count: "exact", head: true })
     .eq("route_id", routeId)
+    .eq("service_date", saoPauloToday())
     .eq("status", "in_progress");
   if ((running ?? 0) > 0)
-    return { error: "Esta rota está em andamento. Encerre a viagem para poder apagar." };
+    return { error: "Esta rota está em andamento hoje. Encerre a viagem para poder apagar." };
 
   const { error } = await supabase.from("routes").delete().eq("id", routeId);
   if (error)
     return {
       error:
         error.code === "23514"
-          ? "Esta rota está em andamento. Encerre a viagem para poder apagar."
+          ? "Esta rota está em andamento hoje. Encerre a viagem para poder apagar."
           : error.message,
     };
 
