@@ -51,7 +51,8 @@ export function SchoolFilter({ city, initial }: { city: string; initial: string 
     if (!open || !city) return;
     const t = setTimeout(async () => {
       const { data } = await supabase.rpc("marketplace_school_options", { p_city: city, p_q: text.trim() });
-      setRows((data ?? []) as { value: string; driver_count: number }[]);
+      // Só escolas que ao menos um motorista atende (a função ordena por contagem; zeros ficam de fora).
+      setRows(((data ?? []) as { value: string; driver_count: number }[]).filter((r) => r.driver_count > 0));
     }, 250);
     return () => clearTimeout(t);
   }, [text, open, city, supabase]);
@@ -105,7 +106,7 @@ export function SchoolFilter({ city, initial }: { city: string; initial: string 
           ))}
           {rows.length === 0 && (
             <li className="px-3 py-2 text-xs text-navy-700/60">
-              {text.trim().length < 3 ? "Digite ao menos 3 letras." : "Nenhuma escola encontrada nesta cidade."}
+              {text.trim().length < 3 ? "Digite ao menos 3 letras." : "Nenhuma escola atendida por motoristas encontrada nesta cidade."}
             </li>
           )}
         </ul>

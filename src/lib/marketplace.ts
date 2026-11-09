@@ -24,8 +24,8 @@ export interface Driver {
   phone: string | null; // só no modo perfil
   request_token: string | null; // link genérico ativo (opt-in); só no modo perfil
   service_cities: string;
-  service_neighborhoods: string;
-  service_schools: string;
+  service_neighborhoods: string | null; // vazio/nulo = todos dentro das cidades do motorista
+  service_schools: string | null;
   age_min: number;
   age_max: number;
   service_shifts: Shift[];
@@ -113,8 +113,8 @@ export async function vanPhotoUrl(path: string): Promise<string> {
 }
 
 // Trechos de um campo de texto livre (mesmo critério do banco: , ; ou quebra de linha).
-export function splitList(text: string): string[] {
-  return text
+export function splitList(text: string | null | undefined): string[] {
+  return (text ?? "")
     .split(/[,;\n]+/)
     .map((s) => s.trim())
     .filter(Boolean);
