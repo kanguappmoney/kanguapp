@@ -11,6 +11,7 @@ const TABS = [
   { href: "/admin/buscas", label: "Buscas" },
   { href: "/admin/assinaturas", label: "Assinaturas" },
   { href: "/admin/moderacao", label: "Moderação" },
+  { href: "/admin/exclusoes", label: "Exclusões" },
 ];
 
 export function AdminNav() {

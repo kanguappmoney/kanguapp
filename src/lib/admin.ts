@@ -164,3 +164,26 @@ export interface AdminSearchIp {
 
 export const listVanPhotos = () => call<AdminVanPhoto>("admin_list_van_photos");
 export const listSearchIps = (days: 7 | 30) => call<AdminSearchIp>("admin_search_ips", { p_days: days });
+
+export interface AdminErasureRequest {
+  id: string;
+  student_id: string;
+  requested_by: string;
+  note: string | null;
+  status: "pending" | "granted" | "denied";
+  created_at: string;
+  decided_at: string | null;
+  decision_note: string | null;
+}
+
+export interface AdminErasureLedger {
+  id: string;
+  student_id: string;
+  driver_id: string;
+  reason: "retention_30d" | "subject_request" | "admin";
+  detail: string | null;
+  executed_at: string;
+}
+
+export const listErasureRequests = () => call<AdminErasureRequest>("admin_list_erasure_requests");
+export const listErasureLedger = () => call<AdminErasureLedger>("admin_erasure_ledger");

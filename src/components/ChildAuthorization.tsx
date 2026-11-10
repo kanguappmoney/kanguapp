@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 import { ConsentText } from "@/components/ConsentText";
 import { StatusPill } from "@/components/patterns";
+import { requestErasureAction } from "@/lib/actions/erasure";
 import {
   acceptPhotoAction,
   reauthorizeChildAction,
@@ -44,6 +45,8 @@ export function ChildAuthorization({
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"child" | "photo" | null>(null);
   const [showPhoto, setShowPhoto] = useState(false);
+  const [erase, setErase] = useState<"closed" | "open" | "sent">("closed");
+  const [eraseNote, setEraseNote] = useState("");
   const [reState, reAction, rePending] = useActionState(reauthorizeChildAction.bind(null, studentId), initial);
 
   function revoke(id: string) {
@@ -56,6 +59,15 @@ export function ChildAuthorization({
         setNoticeScope(confirm === "photo" ? "photo" : "child");
       }
       setConfirm(null);
+    });
+  }
+
+  function sendErasure() {
+    setError(null);
+    start(async () => {
+      const r = await requestErasureAction(studentId, eraseNote);
+      if (r.error) setError(r.error);
+      else setErase("sent");
     });
   }
 
@@ -166,6 +178,42 @@ export function ChildAuthorization({
             ))}
         </div>
       )}
+
+      {/* Direito de exclusão: o pedido vai para o admin, que decide; procedente = apaga na hora. */}
+      <div className="mt-4 border-t border-navy-900/10 pt-3">
+        {erase === "sent" ? (
+          <p className="rounded-xl bg-cream px-3 py-2 text-sm text-navy-800">
+            Pedido enviado. Vamos analisar e avisar o resultado. Se for procedente, os dados de {childName} são apagados.
+          </p>
+        ) : erase === "open" ? (
+          <div className="space-y-3 rounded-xl border border-red-200 bg-red-50/60 p-3">
+            <p className="text-sm text-red-900">
+              Pedir a exclusão dos dados de {childName}? Se o pedido for procedente, os dados da criança são apagados e
+              ela deixa de aparecer para todos os responsáveis e para o motorista. Isso não pode ser desfeito.
+            </p>
+            <textarea
+              value={eraseNote}
+              onChange={(e) => setEraseNote(e.target.value)}
+              maxLength={500}
+              rows={2}
+              placeholder="Motivo (opcional)"
+              className="w-full rounded-lg border border-navy-900/15 bg-white px-3 py-2 text-sm text-navy-900"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setErase("closed")} className="flex-1 rounded-xl border border-navy-900/15 bg-white py-2.5 text-sm font-semibold text-navy-900">
+                Cancelar
+              </button>
+              <button disabled={pending} onClick={sendErasure} className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+                {pending ? "Enviando…" : "Pedir exclusão"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setErase("open")} className="text-sm font-medium text-red-700 underline">
+            Pedir exclusão dos dados da criança
+          </button>
+        )}
+      </div>
     </section>
   );
 }

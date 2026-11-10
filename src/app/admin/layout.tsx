@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Logo variant="icon" className="h-9 w-9" />
             <div>
               <h1 className="font-display text-lg text-navy-900">Admin Kangu</h1>
-              <p className="text-xs text-navy-700/60">Somente leitura</p>
+              <p className="text-xs text-navy-700/60">Área restrita</p>
             </div>
           </div>
           <AdminNav />
