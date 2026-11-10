@@ -55,7 +55,7 @@ export default async function ConvitePage({
               {preview.student_name}
             </p>
           </div>
-          <AcceptForm token={token} />
+          <AcceptForm token={token} providerName={preview.driver_name} childName={preview.student_name} />
         </>
       )}
     </main>

@@ -2,10 +2,12 @@
 
 import { useActionState, useState } from "react";
 import { acceptInvite, type AcceptState } from "@/lib/actions/invite";
+import { ConsentText } from "@/components/ConsentText";
+import { CHILD_DATA_CHECKBOXES, CHILD_DATA_TEMPLATE, fill } from "@/lib/consent-texts";
 
 const initial: AcceptState = { error: null };
 
-export function AcceptForm({ token }: { token: string }) {
+export function AcceptForm({ token, providerName, childName }: { token: string; providerName: string; childName: string }) {
   const action = acceptInvite.bind(null, token);
   const [state, formAction, pending] = useActionState(action, initial);
 
@@ -67,10 +69,32 @@ export function AcceptForm({ token }: { token: string }) {
           e a{" "}
           <a href="/privacidade" className="font-semibold underline">
             Política de Privacidade
-          </a>
-          .
+          </a>{" "}
+          (uso da minha conta).
         </span>
       </label>
+
+      {/* Autorização própria deste responsável para os dados da criança — texto literal do jurídico. */}
+      <section className="space-y-3 rounded-2xl border border-yellow-400/40 bg-cream p-4">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-navy-900/70">
+          Autorização para o tratamento dos dados da criança
+        </h2>
+        <ConsentText
+          className="text-navy-800"
+          paragraphs={fill(CHILD_DATA_TEMPLATE, { provider: providerName, child: childName })}
+        />
+        {CHILD_DATA_CHECKBOXES.map((text, i) => (
+          <label key={i} className="flex items-start gap-2 text-sm text-navy-900">
+            <input
+              type="checkbox"
+              name={`consent_child_${i + 1}`}
+              required
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-navy-900/30"
+            />
+            <span>{text}</span>
+          </label>
+        ))}
+      </section>
 
       {state.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

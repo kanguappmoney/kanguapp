@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/lib/consent";
+import { buildEvidence } from "@/lib/consent-evidence";
 
 export type AcceptState = { error: string | null; needsEmailConfirm?: boolean };
 
@@ -24,6 +25,10 @@ export async function acceptInvite(
     return { error: "A senha precisa de ao menos 8 caracteres." };
   if (!accepted)
     return { error: "É necessário aceitar os Termos e a Política de Privacidade." };
+  // Autorização própria da criança (A2): as duas declarações, independentes dos Termos da conta.
+  if (formData.get("consent_child_1") !== "on" || formData.get("consent_child_2") !== "on") {
+    return { error: "Marque as duas declarações da autorização para continuar." };
+  }
 
   const supabase = await createClient();
 
@@ -51,9 +56,19 @@ export async function acceptInvite(
     })
     .eq("id", signUp.user!.id);
 
-  // Vincula à criança do convite (a função valida papel/expiração/uso único).
+  // Nomes do texto vêm do banco (prévia do convite), nunca do formulário.
+  const { data: prev } = await supabase.rpc("get_invite_preview", { p_token: token });
+  const names = prev as { driver_name?: string; student_name?: string } | null;
+  const consent = await buildEvidence(
+    "child_data",
+    { provider: names?.driver_name ?? "", child: names?.student_name ?? "" },
+    { checked: [true, true] },
+  );
+
+  // Vincula à criança do convite (a função valida papel/expiração/uso único e grava o aceite próprio).
   const { error: rpcError } = await supabase.rpc("accept_student_invite", {
     p_token: token,
+    p_consent: consent,
   });
   if (rpcError) return { error: rpcError.message };
 
