@@ -309,7 +309,10 @@ export function MarketplaceForm({ d }: { d: MarketplaceDefaults }) {
               <li>Bairros: {d.service_neighborhoods ?? "todos"}</li>
               <li>Escolas: {d.service_schools ?? "todas"}</li>
               <li>
-                Idades: {d.age_min ?? "—"} a {d.age_max ?? "—"} · Turnos: {d.service_shifts.length ? d.service_shifts.join(", ") : "—"}
+                Idades: {d.age_min ?? "—"} a {d.age_max ?? "—"} · Turnos:{" "}
+                {d.service_shifts.length
+                  ? d.service_shifts.map((v) => SHIFT_OPTIONS.find((o) => o.value === v)?.label ?? v).join(", ")
+                  : "—"}
               </li>
               <li>
                 Faixa de preço: {d.price_min_cents != null ? centsToInput(d.price_min_cents) : "—"} a{" "}

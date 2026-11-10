@@ -40,6 +40,7 @@ export function ChildAuthorization({
 }) {
   const [pending, start] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
+  const [noticeScope, setNoticeScope] = useState<"child" | "photo">("child");
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"child" | "photo" | null>(null);
   const [showPhoto, setShowPhoto] = useState(false);
@@ -50,7 +51,10 @@ export function ChildAuthorization({
     start(async () => {
       const r = await revokeConsentAction(id);
       if (r.error) setError(r.error);
-      else setNotice(r.notice ?? null);
+      else {
+        setNotice(r.notice ?? null);
+        setNoticeScope(confirm === "photo" ? "photo" : "child");
+      }
       setConfirm(null);
     });
   }
@@ -74,7 +78,10 @@ export function ChildAuthorization({
         <StatusPill tone={suspended ? "overdue" : "done"}>{suspended ? "Suspensa" : "Autorizada"}</StatusPill>
       </div>
 
-      {notice && <p className="mt-3 rounded-xl bg-cream px-3 py-2 text-sm text-navy-800">{notice}</p>}
+      {/* O aviso de retirada vale enquanto a criança está suspensa; depois de reautorizar ele some. */}
+      {notice && (suspended || noticeScope === "photo") && (
+        <p className="mt-3 rounded-xl bg-cream px-3 py-2 text-sm text-navy-800">{notice}</p>
+      )}
       {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
       {suspended ? (
