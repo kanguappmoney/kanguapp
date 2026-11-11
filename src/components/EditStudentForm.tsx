@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateStudent, type StudentFormState } from "@/lib/actions/students";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { AddressFields } from "@/components/AddressFields";
 import { SchoolPicker } from "@/components/SchoolPicker";
 import { Section } from "@/components/ui";
 import { GraduationCap, MapPin, School, Users } from "lucide-react";
@@ -27,6 +28,14 @@ export interface StudentDefaults {
   dropoff_address: string | null;
   dropoff_lat: number | null;
   dropoff_lng: number | null;
+  pickup_street?: string | null;
+  pickup_number?: string | null;
+  pickup_neighborhood?: string | null;
+  pickup_city?: string | null;
+  dropoff_street?: string | null;
+  dropoff_number?: string | null;
+  dropoff_neighborhood?: string | null;
+  dropoff_city?: string | null;
   responsible_name: string | null;
   responsible_phone: string | null;
   responsible_whatsapp: string | null;
@@ -82,25 +91,31 @@ export function EditStudentForm({ student }: { student: StudentDefaults }) {
       </Section>
 
       <Section tone="cream" icon={MapPin} title="Embarque e desembarque" className="space-y-4">
-        <AddressAutocomplete
+        <AddressFields
+          prefix="pickup"
           label="Endereço de embarque (casa)"
-          name="pickup_address"
-          latName="pickup_lat"
-          lngName="pickup_lng"
-          initialValue={student.pickup_address ?? ""}
-          initialLat={student.pickup_lat}
-          initialLng={student.pickup_lng}
-          withNumber
+          initial={{
+            street: student.pickup_street,
+            number: student.pickup_number,
+            neighborhood: student.pickup_neighborhood,
+            city: student.pickup_city,
+            legacy: student.pickup_address,
+            lat: student.pickup_lat,
+            lng: student.pickup_lng,
+          }}
         />
-        <AddressAutocomplete
+        <AddressFields
+          prefix="dropoff"
           label="Endereço de desembarque"
-          name="dropoff_address"
-          latName="dropoff_lat"
-          lngName="dropoff_lng"
-          initialValue={student.dropoff_address ?? ""}
-          initialLat={student.dropoff_lat}
-          initialLng={student.dropoff_lng}
-          withNumber
+          initial={{
+            street: student.dropoff_street,
+            number: student.dropoff_number,
+            neighborhood: student.dropoff_neighborhood,
+            city: student.dropoff_city,
+            legacy: student.dropoff_address,
+            lat: student.dropoff_lat,
+            lng: student.dropoff_lng,
+          }}
         />
       </Section>
 

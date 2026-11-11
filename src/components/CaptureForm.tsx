@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { submitCapture, type SubmitState } from "@/lib/actions/capture";
-import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { AddressFields } from "@/components/AddressFields";
 import { SchoolPicker } from "@/components/SchoolPicker";
 import { ConsentText } from "@/components/ConsentText";
 import {
@@ -69,12 +69,17 @@ export function CaptureForm({
         />
       </section>
 
-      {generic && (
-        <section className="space-y-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
-            Escola e turno
-          </h2>
-          <SchoolPicker required source={{ kind: "link", token }} />
+      <section className="space-y-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
+          {generic ? "Escola e turno" : "Escola"}
+        </h2>
+        <SchoolPicker
+          required
+          strict
+          placeholder="Escolha a escola da criança"
+          source={{ kind: "link", token }}
+        />
+        {generic && (
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-navy-800">Turno</span>
             <select
@@ -91,20 +96,14 @@ export function CaptureForm({
               <option value="integral">Integral</option>
             </select>
           </label>
-        </section>
-      )}
+        )}
+      </section>
 
       <section className="space-y-4">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-700/50">
           Endereço de casa (embarque)
         </h2>
-        <AddressAutocomplete
-          label="Endereço"
-          name="pickup_address"
-          latName="pickup_lat"
-          lngName="pickup_lng"
-          placeholder="Comece a digitar a rua…"
-        />
+        <AddressFields prefix="pickup" label="Endereço" />
         <label className="flex items-center gap-2 text-sm text-navy-800">
           <input
             type="checkbox"
@@ -116,12 +115,7 @@ export function CaptureForm({
           <span>Desembarque no mesmo endereço</span>
         </label>
         {!dropoffSame && (
-          <Field
-            label="Endereço de desembarque"
-            name="dropoff_address"
-            placeholder="Rua, número, bairro"
-            autoComplete="off"
-          />
+          <AddressFields prefix="dropoff" label="Endereço de desembarque" />
         )}
       </section>
 

@@ -3,10 +3,10 @@ do $$ declare v_driver uuid; v_guard uuid; v_token text := 'TESTE-ret-' || gen_r
 begin
   select user_id into v_driver from driver_profiles limit 1; select user_id into v_guard from guardians limit 1;
   if v_driver is null or v_guard is null then raise exception 'FALHOU 0: precisa de 1 motorista e 1 responsável'; end if;
-  insert into capture_links (driver_id, shift, school, token) values (v_driver,'morning','Escola Teste',v_token);
+  insert into capture_links (driver_id, shift, school, token) values (v_driver,'morning','Escola Teste',v_token); insert into driver_schools (driver_id, inep_code) select v_driver, inep_code from schools order by inep_code limit 1 on conflict do nothing;
   insert into routes (driver_id,name,direction,shift,weekdays) values (v_driver,'TESTE rota ret','both','morning','{1}') returning id into v_route;
   perform set_config('request.jwt.claims', json_build_object('sub',v_guard,'role','authenticated')::text, true);
-  r := submit_capture(v_token,'Criança Ret',null,'Rua X',true,null,'1','1',p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
+  r := submit_capture(v_token,'Criança Ret',null,'{"street":"Rua X","number":"1","neighborhood":"B","city":"C"}'::jsonb, true, null, '1', '1', null, null, (select coalesce(display_name, name) from schools order by inep_code limit 1),p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub',v_driver,'role','authenticated')::text, true);
   r := approve_capture(v_sub); v_s := (r->>'student_id')::uuid;
   insert into route_stops (route_id,student_id,position,kind) values (v_route,v_s,1,'pickup');
@@ -44,17 +44,17 @@ begin
   perform _anonymize_student(v_s,'admin',null,null);
   select count(*) into n from erasure_ledger where student_id=v_s; if n<>1 then raise exception 'FALHOU 15: anonimizar 2x não pode duplicar ledger'; end if;
   perform set_config('request.jwt.claims', json_build_object('sub',v_guard,'role','authenticated')::text, true);
-  r := submit_capture(v_token,'Criança Rej',null,'Rua X',true,null,'1','1',p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
+  r := submit_capture(v_token,'Criança Rej',null,'{"street":"Rua X","number":"1","neighborhood":"B","city":"C"}'::jsonb, true, null, '1', '1', null, null, (select coalesce(display_name, name) from schools order by inep_code limit 1),p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub',v_driver,'role','authenticated')::text, true);
   perform reject_capture(v_sub);
   select count(*) into n from capture_submissions where id=v_sub; if n<>0 then raise exception 'FALHOU 16: rejeitada deveria ser apagada'; end if;
   select count(*) into n from consents where submission_id=v_sub; if n<>0 then raise exception 'FALHOU 17: consentimento da rejeitada deveria sumir'; end if;
   perform set_config('request.jwt.claims', json_build_object('sub',v_guard,'role','authenticated')::text, true);
-  r := submit_capture(v_token,'Criança Velha',null,'Rua X',true,null,'1','1',p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
+  r := submit_capture(v_token,'Criança Velha',null,'{"street":"Rua X","number":"1","neighborhood":"B","city":"C"}'::jsonb, true, null, '1', '1', null, null, (select coalesce(display_name, name) from schools order by inep_code limit 1),p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
   update capture_submissions set created_at = now()-interval '31 days' where id=v_sub;
   perform purge_stale_submissions();
   select count(*) into n from capture_submissions where id=v_sub; if n<>0 then raise exception 'FALHOU 18: pendente >30 dias deveria sumir'; end if;
-  r := submit_capture(v_token,'Criança Ped',null,'Rua X',true,null,'1','1',p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
+  r := submit_capture(v_token,'Criança Ped',null,'{"street":"Rua X","number":"1","neighborhood":"B","city":"C"}'::jsonb, true, null, '1', '1', null, null, (select coalesce(display_name, name) from schools order by inep_code limit 1),p_consent=>c2); v_sub := (r->>'submission_id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub',v_driver,'role','authenticated')::text, true);
   r := approve_capture(v_sub); v_s2 := (r->>'student_id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub',v_guard,'role','authenticated')::text, true);

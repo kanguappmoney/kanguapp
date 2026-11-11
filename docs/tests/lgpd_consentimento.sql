@@ -15,24 +15,24 @@ begin
   select user_id into v_driver from driver_profiles limit 1;
   select user_id into v_guard from guardians limit 1;
   if v_driver is null or v_guard is null then raise exception 'FALHOU 0: precisa de 1 motorista e 1 responsável de teste'; end if;
-  insert into capture_links (driver_id, shift, school, token) values (v_driver, 'morning', 'Escola Teste', v_token);
+  insert into capture_links (driver_id, shift, school, token) values (v_driver, 'morning', 'Escola Teste', v_token); insert into driver_schools (driver_id, inep_code) select v_driver, inep_code from schools order by inep_code limit 1 on conflict do nothing;
   insert into routes (driver_id, name, direction, shift, weekdays) values (v_driver, 'TESTE rota consent', 'both', 'morning', '{1}') returning id into v_route;
 
   -- COMO RESPONSÁVEL
   perform set_config('request.jwt.claims', json_build_object('sub', v_guard, 'role', 'authenticated')::text, true);
 
   v_ok := false;
-  begin perform submit_capture(v_token, 'Criança Teste', null, 'Rua X', true, null, '1', '1'); exception when others then v_ok := true; end;
+  begin perform submit_capture(v_token, 'Criança Teste', null, '{"street":"Rua X","number":"1","neighborhood":"B","city":"C"}'::jsonb, true, null, '1', '1', null, null, (select coalesce(display_name, name) from schools order by inep_code limit 1)); exception when others then v_ok := true; end;
   if not v_ok then raise exception 'FALHOU 1: cadastro sem autorização deveria ser recusado'; end if;
 
   v_ok := false;
-  begin perform submit_capture(v_token, 'Criança Teste', null, 'Rua X', true, null, '1', '1', p_consent => c1); exception when others then v_ok := true; end;
+  begin perform submit_capture(v_token, 'Criança Teste', null, '{"street":"Rua X","number":"1","neighborhood":"B","city":"C"}'::jsonb, true, null, '1', '1', null, null, (select coalesce(display_name, name) from schools order by inep_code limit 1), p_consent => c1); exception when others then v_ok := true; end;
   if not v_ok then raise exception 'FALHOU 2: autorização com só 1 declaração deveria ser recusada'; end if;
 
   select count(*) into n from capture_submissions where link_id = (select id from capture_links where token = v_token);
   if n <> 0 then raise exception 'FALHOU 3: tentativa recusada não podia deixar cadastro'; end if;
 
-  r := submit_capture(v_token, 'Criança Teste', null, 'Rua X', true, null, '1', '1', p_consent => c2, p_photo => cphoto);
+  r := submit_capture(v_token, 'Criança Teste', null, '{"street":"Rua X","number":"1","neighborhood":"B","city":"C"}'::jsonb, true, null, '1', '1', null, null, (select coalesce(display_name, name) from schools order by inep_code limit 1), p_consent => c2, p_photo => cphoto);
   v_sub := (r ->> 'submission_id')::uuid;
   select count(*) into n from consents where submission_id = v_sub and kind = 'child_data' and subject_user_id = v_guard and ip = '203.0.113.5' and text_snapshot = 'texto aceito';
   if n <> 1 then raise exception 'FALHOU 4: evidência da autorização da criança não gravada'; end if;

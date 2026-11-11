@@ -1,3 +1,4 @@
+-- ATENÇÃO (2026-11-10): DESATUALIZADO. Chama submit_capture sem autorização (exigida desde a migration 059) e com a assinatura anterior à 063. Não usar como regressão; cobertura atual: lgpd_consentimento, lgpd_retencao_exclusao, escola_endereco_partes.
 -- ===========================================================================
 -- Captação — Fatia 2: submit_capture + RLS de capture_submissions.
 -- Prova:

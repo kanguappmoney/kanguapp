@@ -8,6 +8,25 @@ import { getProfileGate, profileGateError } from "@/lib/profile-gate";
 
 export type StudentFormState = { error: string | null };
 
+// Endereço em partes (rua, número, bairro, cidade). O texto composto é refeito aqui,
+// no mesmo formato do banco: "rua, número - bairro, cidade". Faltou parte → o texto fica
+// nulo e o aluno cai na lista de obrigatórios faltantes.
+function addressPartsFromForm(formData: FormData, prefix: "pickup" | "dropoff") {
+  const g = (k: string) => emptyToNull(formData.get(`${prefix}_${k}`));
+  const street = g("street");
+  const number = g("number");
+  const neighborhood = g("neighborhood");
+  const city = g("city");
+  const complete = street && number && neighborhood && city;
+  return {
+    [`${prefix}_street`]: street,
+    [`${prefix}_number`]: number,
+    [`${prefix}_neighborhood`]: neighborhood,
+    [`${prefix}_city`]: city,
+    [`${prefix}_address`]: complete ? `${street}, ${number} - ${neighborhood}, ${city}` : null,
+  } as Record<string, string | null>;
+}
+
 // Monta o payload do aluno a partir do formulário (compartilhado por criar/editar).
 function studentPayloadFromForm(formData: FormData) {
   const shiftRaw = String(formData.get("shift") ?? "");
@@ -25,8 +44,8 @@ function studentPayloadFromForm(formData: FormData) {
     turma: emptyToNull(formData.get("turma")),
     entry_time: emptyToNull(formData.get("entry_time")),
     exit_time: emptyToNull(formData.get("exit_time")),
-    pickup_address: emptyToNull(formData.get("pickup_address")),
-    dropoff_address: emptyToNull(formData.get("dropoff_address")),
+    ...addressPartsFromForm(formData, "pickup"),
+    ...addressPartsFromForm(formData, "dropoff"),
     // Coordenadas (Rotas 2.0 Fatia A): enriquecimento opcional para a rota
     // sugerida. Vazio = null; nunca entram em REQUIRED_LABELS (não travam o
     // cadastro se o geocoding falhar).
@@ -56,8 +75,14 @@ const REQUIRED_LABELS: Record<string, string> = {
   turma: "Ano/Turma",
   entry_time: "Entrada",
   exit_time: "Saída",
-  pickup_address: "Embarque",
-  dropoff_address: "Desembarque",
+  pickup_street: "Embarque: rua",
+  pickup_number: "Embarque: número",
+  pickup_neighborhood: "Embarque: bairro",
+  pickup_city: "Embarque: cidade",
+  dropoff_street: "Desembarque: rua",
+  dropoff_number: "Desembarque: número",
+  dropoff_neighborhood: "Desembarque: bairro",
+  dropoff_city: "Desembarque: cidade",
 };
 
 function missingFields(payload: Record<string, unknown>): string[] {

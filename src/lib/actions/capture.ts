@@ -30,7 +30,13 @@ function numOrNull(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// Cria um link de captação por (turno + escola). Reutilizável e revogável.
+// Endereço em partes para o banco (que valida e recompõe o texto).
+function addressJson(formData: FormData, prefix: "pickup" | "dropoff") {
+  const g = (k: string) => emptyToNull(formData.get(`${prefix}_${k}`));
+  return { street: g("street"), number: g("number"), neighborhood: g("neighborhood"), city: g("city") };
+}
+
+// Cria um link de captação por turno (a escola é escolhida pelo pai, entre as que o motorista atende). Reutilizável e revogável.
 export async function createCaptureLink(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const {
@@ -40,14 +46,11 @@ export async function createCaptureLink(formData: FormData): Promise<void> {
   if (!(await getProfileGate()).complete) return; // a tela mostra o aviso
 
   const shift = String(formData.get("shift") ?? "");
-  const school = emptyToNull(formData.get("school"));
-  if (!SHIFTS.includes(shift as Shift) || !school) return; // escola + turno obrigatórios
+  if (!SHIFTS.includes(shift as Shift)) return; // turno obrigatório; a escola o pai escolhe (entre as que o motorista atende)
 
   await supabase.from("capture_links").insert({
     driver_id: user.id,
     shift: shift as Shift,
-    school,
-    school_address: emptyToNull(formData.get("school_address")),
     entry_time: emptyToNull(formData.get("entry_time")),
     exit_time: emptyToNull(formData.get("exit_time")),
     token: newToken(),
@@ -180,16 +183,14 @@ export async function submitCapture(
     p_token: token,
     p_child_full_name: childName,
     p_child_birth_date: birth,
-    p_pickup_address: emptyToNull(formData.get("pickup_address")),
+    p_pickup: addressJson(formData, "pickup"),
     p_dropoff_same: dropoffSame,
-    p_dropoff_address: dropoffSame
-      ? null
-      : emptyToNull(formData.get("dropoff_address")),
+    p_dropoff: dropoffSame ? null : addressJson(formData, "dropoff"),
     p_responsible_phone: emptyToNull(formData.get("responsible_phone")),
     p_responsible_whatsapp: emptyToNull(formData.get("responsible_whatsapp")),
     p_pickup_lat: numOrNull(formData.get("pickup_lat")),
     p_pickup_lng: numOrNull(formData.get("pickup_lng")),
-    // Só o link genérico usa escola/turno do pai; no travado o banco os descarta.
+    // Escola: sempre escolhida pelo pai (o banco confere se o motorista a atende). Turno: só no link genérico.
     p_school: emptyToNull(formData.get("school")),
     p_shift: SHIFTS.includes(String(formData.get("shift")) as Shift)
       ? String(formData.get("shift"))
@@ -244,7 +245,7 @@ export async function regenerateCaptureLink(id: string): Promise<void> {
   // RLS restringe a leitura ao dono; ainda assim filtramos por driver_id.
   const { data: old } = await supabase
     .from("capture_links")
-    .select("driver_id, shift, school, school_address, entry_time, exit_time")
+    .select("driver_id, shift, entry_time, exit_time")
     .eq("id", id)
     .eq("driver_id", user.id)
     .maybeSingle();
@@ -259,8 +260,6 @@ export async function regenerateCaptureLink(id: string): Promise<void> {
   await supabase.from("capture_links").insert({
     driver_id: user.id,
     shift: old.shift,
-    school: old.school,
-    school_address: old.school_address,
     entry_time: old.entry_time,
     exit_time: old.exit_time,
     token: newToken(),

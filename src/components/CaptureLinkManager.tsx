@@ -8,14 +8,12 @@ import {
   revokeCaptureLink,
   regenerateCaptureLink,
 } from "@/lib/actions/capture";
-import { AddressAutocomplete } from "@/components/AddressAutocomplete";
-import { SchoolPicker } from "@/components/SchoolPicker";
 import { ProfileGateNotice } from "@/components/ProfileGateNotice";
 
 export interface CaptureLink {
   id: string;
   shift: "morning" | "afternoon" | "integral";
-  school: string;
+  school: string | null;
   school_address: string | null;
   entry_time: string | null;
   exit_time: string | null;
@@ -104,17 +102,9 @@ function NewLinkForm() {
         </select>
       </label>
 
-      <SchoolPicker required key={`s${addrKey}`} source={{ kind: "driver" }} />
-
-      <AddressAutocomplete
-        key={addrKey}
-        label="Endereço da escola (opcional)"
-        name="school_address"
-        latName="school_lat"
-        lngName="school_lng"
-        placeholder="Rua, número, bairro"
-        required={false}
-      />
+      <p className="text-xs text-navy-700/60">
+        A escola não vai no link: o responsável escolhe entre as escolas que você atende.
+      </p>
 
       <div className="flex gap-3">
         <label className="block flex-1 text-sm">
@@ -189,7 +179,7 @@ function LinkCard({
       <div className="flex items-center gap-2">
         <ShiftIcon shift={link.shift} />
         <p className="min-w-0 flex-1 font-semibold text-navy-900">
-          {SHIFT_LABEL[link.shift]} · {link.school}
+          {SHIFT_LABEL[link.shift]}{link.school ? ` · ${link.school}` : ""}
         </p>
         <StatusPill tone="done">Ativo</StatusPill>
       </div>

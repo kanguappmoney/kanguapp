@@ -76,7 +76,7 @@ export default async function CaptacaoPage({
                 <span className="font-semibold text-navy-900">
                   {preview.driver_name}
                 </span>
-                . Informe o turno e a escola da criança abaixo; o motorista confere
+                . Escolha a escola (entre as que ele atende) e informe o turno abaixo; o motorista confere
                 e aprova antes de ela entrar na rota.
               </p>
             </div>
@@ -92,17 +92,9 @@ export default async function CaptacaoPage({
                 </span>
                 .
               </p>
-              <div className="flex items-start gap-2 text-sm text-navy-800">
-                <School className="mt-0.5 h-4 w-4 shrink-0 text-navy-700/60" />
-                <span>
-                  {preview.school}
-                  {preview.school_address && (
-                    <span className="block text-navy-700/60">
-                      {preview.school_address}
-                    </span>
-                  )}
-                </span>
-              </div>
+              <p className="text-sm text-navy-700/70">
+                Escolha abaixo a escola da criança, entre as que esse motorista atende.
+              </p>
               {times && (
                 <div className="flex items-center gap-2 text-sm text-navy-800">
                   <Clock className="h-4 w-4 shrink-0 text-navy-700/60" />

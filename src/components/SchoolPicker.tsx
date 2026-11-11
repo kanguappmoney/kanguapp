@@ -32,6 +32,7 @@ export function SchoolPicker({
   source,
   placeholder = "Selecione a escola",
   required = false,
+  strict = false,
 }: {
   label?: string;
   name?: string;
@@ -39,6 +40,8 @@ export function SchoolPicker({
   source: Source;
   placeholder?: string;
   required?: boolean;
+  // strict: só a lista do motorista (sem busca geral e sem "Outra escola"). Usado no link do pai.
+  strict?: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [value, setValue] = useState(initialValue);
@@ -113,7 +116,7 @@ export function SchoolPicker({
   // Sem lista configurada: busca por digitação na tabela `schools` (≥ 3 letras, até 20 resultados).
   const configured = list !== null && list.length > 0;
   useEffect(() => {
-    if (!open || configured || list === null) return;
+    if (strict || !open || configured || list === null) return;
     const term = q.replace(/[%,()*\\"]/g, " ").trim();
     if (term.length < 3) {
       setFound([]);
@@ -230,7 +233,7 @@ export function SchoolPicker({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              placeholder={configured ? "Buscar nas escolas que você atende" : "Digite 3 letras para buscar"}
+              placeholder={configured ? (strict ? "Buscar na lista" : "Buscar nas escolas que você atende") : "Digite 3 letras para buscar"}
               aria-label="Buscar escola"
               className="w-full rounded-lg border border-navy-900/15 px-3 py-2 text-sm outline-none focus:border-navy-700"
             />
@@ -252,7 +255,12 @@ export function SchoolPicker({
                   </button>
                 </li>
               ))}
-            {list !== null && !configured && q.trim().length < 3 && (
+            {list !== null && strict && !configured && (
+              <li className="px-3 py-2 text-xs text-navy-700/60">
+                Este motorista ainda não cadastrou escolas atendidas. Peça a ele para configurar.
+              </li>
+            )}
+            {list !== null && !strict && !configured && q.trim().length < 3 && (
               <li className="px-3 py-2 text-xs text-navy-700/60">
                 {scope.names.length > 0
                   ? `Buscando nas escolas de ${scope.names.slice(0, 3).join(", ")}${scope.names.length > 3 ? " e outras" : ""}.`
@@ -260,9 +268,10 @@ export function SchoolPicker({
                 Digite o nome da escola.
               </li>
             )}
-            {list !== null && !searching && options.length === 0 && (configured || q.trim().length >= 3) && (
+            {list !== null && !searching && options.length === 0 && (configured || q.trim().length >= 3) && !(strict && !configured) && (
               <li className="px-3 py-2 text-xs text-navy-700/60">Nenhuma escola encontrada.</li>
             )}
+            {!strict && (
             <li className="border-t border-navy-900/10">
               <button
                 type="button"
@@ -276,6 +285,7 @@ export function SchoolPicker({
                 Outra escola (digitar)
               </button>
             </li>
+            )}
           </ul>
         </div>
       )}

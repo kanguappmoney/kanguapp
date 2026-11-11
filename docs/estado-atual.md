@@ -3,7 +3,7 @@
 > Resumo curto e vivo. O histórico completo continua em `docs/progresso.md` (não foi
 > apagado nem renomeado; as referências "progresso.md, seção X" no código seguem válidas).
 > Consultar o `progresso.md` **por busca** (grep na seção ou no assunto), nunca ler inteiro.
-> Atualizado em 2026-11-10 a partir do `progresso.md` (último commit: `67e4e15`, LGPD fatia D).
+> Atualizado em 2026-11-10 (último commit: `34d4291`; ajuste da migration 063 ainda sem commit).
 
 ## Produto
 - PWA B2B2C de transporte escolar. Motorista de van = cliente pagante; responsáveis entram
@@ -66,7 +66,8 @@
   financeiro + despesas/painel R11, ausências/ocorrências, vitrine pública, PWA + `/baixar`).
 - Produção na Vercel região `gru1`. Supabase "Kangu App" (sa-east-1). `main` em dia com o remoto.
 - **Bloco atual: LGPD (fatias A→E).** A, B, C e D feitas (migrations 055–062).
-- **Próximo passo: LGPD fatia E (evidências de segurança).**
+- Ajuste feito (2026-11-10, migration 063): escola escolhida pelo pai na lista do motorista; endereço em rua/número/bairro/cidade obrigatórios.
+- **Próximo passo: LGPD fatia E (evidências de segurança)** (perguntas em aberto: incluir `invoices`/`consents` na prova de G5; parar e avisar ao achar falha).
 
 ## Pendências antes do piloto
 - Validação de LGPD com profissional antes de qualquer dado real de criança (inclui base legal
@@ -82,6 +83,9 @@
 - Device real: GPS em movimento (câmera com rumo, auto-recolher do sheet) e instalação do PWA
   (Android maskable/splash; iPhone standalone; navegador dentro do Instagram/WhatsApp).
 - `README.md` do repo está desatualizado (vale o estado dos commits/migrations).
+
+- Testes SQL `captacao_fatia2_rls`, `captacao_fatia3_geocode`, `captacao_fatia4_aprovacao`, `captacao_generica` estão DESATUALIZADOS desde a migration 059 (sem autorização) e 063 (assinatura): marcados no cabeçalho; a cobertura atual está em `lgpd_consentimento`, `lgpd_retencao_exclusao` e `escola_endereco_partes`.
+- Telas do ajuste (captação do pai, edição do aluno) ainda não vistas logadas. Motorista cadastrar aluno sem link: adiado ("por enquanto").
 
 ## Lacunas conhecidas (sem bloqueio)
 - Sininho do motorista vazio por desenho (nada gera notificação para ele ainda).
