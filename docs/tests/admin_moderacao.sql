@@ -1,16 +1,17 @@
--- PENDENTE (E0, 2026-11-13): as asserções (3), (4), (5) e (6) testam o desenho ANTERIOR à migration 056 (IP gravado na própria linha de marketplace_search_log, zerado por retenção na próxima busca). O IP agora vive em marketplace_search_ip_log, sem filtros e apagado por job. Reescrever exige alterar asserções; aguarda decisão do Abner.
 -- ===========================================================================
 -- Admin, Moderação (parte 3) — migration 043.
 --   (1) anon e não-admin recusados em `admin_list_van_photos` e `admin_search_ips`;
 --   (2) fotos: só quem TEM foto (nula e vazia ficam de fora), colunas exatas, data do upload
 --       no storage;
---   (3) IP no log: capturado só como ENDEREÇO de host válido ('unknown', lixo e CIDR → NULL);
---   (4) ranking de IPs: por volume, período 7 × 30 dias, Top limitado, totais do período;
---   (5) RETENÇÃO: IP com mais de 30 dias é zerado na próxima busca registrada (a linha fica);
---   (6) só o admin lê o IP: a tabela segue fechada a anon/authenticated; a coluna `ip` existe
---       e a leitura admin (admin_list_search_log) NÃO a devolve.
+--   (3) IP no log de IP (migration 056): gravado só como ENDEREÇO de host válido ('unknown', lixo e CIDR
+--       não viram IP);
+--   (4) ranking de IPs (admin_search_ips): por volume, período 7 × 30 dias, Top limitado, totais do período;
+--   (5) só o admin lê o IP: `marketplace_search_ip_log` e `marketplace_search_log` fechados a anon e a
+--       motorista; a coluna `ip` NÃO existe no log de buscas; o log de IP só tem IP + hora; a leitura
+--       admin (admin_list_search_log) não devolve IP.
+--   (a retenção de 30 dias do IP é provada em lgpd_retencao.sql, testes 9 e 10)
 -- Rodar como role privilegiado (SQL Editor). Termina em exceção 'RESULTADO: ... PASSOU'.
--- APLICAR as migrations 037–043 ANTES de rodar.
+-- APLICAR as migrations 037–043 e 056 ANTES de rodar.
 -- ===========================================================================
 
 begin;
@@ -96,10 +97,11 @@ begin
   raise notice 'OK (2/6): fotos — só quem tem foto, colunas exatas, data do upload';
 end $$;
 
+
 -- ---------------------------------------------------------------------------
--- Buscas com IP (como anon), incluindo entradas inválidas.
+-- (3) Buscas com IP (como anon), incluindo entradas inválidas. O IP vai SÓ para marketplace_search_ip_log.
 do $$
-declare i int; r text;
+declare i int; r text; n0 int; n1 int; bad int;
 begin
   for i in 1..4 loop
     r := pg_temp.try_as('anon', null, 'select public.log_marketplace_search(''Mauá'', null, null, null, null, ''203.0.113.7'')');
@@ -109,50 +111,51 @@ begin
     r := pg_temp.try_as('anon', null, 'select public.log_marketplace_search(''Diadema'', null, null, null, null, ''2001:db8::1'')');
     if r <> 'ok' then raise exception 'FALHOU (3): anon não registrou com IPv6: %', r; end if;
   end loop;
+  select count(*) into n0 from public.marketplace_search_ip_log;
   perform pg_temp.try_as('anon', null, 'select public.log_marketplace_search(''Lixo'', null, null, null, null, ''unknown'')');
   perform pg_temp.try_as('anon', null, 'select public.log_marketplace_search(''Cidr'', null, null, null, null, ''10.0.0.0/8'')');
   perform pg_temp.try_as('anon', null, 'select public.log_marketplace_search(''Vazio'', null, null, null, null, ''   '')');
-  -- antigos (privilegiado): 5 buscas do IP 203.0.113.99 há 10 dias (entra em 30, não em 7)
-  --                          e 1 busca com IP há 40 dias (precisa ser zerada pela retenção)
-  insert into public.marketplace_search_log (city, ip, created_at)
-  select 'Antiga', '203.0.113.99'::inet, now() - interval '10 days' from generate_series(1, 5);
-  insert into public.marketplace_search_log (city, ip, created_at) values ('Velha', '203.0.113.50'::inet, now() - interval '40 days');
-
-  if (select count(*) from public.marketplace_search_log where city in ('Lixo', 'Cidr', 'Vazio') and ip is not null) <> 0 then
-    raise exception 'FALHOU (3): IP inválido/CIDR/vazio deveria virar NULL';
+  select count(*) into n1 from public.marketplace_search_ip_log;
+  if n1 <> n0 then raise exception 'FALHOU (3): IP inválido/CIDR/vazio não podia virar linha no log de IP (% -> %)', n0, n1; end if;
+  if (select count(*) from public.marketplace_search_log where city in ('Lixo', 'Cidr', 'Vazio')) <> 3 then
+    raise exception 'FALHOU (3): a busca (filtros) deveria ser registrada mesmo sem IP válido';
   end if;
-  if (select count(*) from public.marketplace_search_log where city = 'Mauá' and ip = '203.0.113.7') <> 4 then
+  if (select count(*) from public.marketplace_search_ip_log where ip = '203.0.113.7') < 4 then
     raise exception 'FALHOU (3): IPv4 não foi gravado como host';
   end if;
-  if (select count(*) from public.marketplace_search_log where city = 'Diadema' and ip = '2001:db8::1') <> 2 then
+  if (select count(*) from public.marketplace_search_ip_log where ip = '2001:db8::1') < 2 then
     raise exception 'FALHOU (3): IPv6 não foi gravado';
   end if;
-  raise notice 'OK (3/6): IP gravado só como endereço de host (IPv4/IPv6); lixo, CIDR e vazio → NULL';
+  select count(*) into bad from public.marketplace_search_ip_log
+   where masklen(ip) <> (case when family(ip) = 4 then 32 else 128 end);
+  if bad <> 0 then raise exception 'FALHOU (3): há IP que não é endereço de host (% linhas)', bad; end if;
+  raise notice 'OK (3/5): IP gravado só como endereço de host (IPv4/IPv6); lixo, CIDR e vazio não viram IP';
 end $$;
 
 -- ---------------------------------------------------------------------------
+-- (4) Ranking. Antigos (privilegiado): 5 buscas do IP 203.0.113.99 há 10 dias (entra em 30, não em 7).
+insert into public.marketplace_search_ip_log (ip, created_at)
+select '203.0.113.99'::inet, now() - interval '10 days' from generate_series(1, 5);
+
 do $$
 declare w7 jsonb := pg_temp.rows_admin('select * from public.admin_search_ips(7)');
         w30 jsonb := pg_temp.rows_admin('select * from public.admin_search_ips(30)');
         a jsonb; txt text;
 begin
   select x into a from jsonb_array_elements(w7) x where x->>'ip' = '203.0.113.7';
-  if a is null or (a->>'searches')::int <> 4 then raise exception 'FALHOU (4): 203.0.113.7 deveria ter 4 buscas em 7 dias: %', a; end if;
-  if (select (x->>'searches')::int from jsonb_array_elements(w7) x where x->>'ip' = '2001:db8::1') <> 2 then
-    raise exception 'FALHOU (4): IPv6 deveria ter 2 buscas';
+  if a is null or (a->>'searches')::int < 4 then raise exception 'FALHOU (4): 203.0.113.7 deveria ter >= 4 buscas em 7 dias: %', a; end if;
+  if (select (x->>'searches')::int from jsonb_array_elements(w7) x where x->>'ip' = '2001:db8::1') < 2 then
+    raise exception 'FALHOU (4): IPv6 deveria ter >= 2 buscas';
   end if;
-  -- ordenado por volume
   if exists (select 1 from jsonb_array_elements(w7) with ordinality as p(x, i) join jsonb_array_elements(w7) with ordinality as q(y, j) on j = i + 1
               where (p.x->>'searches')::int < (q.y->>'searches')::int) then
     raise exception 'FALHOU (4): ranking de IPs fora de ordem por volume';
   end if;
-  -- período: o IP de 10 dias atrás só aparece em 30 dias, com 5 buscas
   if exists (select 1 from jsonb_array_elements(w7) x where x->>'ip' = '203.0.113.99') then raise exception 'FALHOU (4): IP de 10 dias atrás apareceu no período de 7'; end if;
   if (select (x->>'searches')::int from jsonb_array_elements(w30) x where x->>'ip' = '203.0.113.99') <> 5 then
     raise exception 'FALHOU (4): IP de 10 dias deveria ter 5 buscas no período de 30';
   end if;
   if jsonb_array_length(w7) > 20 or jsonb_array_length(w30) > 20 then raise exception 'FALHOU (4): ranking passou de 20 linhas'; end if;
-  -- totais do período: com IP ≤ total
   if (a->>'total_with_ip')::int > (a->>'total_in_period')::int then raise exception 'FALHOU (4): total_with_ip > total_in_period'; end if;
   if (select array_agg(k order by k) from jsonb_object_keys(a) k) is distinct from
      array['first_at','ip','last_at','searches','total_in_period','total_with_ip'] then
@@ -160,50 +163,43 @@ begin
   end if;
   txt := w30::text;
   if position('Mauá' in txt) > 0 or position('Antiga' in txt) > 0 then raise exception 'FALHOU (4): filtros vazaram na lista de IPs'; end if;
-  raise notice 'OK (4/6): ranking de IPs por volume, período 7 × 30, Top 20, totais, colunas exatas';
+  raise notice 'OK (4/5): ranking de IPs por volume, período 7 × 30, Top 20, totais, colunas exatas';
 end $$;
 
 -- ---------------------------------------------------------------------------
--- Retenção: a busca "Velha" (IP de 40 dias) ainda tem IP porque inseri direto (sem passar pela
--- função). Basta UMA busca registrada pela função para zerar os IPs com mais de 30 dias.
+-- (5) Só o admin lê o IP.
 do $$
+declare s text; r text; n int := 0; l jsonb; cols text[]; t text;
 begin
-  if (select ip from public.marketplace_search_log where city = 'Velha') is null then
-    raise exception 'FALHOU (5): pré-condição — a linha velha deveria ainda ter IP antes da próxima busca';
-  end if;
-  perform pg_temp.try_as('anon', null, 'select public.log_marketplace_search(''Gatilho'', null, null, null, null, ''203.0.113.8'')');
-  if (select ip from public.marketplace_search_log where city = 'Velha') is not null then
-    raise exception 'FALHOU (5): IP de 40 dias não foi zerado pela retenção';
-  end if;
-  if not exists (select 1 from public.marketplace_search_log where city = 'Velha') then
-    raise exception 'FALHOU (5): a retenção apagou a LINHA (deveria só zerar o IP)';
-  end if;
-  if (select ip from public.marketplace_search_log where city = 'Antiga' limit 1) is null then
-    raise exception 'FALHOU (5): IP de 10 dias foi zerado cedo demais';
-  end if;
-  raise notice 'OK (5/6): retenção — IP > 30 dias zerado, linha preservada, IP de 10 dias intacto';
-end $$;
-
--- ---------------------------------------------------------------------------
-do $$
-declare s text; r text; n int := 0; l jsonb; cols text[];
-begin
-  foreach s in array array['select ip from public.marketplace_search_log', 'update public.marketplace_search_log set ip = null'] loop
-    foreach r in array array[pg_temp.try_as('anon', null, s), pg_temp.try_as('authenticated', '00000000-0000-0000-0000-0000000e0062', s)] loop
-      if r not like '42501:%' then raise exception 'FALHOU (6): acesso direto ao IP não negado em [%]: %', s, r; end if;
-      n := n + 1;
+  foreach t in array array['public.marketplace_search_ip_log', 'public.marketplace_search_log'] loop
+    foreach s in array array['select * from ' || t, 'delete from ' || t, 'update ' || t || ' set created_at = now()'] loop
+      foreach r in array array[pg_temp.try_as('anon', null, s), pg_temp.try_as('authenticated', '00000000-0000-0000-0000-0000000e0062', s)] loop
+        if r not like '42501:%' then raise exception 'FALHOU (5): acesso direto não negado em [%]: %', s, r; end if;
+        n := n + 1;
+      end loop;
     end loop;
   end loop;
+  foreach r in array array[
+      pg_temp.try_as('anon', null, 'insert into public.marketplace_search_ip_log (ip) values (''1.1.1.1'')'),
+      pg_temp.try_as('authenticated', '00000000-0000-0000-0000-0000000e0062', 'insert into public.marketplace_search_ip_log (ip) values (''1.1.1.1'')')] loop
+    if r not like '42501:%' then raise exception 'FALHOU (5): insert direto no log de IP não negado: %', r; end if;
+    n := n + 1;
+  end loop;
   l := pg_temp.rows_admin('select * from public.admin_list_search_log(5)');
-  if jsonb_array_length(l) = 0 or (l -> 0) ? 'ip' then raise exception 'FALHOU (6): admin_list_search_log devolveu o IP (deveria só o admin_search_ips)'; end if;
+  if jsonb_array_length(l) = 0 or (l -> 0) ? 'ip' then raise exception 'FALHOU (5): admin_list_search_log devolveu o IP (deveria só o admin_search_ips)'; end if;
   select array_agg(column_name::text order by column_name) into cols
     from information_schema.columns where table_schema = 'public' and table_name = 'marketplace_search_log';
-  if cols is distinct from array['child_age','city','created_at','id','ip','neighborhood','school','shift'] then
-    raise exception 'FALHOU (6): colunas do log inesperadas: %', cols;
+  if cols is distinct from array['child_age','city','created_at','id','neighborhood','school','shift'] then
+    raise exception 'FALHOU (5): colunas do log de buscas inesperadas (a coluna ip não pode existir): %', cols;
   end if;
-  raise notice 'OK (6/6): IP fechado a anon/authenticated (% tentativas); só admin_search_ips o entrega', n;
+  select array_agg(column_name::text order by column_name) into cols
+    from information_schema.columns where table_schema = 'public' and table_name = 'marketplace_search_ip_log';
+  if cols is distinct from array['created_at','id','ip'] then
+    raise exception 'FALHOU (5): o log de IP deveria ter só id, ip e hora: %', cols;
+  end if;
+  raise notice 'OK (5/5): log de IP e de buscas fechados a anon e a motorista (% tentativas); só admin_search_ips entrega o IP', n;
 end $$;
 
-do $$ begin raise exception 'RESULTADO: ADMIN MODERACAO PASSOU (6/6)'; end $$;
+do $$ begin raise exception 'RESULTADO: ADMIN MODERACAO PASSOU (5/5)'; end $$;
 
 rollback;

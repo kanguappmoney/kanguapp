@@ -85,7 +85,7 @@
   (Android maskable/splash; iPhone standalone; navegador dentro do Instagram/WhatsApp).
 - `README.md` do repo está desatualizado (vale o estado dos commits/migrations).
 
-- Testes SQL: 27 de 30 passam. Três aguardam decisão porque corrigi-los exige alterar asserção: `admin_guard` (6), `admin_moderacao` (3–6) e `captacao_generica` (4 e 6); ver cabeçalho "PENDENTE (E0)" de cada um e a entrada E0 do `progresso.md`.
+- Testes SQL de `docs/tests/`: 30 de 30 passam (E0, 2026-11-13).
 - Telas do ajuste (captação do pai, edição do aluno) ainda não vistas logadas. Motorista cadastrar aluno sem link: adiado ("por enquanto").
 
 ## Lacunas conhecidas (sem bloqueio)

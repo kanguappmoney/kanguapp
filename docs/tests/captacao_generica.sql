@@ -1,4 +1,3 @@
--- PENDENTE (E0, 2026-11-13): fixtures e chamadas já adaptadas (059/063), mas o CHECK 4 ("link travado descarta escola/turno do pai") e o CHECK 6 (aluno do link travado usa a escola do LINK) afirmam a regra ANTERIOR à 063: agora o link por turno exige e guarda a escola escolhida pelo pai. Alterar essas asserções depende de decisão do Abner.
 -- ===========================================================================
 -- Marketplace, Frente E.1 — link de captação GENÉRICO e opt-in (migration 039).
 -- Prova:
@@ -6,9 +5,11 @@
 --   (2) no máximo UM link genérico ATIVO por motorista (revogar libera um novo);
 --   (3) submit_capture pelo link genérico exige escola E turno e grava o que o pai
 --       informou na fila `pending`; a prévia pública diz kind = generic;
---   (4) pelo link TRAVADO, escola/turno enviados pelo pai são DESCARTADOS (o contexto é do link);
+--   (4) pelo link TRAVADO (por turno), o TURNO é o do link (o do pai é descartado) e a ESCOLA é a escolhida
+--       pelo pai, validada contra a lista do motorista (migration 063); escola fora da lista é recusada
+--       em ambos os tipos de link;
 --   (5) link genérico revogado recusa o envio;
---   (6) aprovação: genérico -> aluno com a escola/turno do pai; travado -> os do link;
+--   (6) aprovação: genérico -> aluno com a escola/turno do pai; travado -> turno do link e escola escolhida pelo pai;
 --   (7) vitrine: `request_token` só no modo perfil, só do genérico ATIVO — nunca o de um
 --       link travado; some ao revogar; nulo na listagem.
 --
@@ -148,10 +149,10 @@ begin
 end $$;
 
 -- ===========================================================================
--- CHECK 4 — link TRAVADO: escola/turno vindos do pai são descartados.
+-- CHECK 4 — link TRAVADO: turno é o do link; a escola é a do pai, validada contra a lista do motorista.
 -- ===========================================================================
 do $$
-declare s record;
+declare s record; fora_travado boolean := false; fora_generico boolean := false;
 begin
   set local role authenticated;
   perform set_config('request.jwt.claims',
@@ -160,12 +161,33 @@ begin
     p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true,
     p_dropoff := null, p_responsible_phone := null, p_responsible_whatsapp := null,
     p_school := 'Escola Trocada', p_shift := 'afternoon', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
+  -- escola fora da lista do motorista: recusada, nos dois tipos de link
+  begin
+    perform submit_capture(p_token := 'tok-scoped', p_child_full_name := 'Filho Escola Fora',
+      p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true,
+      p_dropoff := null, p_responsible_phone := null, p_responsible_whatsapp := null,
+      p_school := 'Escola Fora da Lista', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
+  exception when others then fora_travado := true; end;
+  begin
+    perform submit_capture(p_token := 'tok-g2', p_child_full_name := 'Filho Escola Fora G',
+      p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true,
+      p_dropoff := null, p_responsible_phone := null, p_responsible_whatsapp := null,
+      p_school := 'Escola Fora da Lista', p_shift := 'morning', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
+  exception when others then fora_generico := true; end;
   reset role;
-  select * into s from capture_submissions where child_full_name = 'Filho Travado';
-  if s.child_school is not null or s.child_shift is not null then
-    raise exception 'FALHOU (4): link travado guardou escola/turno do pai (%, %)', s.child_school, s.child_shift;
+  if not fora_travado then raise exception 'FALHOU (4): link travado aceitou escola fora da lista do motorista'; end if;
+  if not fora_generico then raise exception 'FALHOU (4): link genérico aceitou escola fora da lista do motorista'; end if;
+  if exists (select 1 from capture_submissions where child_full_name in ('Filho Escola Fora', 'Filho Escola Fora G')) then
+    raise exception 'FALHOU (4): envio com escola fora da lista deixou linha na fila';
   end if;
-  raise notice 'OK (4/7): link travado descarta escola/turno enviados pelo pai';
+  select * into s from capture_submissions where child_full_name = 'Filho Travado';
+  if s.child_school is distinct from 'Escola Trocada' then
+    raise exception 'FALHOU (4): link travado deveria guardar a escola escolhida pelo pai (veio %)', s.child_school;
+  end if;
+  if s.child_shift is not null then
+    raise exception 'FALHOU (4): link travado guardou o turno do pai (%); o turno é o do link', s.child_shift;
+  end if;
+  raise notice 'OK (4/7): link travado usa o turno do link e a escola do pai (validada); escola fora da lista é recusada';
 end $$;
 
 -- ===========================================================================
@@ -192,7 +214,7 @@ begin
 end $$;
 
 -- ===========================================================================
--- CHECK 6 — aprovação: genérico usa escola/turno do pai; travado usa os do link.
+-- CHECK 6 — aprovação: genérico usa escola/turno do pai; travado usa o turno do link e a escola do pai.
 -- ===========================================================================
 do $$
 declare g uuid; t uuid; sg record; st record;
@@ -211,14 +233,14 @@ begin
   if sg.school <> 'Colégio Beltrano' or sg.shift <> 'afternoon' or sg.status <> 'active' then
     raise exception 'FALHOU (6): aluno do genérico com escola/turno errados (%, %)', sg.school, sg.shift;
   end if;
-  if st.school <> 'Escola A' or st.shift <> 'morning' then
-    raise exception 'FALHOU (6): aluno do travado deveria ter a escola/turno do LINK (%, %)', st.school, st.shift;
+  if st.school <> 'Escola Trocada' or st.shift <> 'morning' then
+    raise exception 'FALHOU (6): aluno do travado deveria ter a escola escolhida pelo pai e o turno do LINK (%, %)', st.school, st.shift;
   end if;
   if not exists (select 1 from guardian_student gs where gs.student_id = sg.id
                    and gs.guardian_id = '00000000-0000-0000-0000-0000000a0011') then
     raise exception 'FALHOU (6): responsável não foi vinculado ao aluno do genérico';
   end if;
-  raise notice 'OK (6/7): aprovação do genérico usa o que o pai informou; travado segue usando o link';
+  raise notice 'OK (6/7): aprovação do genérico usa o que o pai informou; travado usa o turno do link e a escola do pai';
 end $$;
 
 -- ===========================================================================

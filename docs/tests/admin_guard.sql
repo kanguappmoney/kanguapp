@@ -1,4 +1,3 @@
--- PENDENTE (E0, 2026-11-13): a asserção (6) espera a coluna 'ip' em marketplace_search_log, removida na migration 056 (o IP foi para marketplace_search_ip_log). Corrigir exige alterar a lista esperada; aguarda decisão do Abner. Fixture do consentimento (059) já ajustada.
 -- ===========================================================================
 -- Marketplace, Frente F — guarda da área /admin e do log de buscas (migration 040).
 -- Prova no banco (cada chamada é feita COMO anon / authenticated, nunca como superusuário):
@@ -299,8 +298,8 @@ begin
   -- só filtros + hora: colunas exatas da tabela (sem IP, sem usuário)
   select array_agg(column_name::text order by column_name) into cols
     from information_schema.columns where table_schema = 'public' and table_name = 'marketplace_search_log';
-  if cols is distinct from array['child_age','city','created_at','id','ip','neighborhood','school','shift'] then
-    raise exception 'FALHOU (6): a tabela do log tem colunas além de filtros + hora (+ ip, da 043): %', cols;
+  if cols is distinct from array['child_age','city','created_at','id','neighborhood','school','shift'] then
+    raise exception 'FALHOU (6): a tabela do log tem colunas além de filtros + hora (a coluna ip foi removida na 056 e não pode voltar): %', cols;
   end if;
 
   -- não-admin não lê; admin lê com colunas exatas
