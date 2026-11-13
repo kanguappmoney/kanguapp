@@ -10,7 +10,7 @@
   `RESULTADO: ... PASSOU`. (Os arquivos antigos, de estilo `begin; ... rollback;`, trocam o `raise notice '== ... PASSOU =='` final
   por `raise exception` porque o editor esconde `notice`.)
 - HTTP: `node docs/seguranca/http_exposure.mjs` (usa só a chave anon, que é pública, do `.env.local`).
-- Resultado desta rodada (2026-11-13, no fim do dia): **38 de 38 arquivos de `docs/tests/` passaram**, rodados um a um no SQL Editor.
+- Resultado desta rodada (2026-11-13, no fim do dia): **39 de 39 arquivos de `docs/tests/` passaram**, rodados um a um no SQL Editor.
 
 ## Afirmações provadas
 
@@ -62,7 +62,7 @@
 | Afirmação | Prova | Resultado |
 |---|---|---|
 | Só 4 funções do schema `public` ligam `kangu.consent_internal` e são executáveis pelo cliente: `approve_capture`, `reauthorize_child`, `revoke_consent` e o gatilho `students_consent_guard`; qualquer função nova que a ligue e seja exposta quebra o teste | `seguranca_flag_consentimento.sql` (1) | PASSOU |
-| Sem a flag, cliente (autenticado ou anônimo) não insere, altera nem apaga em `consents`; ninguém muda `consent_status` por UPDATE direto; as três portas legítimas recusam anônimo | `seguranca_flag_consentimento.sql` (2 a 4) | PASSOU |
+| Sem a flag, cliente (autenticado ou anônimo) não insere, altera nem apaga em `consents`; ninguém muda `consent_status` por UPDATE direto; as três portas legítimas recusam anônimo, por permissão (42501) desde a 069, e o fluxo logado de aprovar, revogar e reautorizar continua funcionando | `seguranca_flag_consentimento.sql` (2 a 4), `revogar_execute_anon.sql` | PASSOU |
 | `set_config` e as funções internas (`_insert_consent`, `_anonymize_student`, `anonymize_due_students`, `purge_stale_submissions`, `_student_in_transit_today`, `admin_erase_student`) não são chamáveis por RPC com a chave anon; tabelas sensíveis (`consents`, `erasure_ledger`, `erasure_deferred`, `app_access_log`, `retention_exceptions`) recusam leitura anônima (401) e as demais devolvem lista vazia | `docs/seguranca/http_exposure.mjs` (2026-11-13) | PASSOU |
 | Consentimento da criança e da foto: evidência, revogação, suspensão, bloqueio de rota e de visibilidade pelo motorista | `lgpd_consentimento.sql` | PASSOU |
 | Captação e cadastro: endereço em partes, escola da lista do motorista, autorização exigida | `escola_endereco_partes.sql`, `captacao_fatia2_rls.sql`, `captacao_fatia3_geocode.sql`, `captacao_fatia4_aprovacao.sql`, `captacao_generica.sql` | PASSOU |
@@ -73,7 +73,7 @@
 - **Corrigido (F1):** exclusão a pedido podia tirar da lista da volta a criança que embarcou na ida.
 - **Corrigido (F3):** foto da van era pública independentemente do toggle.
 - **Nenhum furo novo** foi encontrado pelos testes E1 a E5 desta fatia.
-- **Dívidas menores, sem exploração conhecida:** `anon` e `authenticated` herdam `EXECUTE` do PUBLIC em `approve_capture`, `reauthorize_child` e `revoke_consent` (recusam por `auth.uid()`; vale revogar do `anon` numa migration futura).
+- **Fechado (migration 069):** `approve_capture`, `reauthorize_child` e `revoke_consent` herdavam `EXECUTE` do PUBLIC (recusavam anônimo só por `auth.uid()`). Agora anon e PUBLIC não executam (recusa por permissão, 42501) e o fluxo logado segue funcionando (`revogar_execute_anon.sql`; prova HTTP em `docs/seguranca/http_exposure.mjs`: `approve_capture` anônimo = 401 permission denied).
 
 ## O que não está provado
 1. **Os testes rodam no banco compartilhado com a produção.** Hoje só existe um projeto Supabase: localhost, testes e a Vercel usam o mesmo banco. Os testes de SQL revertem, mas tomam locks e o E2E de foto criou e apagou usuários reais de teste. Isso não é prova de que o ambiente está isolado e é o motivo da fatia G (`docs/ops-separar-dev-producao.md`).
