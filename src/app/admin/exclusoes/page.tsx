@@ -31,8 +31,15 @@ export default async function AdminExclusoesPage() {
               <Td className="font-mono text-xs">{r.student_id.slice(0, 8)}</Td>
               <Td>{r.note ?? "—"}</Td>
               <Td>
-                <Badge tone={r.status === "pending" ? "amber" : r.status === "granted" ? "green" : "gray"}>
-                  {r.status === "pending" ? "Pendente" : r.status === "granted" ? "Apagado" : "Negado"}
+                {/* Concedido com a criança em trânsito: a exclusão fica adiada até o fim do dia (F1, G1). */}
+                <Badge tone={r.status === "pending" || r.decision_note?.includes("adiada até o fim do dia") ? "amber" : r.status === "granted" ? "green" : "gray"}>
+                  {r.status === "pending"
+                    ? "Pendente"
+                    : r.status === "granted"
+                      ? r.decision_note?.includes("adiada até o fim do dia")
+                        ? "Adiada (criança em trânsito)"
+                        : "Apagado"
+                      : "Negado"}
                 </Badge>
               </Td>
               <Td>

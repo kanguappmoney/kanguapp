@@ -24,7 +24,7 @@ begin
   insert into route_stops (route_id, student_id, position, kind) values (v_route, v_student, 1, 'pickup');
 
   -- execução de HOJE: iniciada, embarque registrado, encerrada (como o botão "Encerrar rota" faz)
-  insert into route_executions (route_id, service_date, leg, status, started_at) values (v_route, sp_today(), 'pickup', 'in_progress', now() - interval '1 hour') returning id into v_exec;
+  insert into route_executions (route_id, service_date, leg, status, started_at) values (v_route, sp_today(), 'pickup', 'in_progress', now()) returning id into v_exec; -- started_at = agora: vence qualquer rota REAL em andamento hoje na escolha de get_active_journey (order by started_at desc)
   insert into route_events (execution_id, type, created_at) values (v_exec, 'route_started', now() - interval '1 hour');
   insert into route_events (execution_id, student_id, type, created_at) values (v_exec, v_student, 'embarked', now() - interval '30 minutes') returning id into v_emb;
   insert into route_events (execution_id, type, created_at) values (v_exec, 'route_ended', v_ended);
