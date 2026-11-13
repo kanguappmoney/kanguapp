@@ -1,13 +1,19 @@
-import { AppHeader, SectionTitle, Placeholder } from "@/components/ui";
+import { createClient } from "@/lib/supabase/server";
+import { AppHeader, SectionTitle } from "@/components/ui";
+import { GuardianJourneyCard } from "@/components/GuardianJourneyCard";
+import { getGuardianJourney } from "@/lib/guardian-journey";
 
-export default function RotasResponsavelPage() {
+export default async function RotasResponsavelPage() {
+  const supabase = await createClient();
+  // "Hoje" mostra a jornada ativa (mesma leitura e mesmo cartão do Início). G4: fora da rota, estado inativo.
+  const { journey, livePos, mapToken } = await getGuardianJourney(supabase);
+
   return (
     <>
       <AppHeader title="Rotas" subtitle="Hoje • Próximas • Histórico" />
       <div className="px-4 pb-6">
         <SectionTitle>Hoje</SectionTitle>
-        {/* G4: fora da janela, estado inativo. */}
-        <Placeholder>Sem rota ativa no momento.</Placeholder>
+        <GuardianJourneyCard journey={journey} livePos={livePos} mapToken={mapToken} />
       </div>
     </>
   );

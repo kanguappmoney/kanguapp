@@ -4,37 +4,15 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader, Card, SectionTitle } from "@/components/ui";
 import { IconBadge, StatusPill } from "@/components/patterns";
-import { JourneyTimeline, type Journey } from "@/components/JourneyTimeline";
-import { AutoRefresh } from "@/components/AutoRefresh";
-import { LiveMapLoader } from "@/components/LiveMapLoader";
+import { GuardianJourneyCard } from "@/components/GuardianJourneyCard";
+import { getGuardianJourney } from "@/lib/guardian-journey";
 
 export default async function GuardianHome() {
   const user = await getCurrentUser();
   const supabase = await createClient();
 
-  // Jornada ativa (Linha do tempo, G6). Agregados anônimos + filhos próprios.
-  const { data: journeyData } = await supabase.rpc("get_active_journey");
-  const journey = journeyData as Journey | null;
-
-  // Modo Mapa (G4/G6): a posição da van só vem da RLS `guardian_can_see_live_position`
-  // (execução in_progress E motorista em modo 'map'). Se vier linha, é modo Mapa;
-  // senão cai na Linha do tempo. É a RLS que decide, não o app.
-  const mapToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
-  let livePos: {
-    lat: number;
-    lng: number;
-    heading: number | null;
-  } | null = null;
-  if (journey?.execution_id) {
-    const { data } = await supabase
-      .from("live_positions")
-      .select("lat, lng, heading")
-      .eq("execution_id", journey.execution_id)
-      .maybeSingle();
-    livePos = data;
-  }
-  // Sem token configurado, cai graciosamente na Linha do tempo (nada de mapa quebrado).
-  const showMap = Boolean(journey && livePos && mapToken);
+  // Jornada ativa (Linha do tempo/Mapa, G4/G5/G6): leitura compartilhada com Rotas > Hoje.
+  const { journey, livePos, mapToken } = await getGuardianJourney(supabase);
 
   // RLS retorna só os alunos vinculados a este responsável.
   const { data: children } = await supabase
@@ -92,37 +70,7 @@ export default async function GuardianHome() {
         )}
 
         <SectionTitle>Agora</SectionTitle>
-        {journey ? (
-          showMap && livePos ? (
-            // Modo Mapa: só o pino da van se movendo (sem paradas — G5).
-            <>
-              <LiveMapLoader
-                token={mapToken}
-                lat={livePos.lat}
-                lng={livePos.lng}
-                heading={livePos.heading}
-              />
-              <p className="mt-2 text-sm text-navy-700/60">
-                A van está a caminho — posição atualizando ao vivo.
-              </p>
-              <AutoRefresh seconds={10} />
-            </>
-          ) : (
-            <>
-              <JourneyTimeline journey={journey} />
-              <AutoRefresh seconds={15} />
-            </>
-          )
-        ) : (
-          // G4 — estado default fora da janela de rota: sem localização ao vivo.
-          <Card tone="cream">
-            <p className="font-semibold text-navy-900">Fora do horário de rota</p>
-            <p className="text-sm text-navy-700/60">
-              A localização só aparece durante o trajeto. Você verá a jornada aqui
-              quando a rota começar.
-            </p>
-          </Card>
-        )}
+        <GuardianJourneyCard journey={journey} livePos={livePos} mapToken={mapToken} />
 
         <Link
           href="/responsavel/avisos"
