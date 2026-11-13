@@ -54,6 +54,9 @@
   sem texto do jurídico. Os três campos livres existentes (`occurrences.note` ≤ 200, `route_exceptions.reason` ≤ 120,
   `erasure_requests.note` ≤ 300) têm aviso "não escreva dados de saúde ou de deficiência", limite no banco e apagamento
   (nota da ocorrência na anonimização; motivo do pedido ao resolver). O responsável não lê `occurrences` (policy removida).
+- **Decisão consciente (F2):** a anonimização de um aluno zera `occurrences.note` das execuções de que a criança participou
+  (a ocorrência não tem vínculo direto com aluno). Isso pode zerar notas que citavam OUTRAS crianças da mesma execução: é o
+  lado seguro (apagar a mais, nunca de menos). A ocorrência em si (tipo e hora) permanece.
 
 ## Identidade visual e padrões de UI
 - Amarelo `#FFD000`, azul-marinho `#0D1B3D`, cinza `#F2F4F7`, branco. Poppins SemiBold
