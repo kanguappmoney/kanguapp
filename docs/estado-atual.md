@@ -93,7 +93,7 @@
   (Android maskable/splash; iPhone standalone; navegador dentro do Instagram/WhatsApp).
 - `README.md` do repo está desatualizado (vale o estado dos commits/migrations).
 
-- Testes SQL de `docs/tests/`: 30 de 30 passam (E0, 2026-11-13).
+- Testes SQL de `docs/tests/`: 38 de 38 passam (2026-11-13). Evidências de segurança: `docs/seguranca/README.md` (inclui "O que não está provado").
 - Telas do ajuste (captação do pai, edição do aluno) ainda não vistas logadas. Motorista cadastrar aluno sem link: adiado ("por enquanto").
 
 ## Lacunas conhecidas (sem bloqueio)
