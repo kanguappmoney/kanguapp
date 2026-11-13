@@ -67,7 +67,7 @@
 - Produção na Vercel região `gru1`. Supabase "Kangu App" (sa-east-1). `main` em dia com o remoto.
 - **Bloco atual: LGPD (fatias A→E).** A, B, C e D feitas (migrations 055–062).
 - Ajuste feito (2026-11-10, migration 063): escola escolhida pelo pai na lista do motorista; endereço em rua/número/bairro/cidade obrigatórios.
-- Reabrir rota encerrada (migration 064) e front do pai (rota ativa sozinha) feitos em 2026-11-13; reabertura validada no navegador (lado motorista); falta só o caso do pai com o Início aberto antes de iniciar a rota. Próxima: fatia 2 = notificação "rota iniciada" (gatilho AFTER INSERT em `route_executions`, sem alterar `apply_route_review`).
+- Reabrir rota encerrada (migration 064) e front do pai (rota ativa sozinha) feitos em 2026-11-13; reabertura validada no navegador (lado motorista); falta só o caso do pai com o Início aberto antes de iniciar a rota. Notificação "rota iniciada" (migration 065, gatilho AFTER INSERT; só in-app) feita no mesmo dia.
 - **Depois: LGPD fatia E (evidências de segurança)** (perguntas em aberto: incluir `invoices`/`consents` na prova de G5; parar e avisar ao achar falha).
 
 ## Pendências antes do piloto
