@@ -52,6 +52,10 @@ values
 
 insert into students (id, driver_id, full_name) values
   ('00000000-0000-0000-0000-0000005c0001', '00000000-0000-0000-0000-0000000d0001', 'Aluno Teste');
+-- Fixture: a trava da migration 060 exige aluno autorizado para entrar em route_stops (sem mexer em asserção).
+select set_config('kangu.consent_internal', '1', true);
+update students set consent_status = 'authorized' where id in ('00000000-0000-0000-0000-0000005c0001');
+
 
 -- Só o responsável A é vinculado ao aluno (G5).
 insert into guardian_student (guardian_id, student_id) values

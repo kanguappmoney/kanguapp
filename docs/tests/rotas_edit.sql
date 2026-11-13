@@ -37,6 +37,10 @@ insert into students (id, driver_id, full_name, shift, status) values
   ('00000000-0000-0000-0000-0000005c0001', '00000000-0000-0000-0000-0000000d0001', 'Aluno Um',   'morning', 'active'),
   ('00000000-0000-0000-0000-0000005c0002', '00000000-0000-0000-0000-0000000d0001', 'Aluno Dois', 'morning', 'active'),
   ('00000000-0000-0000-0000-0000005c0003', '00000000-0000-0000-0000-0000000d0001', 'Aluno Três', 'morning', 'active');
+-- Fixture: a trava da migration 060 exige aluno autorizado para entrar em route_stops (sem mexer em asserção).
+select set_config('kangu.consent_internal', '1', true);
+update students set consent_status = 'authorized' where id in ('00000000-0000-0000-0000-0000005c0001', '00000000-0000-0000-0000-0000005c0002', '00000000-0000-0000-0000-0000005c0003');
+
 
 -- Rota 'both' do Motorista A. Ida: Um(1),Dois(2). Volta: Dois(1),Três(2).
 insert into routes (id, driver_id, name, direction, shift) values

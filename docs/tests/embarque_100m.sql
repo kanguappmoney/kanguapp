@@ -37,6 +37,10 @@ values
 insert into students (id, driver_id, full_name, shift, status, pickup_lat, pickup_lng) values
   ('00000000-0000-0000-0000-0000005c0001', '00000000-0000-0000-0000-0000000d0001', 'Aluno Um',   'morning', 'active', -23.6672, -46.4614),
   ('00000000-0000-0000-0000-0000005c0002', '00000000-0000-0000-0000-0000000d0001', 'Aluno Dois', 'morning', 'active', null, null);
+-- Fixture: a trava da migration 060 exige aluno autorizado para entrar em route_stops (sem mexer em asserção).
+select set_config('kangu.consent_internal', '1', true);
+update students set consent_status = 'authorized' where id in ('00000000-0000-0000-0000-0000005c0001', '00000000-0000-0000-0000-0000005c0002');
+
 
 insert into guardian_student (guardian_id, student_id) values
   ('00000000-0000-0000-0000-0000000a0001', '00000000-0000-0000-0000-0000005c0001');
