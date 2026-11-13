@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fmtDateTime, listSearchIps, listVanPhotos } from "@/lib/admin";
 import { vanPhotoUrl } from "@/lib/marketplace";
+import { removeVanPhotoAction } from "@/lib/actions/moderation";
 import { AdminTable, Badge, ErrorNote, Panel, Td } from "@/components/admin/AdminUi";
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -30,8 +31,8 @@ export default async function AdminModeracaoPage({ searchParams }: { searchParam
 
       <h3 className="mb-2 mt-6 font-display text-lg text-navy-900">Fotos públicas das vans</h3>
       <p className="mb-3 text-sm text-navy-700/70" data-testid="resumo-fotos">
-        {photos.length} {photos.length === 1 ? "foto cadastrada" : "fotos cadastradas"} — são públicas
-        (qualquer pessoa vê). Confira se há placa legível, pessoas ou conteúdo impróprio.
+        {photos.length} {photos.length === 1 ? "foto cadastrada" : "fotos cadastradas"} — privadas: só aparecem
+        na vitrine enquanto o motorista estiver listado. Confira se há placa legível, crianças ou conteúdo impróprio e remova se preciso.
       </p>
       {photosRes.error ? (
         <ErrorNote message={photosRes.error} />
@@ -44,7 +45,11 @@ export default async function AdminModeracaoPage({ searchParams }: { searchParam
           {photos.map(({ p, url }) => (
             <li key={p.user_id} className="overflow-hidden rounded-2xl bg-white shadow-sm" data-testid="foto">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={`Van de ${p.full_name}`} loading="lazy" className="h-44 w-full bg-navy-900/5 object-cover" />
+              {url ? (
+                <img src={url} alt={`Van de ${p.full_name}`} loading="lazy" className="h-44 w-full bg-navy-900/5 object-cover" />
+              ) : (
+                <div className="flex h-44 w-full items-center justify-center bg-navy-900/5 text-xs text-navy-700/50">sem acesso à imagem</div>
+              )}
               <div className="p-3">
                 <p className="font-semibold text-navy-900">{p.full_name}</p>
                 <p className="text-xs text-navy-700/60">{p.email ?? "—"}</p>
@@ -54,6 +59,11 @@ export default async function AdminModeracaoPage({ searchParams }: { searchParam
                   </Badge>
                   <span className="text-xs text-navy-700/60">enviada {fmtDateTime(p.photo_at)}</span>
                 </div>
+                <form action={removeVanPhotoAction.bind(null, p.user_id)} className="mt-2">
+                  <button className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700">
+                    Remover foto
+                  </button>
+                </form>
               </div>
             </li>
           ))}

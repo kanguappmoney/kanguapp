@@ -46,8 +46,9 @@ export default async function MarketplacePage() {
   const hasRequestsConsent = (active ?? []).some((c) => c.kind === "marketplace_requests");
   const { data: urow } = await supabase.from("users").select("phone").eq("id", user!.id).single();
 
+  // Bucket privado: o próprio motorista assina a URL da sua foto (política de dono, 1 h).
   const vanUrl = p?.van_photo_path
-    ? supabase.storage.from("van-photos").getPublicUrl(p.van_photo_path).data.publicUrl
+    ? ((await supabase.storage.from("van-photos").createSignedUrl(p.van_photo_path, 3600)).data?.signedUrl ?? null)
     : null;
 
   return (

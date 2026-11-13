@@ -18,7 +18,7 @@ export async function setDriverPhoto(photoPath: string) {
   revalidatePath("/motorista/perfil");
 }
 
-// Grava o caminho da foto da van (bucket PÚBLICO van-photos; RLS dono-only na escrita).
+// Grava o caminho da foto da van (bucket PRIVADO van-photos (068); RLS dono-only na escrita).
 export async function setVanPhoto(photoPath: string) {
   const supabase = await createClient();
   const {

@@ -6,7 +6,7 @@ import { Camera, Car } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setVanPhoto } from "@/lib/actions/driver";
 
-// Foto da VAN (bucket PÚBLICO van-photos, path <driverId>/van-<timestamp> — vitrine do
+// Foto da VAN (bucket PRIVADO van-photos desde a migration 068, path <driverId>/van-<timestamp> — vitrine do
 // marketplace). Escrita dono-only por RLS; a leitura é a URL pública. Diferente da
 // foto da pessoa (driver-photos, privado).
 export function VanPhotoUploader({
@@ -84,6 +84,9 @@ export function VanPhotoUploader({
           </span>
         )}
       </label>
+      <p className="mt-2 text-xs text-navy-700/60">
+        Não mostre crianças nem documentos na foto. Ela só aparece para os pais enquanto você estiver na vitrine.
+      </p>
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
     </div>
   );

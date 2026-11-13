@@ -107,9 +107,14 @@ export async function getFilterOptions(city: string): Promise<FilterOptions> {
   return out;
 }
 
-export async function vanPhotoUrl(path: string): Promise<string> {
+// A foto da van é PRIVADA (migration 068): a URL é assinada no servidor, com a sessão de quem visita, e vale no máximo
+// 1 hora. Quem pode assinar é decidido pela RLS de storage.objects (motorista dono, ou qualquer pessoa SÓ enquanto o dono
+// está listado na vitrine, ou admin). Nenhuma chave de serviço. Sem permissão ou falha → null (a tela mostra um espaço vazio).
+export async function vanPhotoUrl(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null;
   const supabase = await createClient();
-  return supabase.storage.from("van-photos").getPublicUrl(path).data.publicUrl;
+  const { data, error } = await supabase.storage.from("van-photos").createSignedUrl(path, 3600);
+  return error ? null : (data?.signedUrl ?? null);
 }
 
 // Trechos de um campo de texto livre (mesmo critério do banco: , ; ou quebra de linha).

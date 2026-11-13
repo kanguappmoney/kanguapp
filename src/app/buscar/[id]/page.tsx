@@ -46,7 +46,11 @@ export default async function PerfilPublicoPage({
     <main className="mx-auto min-h-dvh max-w-lg pb-40">
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo} alt={`Van de ${d.driver_name}`} className="h-56 w-full object-cover" />
+        {photo ? (
+          <img src={photo} alt={`Van de ${d.driver_name}`} className="h-56 w-full object-cover" />
+        ) : (
+          <div className="h-56 w-full bg-navy-900/5" />
+        )}
         <Link
           href="/buscar"
           aria-label="Voltar à busca"

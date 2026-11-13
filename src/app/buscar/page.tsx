@@ -195,7 +195,7 @@ function pageHref(f: Filters, page: number) {
   return s ? `/buscar?${s}` : "/buscar";
 }
 
-function DriverCard({ d, photo }: { d: Driver; photo: string }) {
+function DriverCard({ d, photo }: { d: Driver; photo: string | null }) {
   const spots =
     d.spots_available > 0
       ? `${d.spots_available} ${d.spots_available === 1 ? "vaga" : "vagas"}`
@@ -209,7 +209,11 @@ function DriverCard({ d, photo }: { d: Driver; photo: string }) {
         className="block overflow-hidden rounded-2xl bg-white shadow-sm"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo} alt={`Van de ${d.driver_name}`} className="h-40 w-full object-cover" />
+        {photo ? (
+          <img src={photo} alt={`Van de ${d.driver_name}`} className="h-40 w-full object-cover" />
+        ) : (
+          <div className="h-40 w-full bg-navy-900/5" />
+        )}
         <div className="p-4">
           <p className="text-lg font-bold text-navy-900">{d.driver_name}</p>
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-navy-700/70">
