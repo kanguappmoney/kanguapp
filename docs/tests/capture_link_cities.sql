@@ -11,6 +11,12 @@ delete from public.users where id = '00000000-0000-0000-0000-0000000e0095';
 delete from auth.users   where id = '00000000-0000-0000-0000-0000000e0095';
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0095', 'authenticated', 'authenticated', 'cidade-mot@teste.kangu', '{"role":"driver","full_name":"Cidade Motorista"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 
 update public.driver_profiles set service_cities = 'mauá,  SANTO ANDRÉ, Cidade Inexistente' where user_id = '00000000-0000-0000-0000-0000000e0095';
 insert into public.capture_links (driver_id, kind, shift, school, token, status)

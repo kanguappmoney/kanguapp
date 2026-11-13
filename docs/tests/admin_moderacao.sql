@@ -1,3 +1,4 @@
+-- PENDENTE (E0, 2026-11-13): as asserções (3), (4), (5) e (6) testam o desenho ANTERIOR à migration 056 (IP gravado na própria linha de marketplace_search_log, zerado por retenção na próxima busca). O IP agora vive em marketplace_search_ip_log, sem filtros e apagado por job. Reescrever exige alterar asserções; aguarda decisão do Abner.
 -- ===========================================================================
 -- Admin, Moderação (parte 3) — migration 043.
 --   (1) anon e não-admin recusados em `admin_list_van_photos` e `admin_search_ips`;

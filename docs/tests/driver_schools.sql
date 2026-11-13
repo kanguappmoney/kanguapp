@@ -18,6 +18,12 @@ insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, c
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0091', 'authenticated', 'authenticated', 'escola-mot1@teste.kangu', '{"role":"driver","full_name":"Escola Motorista 1"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0092', 'authenticated', 'authenticated', 'escola-mot2@teste.kangu', '{"role":"driver","full_name":"Escola Motorista 2"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000a0091', 'authenticated', 'authenticated', 'escola-pai@teste.kangu',  '{"role":"guardian","full_name":"Escola Pai"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 
 create temp table t_codes as
   select (select array_agg(inep_code order by inep_code) from (select inep_code from public.schools where city_id = 3529401 order by inep_code limit 3) a) as mau3,

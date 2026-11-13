@@ -25,6 +25,12 @@ insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, c
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0054', 'authenticated', 'authenticated', 'tr1@teste.kangu',     '{"role":"driver","full_name":"Tr Trial 1d"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0055', 'authenticated', 'authenticated', 'tr-ativa@teste.kangu','{"role":"driver","full_name":"Tr Ativa"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0056', 'authenticated', 'authenticated', 'tr-pausa@teste.kangu','{"role":"driver","full_name":"Tr Pausada"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 insert into public.admin_users (user_id) values ('00000000-0000-0000-0000-0000000e0051');
 
 update public.users set created_at = now() - interval '40 days' - interval '2 hours' where id = '00000000-0000-0000-0000-0000000e0052';

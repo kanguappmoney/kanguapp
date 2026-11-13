@@ -85,8 +85,7 @@
   (Android maskable/splash; iPhone standalone; navegador dentro do Instagram/WhatsApp).
 - `README.md` do repo está desatualizado (vale o estado dos commits/migrations).
 
-- Testes SQL `rotas_edit`, `g1_volta_sem_ausente` e `embarque_100m` passam só com a fixture autorizada (`consent_status = 'authorized'`); o arquivo em `docs/tests/` ainda tem a fixture antiga: atualizar.
-- Testes SQL `captacao_fatia2_rls`, `captacao_fatia3_geocode`, `captacao_fatia4_aprovacao`, `captacao_generica` estão DESATUALIZADOS desde a migration 059 (sem autorização) e 063 (assinatura): marcados no cabeçalho; a cobertura atual está em `lgpd_consentimento`, `lgpd_retencao_exclusao` e `escola_endereco_partes`.
+- Testes SQL: 27 de 30 passam. Três aguardam decisão porque corrigi-los exige alterar asserção: `admin_guard` (6), `admin_moderacao` (3–6) e `captacao_generica` (4 e 6); ver cabeçalho "PENDENTE (E0)" de cada um e a entrada E0 do `progresso.md`.
 - Telas do ajuste (captação do pai, edição do aluno) ainda não vistas logadas. Motorista cadastrar aluno sem link: adiado ("por enquanto").
 
 ## Lacunas conhecidas (sem bloqueio)

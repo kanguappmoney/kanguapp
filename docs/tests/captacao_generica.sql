@@ -1,4 +1,4 @@
--- ATENÇÃO (2026-11-10): DESATUALIZADO. Chama submit_capture sem autorização (exigida desde a migration 059) e com a assinatura anterior à 063. Não usar como regressão; cobertura atual: lgpd_consentimento, lgpd_retencao_exclusao, escola_endereco_partes.
+-- PENDENTE (E0, 2026-11-13): fixtures e chamadas já adaptadas (059/063), mas o CHECK 4 ("link travado descarta escola/turno do pai") e o CHECK 6 (aluno do link travado usa a escola do LINK) afirmam a regra ANTERIOR à 063: agora o link por turno exige e guarda a escola escolhida pelo pai. Alterar essas asserções depende de decisão do Abner.
 -- ===========================================================================
 -- Marketplace, Frente E.1 — link de captação GENÉRICO e opt-in (migration 039).
 -- Prova:
@@ -28,6 +28,12 @@ insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, c
 values
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0011', 'authenticated', 'authenticated', 'driver-g@teste.kangu', '{"role":"driver","full_name":"Mkt Generico"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000a0011', 'authenticated', 'authenticated', 'pai-g@teste.kangu',    '{"role":"guardian","full_name":"Pai Generico"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 
 -- Motorista COMPLETO e listado na vitrine (para o check 7).
 update public.users set phone = '11999990011' where id = '00000000-0000-0000-0000-0000000e0011';
@@ -44,6 +50,14 @@ values ('00000000-0000-0000-0000-0000000e0011', 'Van G', 'GGG1G11', 12, 'Van G',
 insert into capture_links (id, driver_id, kind, shift, school, token, status) values
   ('00000000-0000-0000-0000-0000000c2001', '00000000-0000-0000-0000-0000000e0011', 'scoped',  'morning', 'Escola A', 'tok-scoped', 'active'),
   ('00000000-0000-0000-0000-0000000c2002', '00000000-0000-0000-0000-0000000e0011', 'generic', null,      null,       'tok-g1',     'active');
+-- Fixture (migrations 059/063): o motorista atende as escolas usadas nos envios (submit_capture valida contra driver_schools;
+-- exige endereço em partes e a autorização). Chamadas adaptadas; asserções NÃO alteradas.
+insert into public.schools (inep_code, city_id, name, census_year) values
+  (99000001, (select id from public.cities order by id limit 1), 'Escola A', 2024),
+  (99000002, (select id from public.cities order by id limit 1), 'Colégio Beltrano', 2024),
+  (99000003, (select id from public.cities order by id limit 1), 'Escola Trocada', 2024) on conflict do nothing;
+insert into public.driver_schools (driver_id, inep_code) values ('00000000-0000-0000-0000-0000000e0011', 99000001), ('00000000-0000-0000-0000-0000000e0011', 99000002), ('00000000-0000-0000-0000-0000000e0011', 99000003) on conflict do nothing;
+
 
 -- ===========================================================================
 -- CHECK 1 — forma de cada tipo (check constraint).
@@ -98,21 +112,21 @@ begin
 
   begin
     perform submit_capture(p_token := 'tok-g2', p_child_full_name := 'Filho Sem Escola',
-      p_child_birth_date := null, p_pickup_address := 'Rua 1', p_dropoff_same := true, p_dropoff_address := null,
+      p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true, p_dropoff := null,
       p_responsible_phone := null, p_responsible_whatsapp := null,
-      p_school := '   ', p_shift := 'afternoon');
+      p_school := '   ', p_shift := 'afternoon', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
   exception when others then no_school := true; end;
   begin
     perform submit_capture(p_token := 'tok-g2', p_child_full_name := 'Filho Sem Turno',
-      p_child_birth_date := null, p_pickup_address := 'Rua 1', p_dropoff_same := true, p_dropoff_address := null,
+      p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true, p_dropoff := null,
       p_responsible_phone := null, p_responsible_whatsapp := null,
-      p_school := 'Colégio Beltrano', p_shift := null);
+      p_school := 'Colégio Beltrano', p_shift := null, p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
   exception when others then no_shift := true; end;
 
   perform submit_capture(p_token := 'tok-g2', p_child_full_name := 'Filho Generico',
-    p_child_birth_date := date '2018-03-03', p_pickup_address := 'Rua Casa, 10', p_dropoff_same := true,
-    p_dropoff_address := null, p_responsible_phone := '11999990011', p_responsible_whatsapp := null,
-    p_school := '  Colégio Beltrano ', p_shift := 'afternoon');
+    p_child_birth_date := date '2018-03-03', p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true,
+    p_dropoff := null, p_responsible_phone := '11999990011', p_responsible_whatsapp := null,
+    p_school := '  Colégio Beltrano ', p_shift := 'afternoon', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
   reset role;
 
   if not no_school then raise exception 'FALHOU (3): aceitou link genérico sem escola'; end if;
@@ -143,9 +157,9 @@ begin
   perform set_config('request.jwt.claims',
     json_build_object('sub', '00000000-0000-0000-0000-0000000a0011', 'role', 'authenticated')::text, true);
   perform submit_capture(p_token := 'tok-scoped', p_child_full_name := 'Filho Travado',
-    p_child_birth_date := null, p_pickup_address := 'Rua Casa, 20', p_dropoff_same := true,
-    p_dropoff_address := null, p_responsible_phone := null, p_responsible_whatsapp := null,
-    p_school := 'Escola Trocada', p_shift := 'afternoon');
+    p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true,
+    p_dropoff := null, p_responsible_phone := null, p_responsible_whatsapp := null,
+    p_school := 'Escola Trocada', p_shift := 'afternoon', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
   reset role;
   select * into s from capture_submissions where child_full_name = 'Filho Travado';
   if s.child_school is not null or s.child_shift is not null then
@@ -165,9 +179,9 @@ begin
     json_build_object('sub', '00000000-0000-0000-0000-0000000a0011', 'role', 'authenticated')::text, true);
   begin
     perform submit_capture(p_token := 'tok-g1', p_child_full_name := 'Filho Revogado',
-      p_child_birth_date := null, p_pickup_address := 'Rua 1', p_dropoff_same := true, p_dropoff_address := null,
+      p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb, p_dropoff_same := true, p_dropoff := null,
       p_responsible_phone := null, p_responsible_whatsapp := null,
-      p_school := 'Escola A', p_shift := 'morning');
+      p_school := 'Escola A', p_shift := 'morning', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
   exception when others then barrou := true; end;
   reset role;
   if not barrou then raise exception 'FALHOU (5): link genérico revogado aceitou envio'; end if;

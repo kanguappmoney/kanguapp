@@ -1,3 +1,4 @@
+-- PENDENTE (E0, 2026-11-13): a asserção (6) espera a coluna 'ip' em marketplace_search_log, removida na migration 056 (o IP foi para marketplace_search_ip_log). Corrigir exige alterar a lista esperada; aguarda decisão do Abner. Fixture do consentimento (059) já ajustada.
 -- ===========================================================================
 -- Marketplace, Frente F — guarda da área /admin e do log de buscas (migration 040).
 -- Prova no banco (cada chamada é feita COMO anon / authenticated, nunca como superusuário):
@@ -36,6 +37,12 @@ values
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0032', 'authenticated', 'authenticated', 'motB-t@teste.kangu',   '{"role":"driver","full_name":"Adm Mot B"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0033', 'authenticated', 'authenticated', 'motC-t@teste.kangu',   '{"role":"driver","full_name":"Adm Mot C"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000a0031', 'authenticated', 'authenticated', 'paiG-t@teste.kangu',   '{"role":"guardian","full_name":"Adm Pai G"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 
 -- A é admin (semeado como o SQL Editor fará com a conta real).
 insert into public.admin_users (user_id) values ('00000000-0000-0000-0000-0000000e0031');

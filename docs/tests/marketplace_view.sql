@@ -37,6 +37,12 @@ delete from auth.users   where id in ('00000000-0000-0000-0000-0000000e0001', '0
 -- Inserir em auth.users dispara handle_new_user (cria public.users + driver_profiles).
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0001', 'authenticated', 'authenticated', 'secreto@mkt.teste', '{"role":"driver","full_name":"Mkt Completo"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 
 update public.users set phone = '11999990001' where id = '00000000-0000-0000-0000-0000000e0001';
 
@@ -68,6 +74,12 @@ insert into public.students (driver_id, full_name, status) values
 -- Segundo motorista COMPLETO e visível (filtros/paginação): outra faixa etária, outro turno.
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0002', 'authenticated', 'authenticated', 'segundo@mkt.teste', '{"role":"driver","full_name":"Mkt Segundo"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 update public.users set phone = '11999990002' where id = '00000000-0000-0000-0000-0000000e0002';
 update public.driver_profiles set
   service_cities = 'Santo André', service_neighborhoods = 'Jardim', service_schools = 'Colégio Beltrano',

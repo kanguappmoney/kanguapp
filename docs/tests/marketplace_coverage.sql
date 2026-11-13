@@ -36,6 +36,10 @@ begin
   insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at)
   values ('00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated', 'cov' || p_n || '@cov.teste',
           json_build_object('role', 'driver', 'full_name', 'Cov ' || p_n)::jsonb, now(), now());
+  -- Fixture (migration 059): consentimento do motorista de teste; nenhuma asserção foi alterada.
+  perform public._insert_consent(k, v_id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+    from unnest(array['marketplace_listing','marketplace_requests']) k;
+
   update public.users set phone = '1199999' || lpad(p_n::text, 4, '0') where id = v_id;
   update public.driver_profiles set service_cities = p_cities, service_neighborhoods = p_nb, service_schools = p_sc,
          age_min = 3, age_max = 17, service_shifts = '{morning}', price_min_cents = 20000, price_max_cents = 30000,

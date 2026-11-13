@@ -30,6 +30,12 @@ delete from auth.users where id in (
 -- Admin primeiro (precisa existir para ler o BASELINE).
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e0041', 'authenticated', 'authenticated', 'adm-ov@teste.kangu', '{"role":"driver","full_name":"Ov Admin"}'::jsonb, now() - interval '60 days', now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 insert into public.admin_users (user_id) values ('00000000-0000-0000-0000-0000000e0041');
 -- O admin é "antigo" (60 dias): fora dos baldes de 30 dias.
 update public.users set created_at = now() - interval '60 days' where id = '00000000-0000-0000-0000-0000000e0041';
@@ -96,6 +102,12 @@ values
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000a0051', 'authenticated', 'authenticated', 'paiG-ov@teste.kangu', '{"role":"guardian","full_name":"Ov Pai G"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000a0052', 'authenticated', 'authenticated', 'paiH-ov@teste.kangu', '{"role":"guardian","full_name":"Ov Pai H"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000a0053', 'authenticated', 'authenticated', 'paiI-ov@teste.kangu', '{"role":"guardian","full_name":"Ov Pai I"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 update public.users set phone = '11999990042' where id = '00000000-0000-0000-0000-0000000e0042';
 update public.driver_profiles set
   service_cities = 'Mauá', service_neighborhoods = 'Centro', service_schools = 'Escola A',

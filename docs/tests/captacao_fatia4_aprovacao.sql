@@ -1,4 +1,3 @@
--- ATENÇÃO (2026-11-10): DESATUALIZADO. Chama submit_capture sem autorização (exigida desde a migration 059) e com a assinatura anterior à 063. Não usar como regressão; cobertura atual: lgpd_consentimento, lgpd_retencao_exclusao, escola_endereco_partes.
 -- ===========================================================================
 -- Captação — Fatia 4: fila de aprovação (portão G5).
 -- Prova, no mesmo rigor dos outros blocos:
@@ -31,6 +30,11 @@ values
 insert into capture_links (id, driver_id, shift, school, school_address, entry_time, exit_time, token, status)
 values ('00000000-0000-0000-0000-0000000c1001', '00000000-0000-0000-0000-0000000d0001',
         'morning', 'Escola A', 'Av Escola, 100', '07:00', '12:00', 'tok-cap-a', 'active');
+-- Fixture (migrations 059/063): o motorista A atende a 'Escola A' (submit_capture agora valida a escola contra driver_schools
+-- e exige endereço em partes e a autorização). Nenhuma asserção foi alterada.
+insert into public.schools (inep_code, city_id, name, census_year) values (99000001, (select id from public.cities order by id limit 1), 'Escola A', 2024) on conflict do nothing;
+insert into public.driver_schools (driver_id, inep_code) values ('00000000-0000-0000-0000-0000000d0001', 99000001) on conflict do nothing;
+
 
 -- Responsável 1 envia duas crianças (uma p/ aprovar, outra p/ rejeitar).
 do $$
@@ -40,15 +44,17 @@ begin
     json_build_object('sub', '00000000-0000-0000-0000-0000000a0001', 'role', 'authenticated')::text, true);
   perform submit_capture(
     p_token := 'tok-cap-a', p_child_full_name := 'Criança Um',
-    p_child_birth_date := date '2018-05-10', p_pickup_address := 'Rua de Casa, 1',
-    p_dropoff_same := true, p_dropoff_address := null,
+    p_child_birth_date := date '2018-05-10', p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb,
+    p_dropoff_same := true, p_dropoff := null,
     p_responsible_phone := '11999990000', p_responsible_whatsapp := '11999990000',
-    p_pickup_lat := -23.6672, p_pickup_lng := -46.4614);
+    p_pickup_lat := -23.6672, p_pickup_lng := -46.4614,
+    p_school := 'Escola A', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
   perform submit_capture(
     p_token := 'tok-cap-a', p_child_full_name := 'Criança Dois',
-    p_child_birth_date := null, p_pickup_address := 'Rua de Casa, 2',
-    p_dropoff_same := true, p_dropoff_address := null,
-    p_responsible_phone := null, p_responsible_whatsapp := null);
+    p_child_birth_date := null, p_pickup := '{"street":"Rua de Casa","number":"1","neighborhood":"Centro","city":"Mauá"}'::jsonb,
+    p_dropoff_same := true, p_dropoff := null,
+    p_responsible_phone := null, p_responsible_whatsapp := null,
+    p_school := 'Escola A', p_consent := '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[{"checked":true},{"checked":true}]}'::jsonb);
   reset role;
 end $$;
 

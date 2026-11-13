@@ -13,6 +13,12 @@ delete from auth.users   where id in ('00000000-0000-0000-0000-0000000e00c1', '0
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000e00c1', 'authenticated', 'authenticated', 'status-mot@teste.kangu', '{"role":"driver","full_name":"Status Motorista"}'::jsonb, now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-0000000a00c1', 'authenticated', 'authenticated', 'status-pai@teste.kangu', '{"role":"guardian","full_name":"Status Pai"}'::jsonb, now(), now());
+-- Fixture (migration 059): o motorista de teste concede o consentimento da vitrine/pedidos que a trava exige. Nenhuma asserção foi alterada.
+select public._insert_consent(k, u.id, null, null, '{"version":"t1","sha256":"fixture","snapshot":"fixture","method":"remote","checks":[]}'::jsonb, 'fixture')
+  from auth.users u cross join unnest(array['marketplace_listing','marketplace_requests']) k
+ where u.raw_user_meta_data ->> 'role' = 'driver' and u.email ~ '(teste\.kangu|\.teste)$'
+   and not exists (select 1 from public.consents c where c.subject_user_id = u.id and c.kind = k and c.revoked_at is null);
+
 update public.users set phone = '11999990111' where id = '00000000-0000-0000-0000-0000000e00c1';
 update public.driver_profiles set service_cities = 'Mauá', age_min = 4, age_max = 15, service_shifts = '{morning}',
   price_min_cents = 25000, price_max_cents = 40000, van_photo_path = '00000000-0000-0000-0000-0000000e00c1/van-1',
