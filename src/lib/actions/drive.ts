@@ -107,3 +107,17 @@ export async function endRoute(executionId: string) {
 
   redirect("/motorista");
 }
+
+// Reabre uma rota encerrada por acidente (só o motorista dono, só no mesmo dia). A MESMA execução volta a
+// in_progress pela função do banco (migration 064); os embarques já registrados continuam. O GPS não é
+// restaurado: a posição só volta pela janela normal (in_progress + foreground).
+export async function reopenRoute(executionId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reopen_route_execution", {
+    p_execution_id: executionId,
+  });
+  if (error) redirect(`/motorista/rotas?erro=${encodeURIComponent(error.message)}`);
+  revalidatePath("/motorista");
+  revalidatePath("/motorista/rotas");
+  redirect(`/motorista/rota/${executionId}`);
+}

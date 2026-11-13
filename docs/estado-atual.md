@@ -67,7 +67,8 @@
 - Produção na Vercel região `gru1`. Supabase "Kangu App" (sa-east-1). `main` em dia com o remoto.
 - **Bloco atual: LGPD (fatias A→E).** A, B, C e D feitas (migrations 055–062).
 - Ajuste feito (2026-11-10, migration 063): escola escolhida pelo pai na lista do motorista; endereço em rua/número/bairro/cidade obrigatórios.
-- **Próximo passo: LGPD fatia E (evidências de segurança)** (perguntas em aberto: incluir `invoices`/`consents` na prova de G5; parar e avisar ao achar falha).
+- Reabrir rota encerrada (migration 064) e front do pai (rota ativa sozinha) feitos em 2026-11-13; reabertura validada no navegador (lado motorista); falta só o caso do pai com o Início aberto antes de iniciar a rota. Próxima: fatia 2 = notificação "rota iniciada" (gatilho AFTER INSERT em `route_executions`, sem alterar `apply_route_review`).
+- **Depois: LGPD fatia E (evidências de segurança)** (perguntas em aberto: incluir `invoices`/`consents` na prova de G5; parar e avisar ao achar falha).
 
 ## Pendências antes do piloto
 - Validação de LGPD com profissional antes de qualquer dado real de criança (inclui base legal
@@ -84,6 +85,7 @@
   (Android maskable/splash; iPhone standalone; navegador dentro do Instagram/WhatsApp).
 - `README.md` do repo está desatualizado (vale o estado dos commits/migrations).
 
+- Testes SQL `rotas_edit`, `g1_volta_sem_ausente` e `embarque_100m` passam só com a fixture autorizada (`consent_status = 'authorized'`); o arquivo em `docs/tests/` ainda tem a fixture antiga: atualizar.
 - Testes SQL `captacao_fatia2_rls`, `captacao_fatia3_geocode`, `captacao_fatia4_aprovacao`, `captacao_generica` estão DESATUALIZADOS desde a migration 059 (sem autorização) e 063 (assinatura): marcados no cabeçalho; a cobertura atual está em `lgpd_consentimento`, `lgpd_retencao_exclusao` e `escola_endereco_partes`.
 - Telas do ajuste (captação do pai, edição do aluno) ainda não vistas logadas. Motorista cadastrar aluno sem link: adiado ("por enquanto").
 

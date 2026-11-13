@@ -4,6 +4,7 @@ import { Pencil, CalendarClock, Clock } from "lucide-react";
 import { Card, Placeholder } from "@/components/ui";
 import { startOrReview } from "@/lib/actions/routes";
 import { PendingSubmit } from "@/components/PendingSubmit";
+import { ReopenRouteButton } from "@/components/ReopenRouteButton";
 import {
   execKey,
   type RouteWithStops,
@@ -180,8 +181,11 @@ function LegControl({
 
   if (done) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-navy-900/10 py-2.5">
-        <StatusPill tone="done">{legLabel ? `${legLabel} concluída` : "Concluída hoje"}</StatusPill>
+      <div className="space-y-2">
+        <div className="flex items-center justify-center rounded-xl border border-navy-900/10 py-2.5">
+          <StatusPill tone="done">{legLabel ? `${legLabel} concluída` : "Concluída hoje"}</StatusPill>
+        </div>
+        <ReopenRouteButton executionId={exec!.id} label={label} />
       </div>
     );
   }
