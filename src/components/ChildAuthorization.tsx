@@ -194,9 +194,9 @@ export function ChildAuthorization({
             <textarea
               value={eraseNote}
               onChange={(e) => setEraseNote(e.target.value)}
-              maxLength={500}
+              maxLength={300}
               rows={2}
-              placeholder="Motivo (opcional)"
+              placeholder="Motivo (opcional). Não escreva dados de saúde ou de deficiência."
               className="w-full rounded-lg border border-navy-900/15 bg-white px-3 py-2 text-sm text-navy-900"
             />
             <div className="flex gap-2">

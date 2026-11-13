@@ -107,7 +107,8 @@ export function ExceptionManager({
           </span>
           <input
             name="reason"
-            placeholder="Ex.: Feriado municipal"
+            maxLength={120}
+            placeholder="Ex.: Feriado municipal. Não escreva dados de saúde ou de deficiência."
             className="w-full rounded-xl border border-navy-900/15 bg-white px-3 py-3 outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
           />
         </label>

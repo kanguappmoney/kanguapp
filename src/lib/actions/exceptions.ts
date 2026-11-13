@@ -26,7 +26,7 @@ export async function addException(
   const route_id = String(formData.get("route_id") ?? "");
   const date = String(formData.get("date") ?? "");
   const kindRaw = String(formData.get("kind") ?? "");
-  const reason = String(formData.get("reason") ?? "").trim();
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 120); // limite também no banco (check de 120)
 
   if (!route_id) return { error: "Rota não informada." };
   if (!date) return { error: "Escolha a data." };

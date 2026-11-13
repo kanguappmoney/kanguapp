@@ -104,9 +104,14 @@ export function OccurrenceSheet({ executionId }: { executionId: string }) {
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Observação (opcional) — só para seu registro"
+                  maxLength={200}
                   rows={2}
                   className="mt-3 w-full rounded-xl border border-navy-900/15 bg-white px-3 py-2 text-sm outline-none focus:border-navy-700 focus:ring-2 focus:ring-yellow-400/40"
                 />
+
+                <p className="mt-1 text-xs text-navy-700/60">
+                  Não escreva dados de saúde ou de deficiência. Até 200 caracteres.
+                </p>
 
                 {error && (
                   <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

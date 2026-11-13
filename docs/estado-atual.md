@@ -50,6 +50,11 @@
   consentimento A2–A4 são literais do jurídico (`src/lib/consent-texts.ts`, versão `2026-11-v1`);
   motorista só enxerga aluno `authorized`.
 
+- **Regra de texto livre (F2, 2026-11-13):** não criar campo de motivo livre em `absences` nem novo campo livre sobre criança
+  sem texto do jurídico. Os três campos livres existentes (`occurrences.note` ≤ 200, `route_exceptions.reason` ≤ 120,
+  `erasure_requests.note` ≤ 300) têm aviso "não escreva dados de saúde ou de deficiência", limite no banco e apagamento
+  (nota da ocorrência na anonimização; motivo do pedido ao resolver). O responsável não lê `occurrences` (policy removida).
+
 ## Identidade visual e padrões de UI
 - Amarelo `#FFD000`, azul-marinho `#0D1B3D`, cinza `#F2F4F7`, branco. Poppins SemiBold
   (títulos) + Inter (corpo). Ícones lucide-react, nunca emoji.
